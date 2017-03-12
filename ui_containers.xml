@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<XnaContent>
+	<Asset Type="MyDataTypes.ContainerData[]">	
+		<Item>
+			<c_id>CONTAINER_EDITOR_MODE_BUTTONS</c_id> <!-- 1. container for buttons on top of the screen -->
+			<contexttype>none</contexttype>
+			<name>mode</name>
+			<origin_x>100</origin_x>
+			<origin_y>20</origin_y>
+			<visible>true</visible>
+		</Item>
+		<Item>
+			<c_id>CONTAINER_MAIN_CONTEXT</c_id><!-- 2. right click context menu -->
+			<contexttype>context</contexttype>
+			<name>context menu</name>
+			<origin_x>0</origin_x>
+			<origin_y>0</origin_y>
+			<visible>false</visible>
+		</Item>
+		<Item>
+			<c_id>CONTAINER_GRID_COLOR_OPTIONS</c_id><!-- 3. grid color subcontext -->
+			<contexttype>expansion</contexttype>
+			<name>sub</name>
+			<origin_x>0</origin_x>
+			<origin_y>0</origin_y>
+			<visible>false</visible>
+		</Item>
+		<Item>
+			<c_id>CONTAINER_SELECTION_COLOR</c_id> <!-- 4.  selection color subcontext -->
+			<contexttype>expansion</contexttype>
+			<name>sub_selection</name>
+			<origin_x>0</origin_x>
+			<origin_y>0</origin_y>
+			<visible>false</visible>
+		</Item>
+		<Item>
+			<c_id>CONTAINER_INTERFACE_COLOR_OPTIONS</c_id> <!-- 5. interface color subcontext-->
+			<contexttype>expansion</contexttype>
+			<name>sub_interface</name>
+			<origin_x>0</origin_x>
+			<origin_y>0</origin_y>
+			<visible>false</visible>
+		</Item>
+		<Item>
+			<c_id>CONTAINER_CONFIRMATION</c_id><!-- 6. confirmation dialogue box  -->
+			<contexttype>expansion</contexttype>
+			<name>confirmation box</name>
+			<origin_x>0</origin_x>
+			<origin_y>0</origin_y>
+			<visible>false</visible>
+		</Item>
+		<Item>
+			<c_id>CONTAINER_BRUSH_SIZE_OPTIONS</c_id><!-- 7. brush size changer top screen -->
+			<contexttype>none</contexttype>
+			<name>submode info</name>
+			<origin_x>400</origin_x>
+			<origin_y>60</origin_y>
+			<visible>true</visible>
+		</Item>
+		<Item>
+			<c_id>CONTAINER_BRUSH_SIZE_OPTIONS_SUBCONTEXT</c_id><!-- 8. brush size changer in subcontext  -->
+			<contexttype>expansion</contexttype>
+			<name>brush slider</name>
+			<origin_x>0</origin_x>
+			<origin_y>0</origin_y>
+			<visible>false</visible>
+		</Item>
+		<Item>
+			<c_id>CONTAINER_EDITOR_MODE_SUBCONTEXT</c_id> <!-- 9. editor mode change subcontext  -->
+			<contexttype>expansion</contexttype>
+			<name>mode change</name>
+			<origin_x>0</origin_x>
+			<origin_y>0</origin_y>
+			<visible>false</visible>
+		</Item> 
+		<!-- id 10 is reserved for tile list -->
+		<Item>
+			<c_id>CONTAINER_CURRENT_EDIT_CELL_PREVIEW</c_id> <!-- 11. top screen current editor cell preview -->
+			<contexttype>none</contexttype>
+			<name>current cell preview</name>
+			<origin_x>400</origin_x>
+			<origin_y>20</origin_y>
+			<visible>true</visible>
+		</Item>
+		<Item>
+			<c_id>CONTAINER_WORLD_FILL_PROGRESS</c_id><!-- 12. world fill progress bar -->
+			<contexttype>none</contexttype>
+			<name>progress bar world fill</name>
+			<origin_x>50</origin_x>
+			<origin_y>700</origin_y>
+			<visible>true</visible>
+		</Item>
+		<Item>
+			<c_id>CONTAINER_GAUGE_MOUSE_X</c_id><!-- 13. mouse position x -->
+			<contexttype>none</contexttype>
+			<name>progress circle x</name>
+			<origin_x>1250</origin_x>
+			<origin_y>600</origin_y>
+			<visible>true</visible>
+		</Item>	
+		<Item>
+			<c_id>CONTAINER_GAUGE_MOUSE_Y</c_id><!-- 13. mouse position y -->
+			<contexttype>none</contexttype>
+			<name>progress circle y</name>
+			<origin_x>1358</origin_x>
+			<origin_y>600</origin_y>
+			<visible>true</visible>
+		</Item>	
+		<Item>
+			<c_id>CONTAINER_MAIN_TEXT_INPUT</c_id><!-- 14. A TEXT INPUT FOR SYSTEM CHAT -->
+			<contexttype>none</contexttype>
+			<name>system text input</name>
+			<origin_x>60</origin_x>
+			<origin_y>650</origin_y>
+			<visible>true</visible>
+		</Item>	
+		<Item>
+			<c_id>CONTAINER_EDITOR_TEXT_AREA</c_id><!-- 15. TEXT AREA FOR SYSTEM CHAT -->
+			<contexttype>none</contexttype>
+			<name>system chat area</name>
+			<origin_x>60</origin_x>
+			<origin_y>350</origin_y>
+			<visible>true</visible>
+		</Item>	
+		<Item>
+			<c_id>CONTAINER_GUI_MOVE_LOCKER</c_id><!-- 16. GUI movement locker/unlocker container -->
+			<contexttype>none</contexttype>
+			<name>move mode lock or unlock</name>
+			<origin_x>0</origin_x>
+			<origin_y>0</origin_y>
+			<visible>true</visible>
+		</Item>			
+	</Asset>
+</XnaContent>
