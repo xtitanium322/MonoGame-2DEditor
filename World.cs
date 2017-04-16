@@ -1266,7 +1266,13 @@ namespace beta_windows
             // viewport dimensions
             int max_visible_cell_x = minimal_visible_cell_x + (engine.get_viewport().Width / tile_size);
             int max_visible_cell_y = minimal_visible_cell_y + (engine.get_viewport().Height / tile_size);
+            
+            // make sure partial cells don't get cut off
+            max_visible_cell_x += 1;
+            max_visible_cell_y += 1;
 
+            // check boundaries
+            // x
             if (minimal_visible_cell_x < 1)
                 minimal_visible_cell_x = 1;
             else if (minimal_visible_cell_x > w)
@@ -1277,6 +1283,7 @@ namespace beta_windows
             else if (max_visible_cell_x > w)
                 max_visible_cell_x = w;
 
+            // y
             if (minimal_visible_cell_y < 1)
                 minimal_visible_cell_y = 1;
             else if (minimal_visible_cell_y > h)

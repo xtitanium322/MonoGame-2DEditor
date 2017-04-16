@@ -21,7 +21,8 @@ namespace beta_windows
     public class Engine
     {
         public static Texture2D pixel = Game1.pixel_texture;               // standard white pixel used to draw most primitives
-        public static Rectangle standard20 = new Rectangle(0, 0, 20, 20);     // standard size 20 px rectangle
+        public static Rectangle standard20 = new Rectangle(0, 0, 20, 20);  // standard size 20 px rectangle
+        private Game1 refgame;
 
         public WorldClock clock;
         private int world_clock_rate;                                      // number of frames to Update world clock
@@ -104,8 +105,9 @@ namespace beta_windows
         {
 
         }
-        public Engine(ref SpriteBatch sb, ref Viewport vp)
+        public Engine(ref SpriteBatch sb, ref Viewport vp, Game1 g)
         {
+            refgame = g;
             world_clock_rate = 20;         // larger number = slower time
             world_clock_multiplier = 15;  // number of seconds added per Update. more = faster
             clock = new WorldClock(world_clock_rate, world_clock_multiplier);
@@ -204,6 +206,11 @@ namespace beta_windows
             grid_color = new Color(gridcolor_r, gridcolor_g, gridcolor_b);
 
             editor.Update(this);
+        }
+        // update viewport
+        public void refresh_viewport(ref Viewport v)
+        {
+            viewport = v;
         }
         // engine class Draw function
         public void Draw(SpriteBatch spb, World current)
@@ -1415,6 +1422,40 @@ namespace beta_windows
             h = Int32.Parse(temp); // collects the last number
 
             return new Rectangle(x,y,w,h);
+        }
+        // testing string reversal
+        public static string reverse(string original)
+        {
+            // standard solution
+            /*if (original == null || original.Length == 1)
+                return (original);
+            else
+                return reverse(original.Substring(1,original.Length-1)) + original[0];*/
+
+            //1 line solution
+            return ((original == null || original.Length == 1) ? original : reverse(original.Substring(1,original.Length-1)) + original[0]);
+        }
+
+        public static int reverse(int num)
+        {
+            return num < 10 ? num : (num % 10) * (int)Math.Pow(10, (int)Math.Log10(num)) + reverse(num/10); // (int)log10 of 12345 is 4, 10 to power of 4 = 10000, 10000*5(last dig) = 50000, + reverse of remainder 1234
+        }
+
+        public static bool isPowerofTwo(int n)
+        {
+            // using one arithmetic operator
+                //return (n & (n - 1)) == 0; // biotwise comparison of a number and it's previous number. for a power of two previous number has every bit different from the original number, so bitwise returns a 0
+            // using no arithmetic operators
+                while(((n&1)==0) && n > 1)
+                {
+                    n = n>>1; // shift 1 position
+                }
+                return (n == 1); // if number is 1 after everything then it was a power of two
+        }
+
+        public Game1 getGame1()
+        {
+            return refgame;
         }
     }
     //=================================================================END OF ENGINE CLASS

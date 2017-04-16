@@ -60,7 +60,16 @@ namespace beta_windows
         color_preview, // action that doesn't change anything - simply identifies element
         focus_input, // for text input - will make current hovered text_input element receive input until cancellation
         switch_theme,
-        unlock_ui_move // unlocks specific ui movement mode (reposition ui elements on screen)
+        unlock_ui_move, // unlocks specific ui movement mode (reposition ui elements on screen)
+        resolution_fullscreen, // changes screen resolution to fullscreen mode
+        resolution_fullscreen_reverse,
+        resolution_1920_1080,
+        resolution_1440_900,
+        resolution_1366_768,
+        resolution_1280_800,
+        resolution_1024_576,
+        go_to_world_origin
+
     };
     // command passed by keyboard/mouse
     public enum command

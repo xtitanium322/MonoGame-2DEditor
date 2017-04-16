@@ -62,15 +62,23 @@ public class Game1 : Game // create a child class
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content"; // where the assets are stored
-            this.Window.Title = "conversion";
-            this.Window.AllowUserResizing = false;
-            graphics.PreferredBackBufferHeight = 800;  // window height
-            graphics.PreferredBackBufferWidth  = 1800; // window width
-            graphics.IsFullScreen = false;             // fullscreen?
+            this.Window.Title = "engine";
+            Window.AllowUserResizing = true;
+            //Window.ClientSizeChanged += Window_ClientSizeChanged;
+
+            graphics.PreferredBackBufferHeight = 576;  // window height
+            graphics.PreferredBackBufferWidth  = 1024; // window width
             graphics.ApplyChanges();                   // apply all graphics properties
+
             window = this.Window; // set a window
-            window.AllowUserResizing = true;
         }
+
+        /*public void Window_ClientSizeChanged(object sender, EventArgs e) // change resolution after resize 
+        {
+            graphics.PreferredBackBufferWidth = GraphicsDevice.Viewport.Width;
+            graphics.PreferredBackBufferHeight = GraphicsDevice.Viewport.Height;
+            graphics.ApplyChanges();
+        } */
  // Game Initialize Function
         protected override void Initialize()
         {
@@ -78,11 +86,17 @@ public class Game1 : Game // create a child class
             viewport = graphics.GraphicsDevice.Viewport;
             pixel_texture = new Texture2D(GraphicsDevice, 1, 1); // create a single pixel texture
             Game1.pixel_texture.SetData<Color>(new[] { Color.White }); // initialize pixel texture for future color tint (make it white by default to support tint)
-            engine = new Engine(ref spriteBatch,ref viewport);
+            engine = new Engine(ref spriteBatch,ref viewport, this);
+
+            // testing stuff
+            //this.Window.Title = Engine.reverse("Reversed"); // testing recursive sring reversal
+            //this.Window.Title = Engine.reverse(12345).ToString(); // testing recursive number reversal
+            //this.Window.Title = Engine.isPowerofTwo(10224).ToString(); // testing power of two 
+
             this.IsMouseVisible = false;
-            this.IsFixedTimeStep = false; // default = true
+            this.IsFixedTimeStep = true; // default = true, target 60 fps, if false - unlimited fps
             this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 60.0f);
-            graphics.SynchronizeWithVerticalRetrace = false; //default = true
+            graphics.SynchronizeWithVerticalRetrace = false; //default = true, V Sync to prevent screen tearing, drawback - lagging mouse
             // prevent game from crashing due to textures being not a power of 2 size
             GraphicsDevice.SamplerStates[0] = SamplerState.LinearClamp;
             GraphicsDevice.SamplerStates[1] = SamplerState.LinearClamp;
@@ -493,7 +507,6 @@ public class Game1 : Game // create a child class
 // Keyboard and Mouse controls - move to Engine and optimize + add controller support
         public void Controls()
         {
-
             // ---------------------------------------------------THIS IS an UPDATE() iteration BASED VERSION - some keys might be missed due to lower framerates. fast typing is not supported by this method
             // text input section       
             // setting keyboard states
@@ -541,16 +554,11 @@ public class Game1 : Game // create a child class
                 {
                     if (engine.get_world_list().get_current().in_edit_mode())
                     {
-                        engine.get_world_list().get_current().toggle_edit_mode();
-                    }
-
-                    if (GameScreens.Contains(screens.screen_menu))
-                    {
-                        GameScreens.Remove(screens.screen_menu);
+                        engine.get_world_list().get_current().toggle_edit_mode(); // close the edit windows
                     }
                     else
                     {
-                        GameScreens.Add(screens.screen_menu); // adds menu overlay
+                        this.Exit(); // close the program
                     }
                 }
                 // pressing TAB will enter/leave map edit mode
@@ -718,5 +726,53 @@ public class Game1 : Game // create a child class
                 KeyboardState ks = engine.get_current_keyboard_state();
                 engine.move_camera(ks.GetPressedKeys());
         }// end controls function
+
+        public void update_resolution(int width, int height)
+        {
+            // update window default starting position
+            window.Position = new Point(0, 0);
+            // update resolution
+            graphics.PreferredBackBufferHeight = height;  // window height
+            graphics.PreferredBackBufferWidth = width; // window width                        
+            graphics.ApplyChanges();
+
+            // update other variables
+            window = this.Window;
+            viewport = graphics.GraphicsDevice.Viewport;
+            engine.refresh_viewport(ref viewport);
+
+            // update render targets
+            world_tile_buffer = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
+            world_light_buffer = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
+            world_ui_layer = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
+            world_ui_mask_layer = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
+            world_ui_mask_temp = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
+        }
+
+        public void make_fullscreen(bool mode)
+        {
+            this.Window.Position = new Point(0, 0);
+
+            if (mode)
+                this.Window.IsBorderless = true;
+            else
+                this.Window.IsBorderless = false;
+
+            graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+            graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            graphics.ApplyChanges();
+
+            // update other variables
+            window = this.Window;
+            viewport = graphics.GraphicsDevice.Viewport;
+            engine.refresh_viewport(ref viewport);
+
+            // update render targets
+            world_tile_buffer = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
+            world_light_buffer = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
+            world_ui_layer = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
+            world_ui_mask_layer = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
+            world_ui_mask_temp = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
+        }
     }
 }

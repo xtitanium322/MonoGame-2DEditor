@@ -232,6 +232,33 @@ namespace beta_windows
             bounds_surrogate = Engine.rectangle_to_delimited_string(bounds);
         }
 
+        /// <summary>
+        /// This function checks Element for being outside the viewport and moves it back inside borders if needed
+        /// Only done for visible non context containers
+        /// </summary>
+        /// <param name="v">viewport object</param>
+        public void isOutsideBounds(Viewport v)
+        {
+          if (this.contexttype == context_type.none && this.is_visible())
+            {
+                // test viewport and dimensions using:
+                //      this.bounds.Width;
+                //      this.bounds.Height;
+                //      this.bounds.X;
+                //      this.bounds.Y;
+                // 1st case - element is beyond right border
+                while (v.Width < this.bounds.X + this.bounds.Width)
+                {
+                    this.bounds.X -= 1; // move to the left until the condition is no longer applicable
+                }
+
+                // 2nd case - element is beyond lower border
+                while (v.Height < this.bounds.Y + this.bounds.Height)
+                {
+                    this.bounds.Y -= 1;
+                }
+            }
+        }
         public void set_container_fade_start(long value)
         {
             fade_in_start_time = value;

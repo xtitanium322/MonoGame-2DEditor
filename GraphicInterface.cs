@@ -154,6 +154,8 @@ namespace beta_windows
             foreach (Container c in containers)
             {
                 c.update();
+                // test Container for being outside the viewport
+                c.isOutsideBounds(engine.get_viewport());
             }
 
             textengine.set_font(engine.get_UI_font());

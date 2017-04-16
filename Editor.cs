@@ -48,6 +48,11 @@ namespace beta_windows
         {
             interface_color = TextEngine.delimited_string_to_color(interface_color_surrogate);
         }
+
+        public Color get_color()
+        {
+            return interface_color;
+        }
     }
 
     [Serializable()]
@@ -82,6 +87,7 @@ namespace beta_windows
         private float sel_transparency;
         [NonSerialized]
         private Color selection_color;
+        private string selection_color_surrogate;
         private color_theme current_theme;
 
         [NonSerialized]
@@ -128,7 +134,8 @@ namespace beta_windows
             gui_move_mode = false; // UI can't be repositioned
             overwrite_cells = false; // default = false
             editor_actions_locked = false;
-            //selection_color = new Color(0, 175, 250);
+            selection_color = new Color(0, 175, 250); 
+            selection_color_surrogate = TextEngine.color_to_delimited_string(selection_color);
             // loading themes (contains alist of system defined colors)
             themes.Add(new color_theme("Dark", Color.Black, Color.White, 1f));
             themes.Add(new color_theme("White", Color.White, Color.Black, 1f));
@@ -636,6 +643,9 @@ namespace beta_windows
                 GUI.set_container_outline(false);
             }
 
+            // update selection color surrogate
+            selection_color_surrogate = TextEngine.color_to_delimited_string(selection_color);
+
         }
         // World Editor functions
         // Send a mouse keyboard input to editor class and execute an actions specified by the User Interface element clicked/used
@@ -1073,6 +1083,39 @@ namespace beta_windows
 
                             switch_mode("lights");
                         }
+                        break;
+                    // new actions - various resolutions and modes
+                    case actions.resolution_fullscreen:
+                        engine.getGame1().make_fullscreen(true);
+                        hide_expandable_containers_only();
+                        break;
+                    case actions.resolution_fullscreen_reverse:
+                        engine.getGame1().make_fullscreen(false);
+                        hide_expandable_containers_only();
+                        break;
+                    case actions.resolution_1920_1080:
+                        engine.getGame1().update_resolution(1920,1080);
+                        hide_expandable_containers_only();
+                        break;
+                    case actions.resolution_1440_900:
+                        engine.getGame1().update_resolution(1440, 900);
+                        hide_expandable_containers_only();
+                        break;
+                    case actions.resolution_1366_768:
+                        engine.getGame1().update_resolution(1366, 768);
+                        hide_expandable_containers_only();
+                        break;
+                    case actions.resolution_1280_800:
+                        engine.getGame1().update_resolution(1280, 800);
+                        hide_expandable_containers_only();
+                        break;
+                    case actions.resolution_1024_576:
+                        engine.getGame1().update_resolution(1024, 576);
+                        hide_expandable_containers_only();
+                        break;
+                    // END // various resolutions and modes
+                    case actions.go_to_world_origin:
+                        engine.set_camera_offset(new Vector2(-engine.get_viewport().Width/2, -engine.get_viewport().Height/2)); // reset camera offset
                         break;
                     case actions.unlock_ui_move:
                         {
@@ -1687,7 +1730,10 @@ namespace beta_windows
                 line_end_cell.Y = cell.Y;
             }
         }
-
+        public string get_selection_color_surrogate()
+        {
+            return selection_color_surrogate;
+        }
         public Color get_interface_color()
         {
             return current_theme.interface_color;
@@ -1811,14 +1857,23 @@ namespace beta_windows
 
             current_theme = deserialized_editor.get_current_theme();
             current_theme.deserialize_color_string();
-            //selection_color = deserialized_editor.get_selection_color();
-            //sel_transparency = deserialized_editor.get_selection_transparency();
+            sel_transparency = 0.5f;
+
+            // attempt to resurrcet selection color data
+            try
+            {
+                selection_color = TextEngine.delimited_string_to_color(deserialized_editor.get_selection_color_surrogate());
+            }
+            catch(NullReferenceException e)
+            {
+                selection_color = current_theme.get_color(); // if it doesn't exist in the serialized copy - assign default value
+            }
 
             // update sliders
-            //((Slider)GUI.find_unit(actions.update_selection_transparency)).set_slider_value(sel_transparency);
-            //((Slider)GUI.find_unit(actions.update_selection_color_red)).set_slider_value(selection_color.R);
-            //((Slider)GUI.find_unit(actions.update_selection_color_green)).set_slider_value(selection_color.G);
-            //((Slider)GUI.find_unit(actions.update_selection_color_blue)).set_slider_value(selection_color.B);
+            ((Slider)GUI.find_unit(actions.update_selection_transparency)).set_slider_value(sel_transparency);
+            ((Slider)GUI.find_unit(actions.update_selection_color_red)).set_slider_value(selection_color.R);
+            ((Slider)GUI.find_unit(actions.update_selection_color_green)).set_slider_value(selection_color.G);
+            ((Slider)GUI.find_unit(actions.update_selection_color_blue)).set_slider_value(selection_color.B);
         }
 
     }// class end
