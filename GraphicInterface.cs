@@ -156,6 +156,65 @@ namespace beta_windows
                 c.update();
                 // test Container for being outside the viewport
                 c.isOutsideBounds(engine.get_viewport());
+
+                bool window_collision_h = false; // refresh this only once per container tested
+                bool window_collision_v = false;
+                // test Container for collision with other containers
+                if (c.get_bounds().X != 0)
+                {
+                    foreach (Container cc in containers)
+                    {
+                        // don't take contexts into account and don't compare container to itself, don't compare to gui locker button either
+                        if (cc == c || c.get_context_type() != context_type.none || cc.get_context_type() != context_type.none
+                            || c.get_id().Equals("CONTAINER_GUI_MOVE_LOCKER") || cc.get_id().Equals("CONTAINER_GUI_MOVE_LOCKER"))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            while (cc.get_bounds().Intersects(c.get_bounds()))
+                            {
+                                // special case - if at any point container container intersects window borders - change direction of the movement
+                                if (c.get_bounds().X <= 0 || c.get_bounds().X >= engine.getGame1().viewport.Width)                                 
+                                {
+                                    window_collision_h = true;
+                                }
+
+                                if(c.get_bounds().Y <= 0 || c.get_bounds().Y >= engine.getGame1().viewport.Height)
+                                {
+                                    window_collision_v = true;
+                                }
+                                // test borders
+                                if (c.get_bounds().Left <= cc.get_bounds().Left) // current container intersects on the left border
+                                {
+                                    if (c.get_bounds().Top <= cc.get_bounds().Top) // intersection on the top border
+                                    {
+                                        // move left and up
+                                        c.de_intersect(new Vector2(-1, -1), window_collision_h,window_collision_v);
+                                    }
+                                    else // intersection on the bottom border
+                                    {
+                                        // move left and down
+                                        c.de_intersect(new Vector2(-1, 1), window_collision_h,window_collision_v);
+                                    }
+                                }
+                                else // intersects on right border
+                                {
+                                    if (c.get_bounds().Top <= cc.get_bounds().Top) // intersection on the top border
+                                    {
+                                        // move right and up
+                                        c.de_intersect(new Vector2(1, -1), window_collision_h,window_collision_v);
+                                    }
+                                    else // intersection on the bottom border
+                                    {
+                                        // move right and down
+                                        c.de_intersect(new Vector2(1, 1), window_collision_h,window_collision_v);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }//if
             }
 
             textengine.set_font(engine.get_UI_font());

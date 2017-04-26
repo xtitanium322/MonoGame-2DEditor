@@ -20,7 +20,7 @@ namespace beta_windows
         private string id;
         [NonSerialized]
         private Rectangle bounds;
-        private string bounds_surrogate; // a serializeable format for Rectangle value
+        private string bounds_surrogate; // a serializeable format for Rectangle value - saves container position if moved
         [NonSerialized]
         private Texture2D background;
         [NonSerialized]
@@ -184,6 +184,14 @@ namespace beta_windows
             state = c;
         }
         /// <summary>
+        /// Get container boundaries
+        /// </summary>
+        /// <returns>Rectangle dimension</returns>
+        public Rectangle get_bounds()
+        {
+            return bounds;
+        }
+        /// <summary>
         /// Get current current_state enum value of Container
         /// </summary>
         /// <returns>current current_state enum value e.g. hovered</returns>
@@ -256,6 +264,48 @@ namespace beta_windows
                 while (v.Height < this.bounds.Y + this.bounds.Height)
                 {
                     this.bounds.Y -= 1;
+                }
+
+                // move back into the screen - horizontal
+                if (this.bounds.X < 0)
+                    this.bounds.X = 0;
+                if (this.bounds.X > v.Width)
+                    this.bounds.X = v.Width - this.bounds.Width;
+
+                // move back into the screen - vertical
+                if (this.bounds.Y < 0)
+                    this.bounds.Y = 0;
+                if (this.bounds.Y > v.Height)
+                    this.bounds.Y = v.Height - this.bounds.Height;
+            }
+        }
+
+        public void de_intersect(Vector2 direction, bool reverse_v, bool reverse_h)
+        {
+            if (!reverse_h)
+            {
+                if (!reverse_v)
+                {
+                    bounds.X += (int)direction.X;
+                    bounds.Y += (int)direction.Y;
+                }
+                else // reverse_v == true
+                {
+                    bounds.X += (int)direction.X;
+                    bounds.Y -= (int)direction.Y;
+                }
+            }
+            else// reverse_h == true
+            {
+                if (!reverse_v)
+                {
+                    bounds.X -= (int)direction.X;
+                    bounds.Y += (int)direction.Y;
+                }
+                else // reverse_v == true
+                {
+                    bounds.X -= (int)direction.X;
+                    bounds.Y -= (int)direction.Y;
                 }
             }
         }

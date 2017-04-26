@@ -123,7 +123,7 @@ namespace beta_windows
             this.viewport = vp;
             rng = new Random();
             all_textures = new List<texture_element>();
-            //UIfont = statistics_font;
+            //UIfont = small_font;
             FPStracker = new ValueTimer<int>(frames, 250); // check for the value of frame every X milliseconds
             camera_moving = false;
             update_timer = new ValueTimer<long>();
@@ -161,8 +161,8 @@ namespace beta_windows
             all_textures.Add(new texture_element(content.Load<Texture2D>("mouse"), "mouse_default")); // default mouse
             all_textures.Add(new texture_element(content.Load<Texture2D>("mouse_hand"), "mouse_hand")); // special mouse (hover)
             all_textures.Add(new texture_element(content.Load<Texture2D>("mouse_move_indicator"), "mouse_move_indicator")); // special mouse (GUI move mode)
-            all_textures.Add(new texture_element(content.Load<Texture2D>("progress250x40"), "progress_mask"));
-            all_textures.Add(new texture_element(content.Load<Texture2D>("progress250x40border"), "progress_border"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("progress200x20"), "progress_mask"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("progress200x20border"), "progress_border"));
             all_textures.Add(new texture_element(content.Load<Texture2D>("lock_icon"), "editor_icon_locked"));
             all_textures.Add(new texture_element(content.Load<Texture2D>("lock_open_icon"), "editor_icon_unlocked"));
 
@@ -1376,13 +1376,13 @@ namespace beta_windows
             return temp;
         }
         /// <summary>
-        /// Creates an XNA Rectangle from a comma delimited surrogate string
+        /// Creates an XNA Rectangle from a comma delimited surrogate string. Used for serialization of GUI position
         /// </summary>
         /// <param name="source"></param>
         /// <returns></returns>
         public static Rectangle delimited_string_to_rectangle(string source)
         {
-            int x = 0;// color value placeholders
+            int x = 0; // position value placeholders
             int y = 0;
             int w = 0;
             int h = 0;

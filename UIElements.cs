@@ -786,6 +786,10 @@ namespace beta_windows
                 }
             }
         }
+        /// <summary>
+        /// Create sectors for this user interface element.
+        /// -40 in the width parameters is a zone for numeric value
+        /// </summary>
         public new void create_sectors()
         {
             horizontal_sector temp_cb = new horizontal_sector(0, bounds.Height);     // create default

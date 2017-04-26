@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -54,7 +55,8 @@ namespace beta_windows
         {
             foreach (WorldStruct w in worlds)
             {
-                List<MapData> tile_map = new List<MapData>();
+                ArrayList tile_map = new ArrayList();
+
                 try
                 {
 
@@ -63,22 +65,27 @@ namespace beta_windows
                         using (XmlReader reader = XmlReader.Create(stream)) // open file in xml reader
                         {
 
-                            MapData[] tiles = IntermediateSerializer.Deserialize<MapData[]>(reader, null);
-                            tile_map = tiles.Cast<MapData>().ToList(); // load into the list
+                            tile_map = IntermediateSerializer.Deserialize<ArrayList>(reader, null);
+                            //tile_map = tiles.Cast<MapData>().ToList(); // load into the list
                         }
                     }
                     // generating map ui_elements
-                    foreach (MapData tile_info in tile_map)
+                    // optimization - remove foreach loop and only calculate range once - change of format to ArrayList
+                        //foreach (MapData tile_info in tile_map)
+                    int total_count = tile_map.Count;
+
+                    for (int i = 0; i < total_count; i++ )
                     {
-                        if (tile_info != null)
+                        MapData map_object = (MapData)tile_map[i];
+                        if (tile_map[i] != null)
                         {
-                            for (int x = 0; x < tile_info.width; x++)
+                            for (int x = 0; x < map_object.width; x++)
                             {
-                                for (int y = 0; y < tile_info.height; y++)
+                                for (int y = 0; y < map_object.height; y++)
                                 {
-                                    w.world.generate_tile(Tile.find_tile_id(tile_info.block_name),
-                                    tile_info.block_x + x,
-                                    tile_info.block_y + y,
+                                    w.world.generate_tile(Tile.find_tile_id(map_object.block_name),
+                                    map_object.block_x + x,
+                                    map_object.block_y + y,
                                     engine);
                                 }
                             }
@@ -86,6 +93,14 @@ namespace beta_windows
                     }
                 }
                 catch (FileNotFoundException e)
+                {
+                    Debug.WriteLine("[DEBUG INFO] File doesn't exist: " + e);
+                }
+                catch(NullReferenceException e)
+                {
+                    Debug.WriteLine("[DEBUG INFO] File doesn't exist: " + e);
+                }
+                catch(InvalidCastException e)
                 {
                     Debug.WriteLine("[DEBUG INFO] File doesn't exist: " + e);
                 }

@@ -36,7 +36,7 @@ namespace beta_windows
     /// </summary>
 public class Game1 : Game // create a child class
 {      
-        public static GraphicsDeviceManager graphics;          // graphics device
+        public static GraphicsDeviceManager graphics = null;          // graphics device
         public SpriteBatch spriteBatch;                        // spritebatch
         public Viewport viewport;                              // window
         RenderTarget2D world_tile_buffer;                      // draw all world ui_elements to this memory
@@ -47,10 +47,13 @@ public class Game1 : Game // create a child class
         Effect fx_lightmap_shader, fx_blur_shader, fx_ui_masking_shader;             // shader effects
         public static Texture2D pixel_texture;                 // assigned to Engine as static object
         Color fps_color;                                       // draw fps statistics in different colors
-        public static SpriteFont statistics_font;
+        public static SpriteFont small_font;
+        public static SpriteFont large_font;
         public Engine engine;                                  // all the support functions 
         public List<screens> GameScreens = new List<screens>();       // contains all gamescreens
         public float world_percent_filled = 0f;                // quick stat
+        public int screen_max_height = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+        public int screen_max_width  = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
         // Time of Day
         public static DateTime thisDay = DateTime.Now;     
         // -------------------------------------- stopwatches for quick measurements of code performance                           
@@ -63,22 +66,18 @@ public class Game1 : Game // create a child class
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content"; // where the assets are stored
             this.Window.Title = "engine";
-            Window.AllowUserResizing = true;
-            //Window.ClientSizeChanged += Window_ClientSizeChanged;
+            Window.AllowUserResizing = false;
+            graphics.IsFullScreen = false;             // borderless instead
+            graphics.PreferredBackBufferHeight = 1080; // window height
+            graphics.PreferredBackBufferWidth  = 1920; // window width
 
-            graphics.PreferredBackBufferHeight = 576;  // window height
-            graphics.PreferredBackBufferWidth  = 1024; // window width
-            graphics.ApplyChanges();                   // apply all graphics properties
-
-            window = this.Window; // set a window
+            window = this.Window;              // set a window reference
+            window.AllowAltF4 = true;
+            window.Position = new Point(0, 0); // move window to the top left corner
+            window.IsBorderless = true;        // simulates fullscreen
+            //graphics.IsFullScreen = true;
+            graphics.ApplyChanges();           // apply all graphics properties
         }
-
-        /*public void Window_ClientSizeChanged(object sender, EventArgs e) // change resolution after resize 
-        {
-            graphics.PreferredBackBufferWidth = GraphicsDevice.Viewport.Width;
-            graphics.PreferredBackBufferHeight = GraphicsDevice.Viewport.Height;
-            graphics.ApplyChanges();
-        } */
  // Game Initialize Function
         protected override void Initialize()
         {
@@ -88,15 +87,10 @@ public class Game1 : Game // create a child class
             Game1.pixel_texture.SetData<Color>(new[] { Color.White }); // initialize pixel texture for future color tint (make it white by default to support tint)
             engine = new Engine(ref spriteBatch,ref viewport, this);
 
-            // testing stuff
-            //this.Window.Title = Engine.reverse("Reversed"); // testing recursive sring reversal
-            //this.Window.Title = Engine.reverse(12345).ToString(); // testing recursive number reversal
-            //this.Window.Title = Engine.isPowerofTwo(10224).ToString(); // testing power of two 
-
             this.IsMouseVisible = false;
-            this.IsFixedTimeStep = true; // default = true, target 60 fps, if false - unlimited fps
-            this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 60.0f);
-            graphics.SynchronizeWithVerticalRetrace = false; //default = true, V Sync to prevent screen tearing, drawback - lagging mouse
+            this.IsFixedTimeStep = false; // default = true, target 60 fps, if false - unlimited fps
+            this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 75.0f);
+            graphics.SynchronizeWithVerticalRetrace = true; //default = true, V Sync to prevent screen tearing, drawback - lagging mouse
             // prevent game from crashing due to textures being not a power of 2 size
             GraphicsDevice.SamplerStates[0] = SamplerState.LinearClamp;
             GraphicsDevice.SamplerStates[1] = SamplerState.LinearClamp;
@@ -122,8 +116,9 @@ public class Game1 : Game // create a child class
             fx_blur_shader       = Content.Load<Effect>("Blur");
             fx_ui_masking_shader = Content.Load<Effect>("ui_mask_shader");
             // loading font
-            statistics_font = Content.Load<SpriteFont>("stats");
-            engine.set_UI_font(statistics_font); // assign GUI font
+            small_font = Content.Load<SpriteFont>("stats");
+            large_font = Content.Load<SpriteFont>("largefont");
+            engine.set_UI_font(small_font); // assign GUI font
             // adding Tile definitions
             // to add a new tile sprite - just load and name a texture in here. Everything else is created automatically
             Tile.add_tile(this.Content.Load<Texture2D>("testcell"), "test cell", 1);
@@ -196,23 +191,30 @@ public class Game1 : Game // create a child class
             GraphicsDevice.SamplerStates[1] = SamplerState.LinearClamp;
             graphics.ApplyChanges();
 
-            render_stopwatch.Reset();
-            render_stopwatch.Start(); // start counting time
-            // draw all visible screens in order of importance
-            base.Draw(gameTime);
-            create_ui_renders(spriteBatch); // create UI surfaces later displayed on screen
+            try
+            {
+                render_stopwatch.Reset();
+                render_stopwatch.Start(); // start counting time
+                // draw all visible screens in order of importance
+                base.Draw(gameTime);
+                create_ui_renders(spriteBatch); // create UI surfaces later displayed on screen
 
-            if (GameScreens.Contains(screens.screen_main))
-                draw_main_game(gameTime, spriteBatch);
-            if (GameScreens.Contains(screens.screen_statistics))
-                draw_statistics(gameTime);    // draw stats if activated      
-            // all supporting graphics
-            draw_engine(gameTime);
-            // finishing up         
-            engine.add_draw_calls_total(engine.get_draw_calls());
-            engine.clear_draw_calls_to_zero();                   // reset draw call number for next frame ( only count total of each frame and not total overall)      
-            engine.frame_plusone(); // increase frane count
-            render_stopwatch.Stop();
+                if (GameScreens.Contains(screens.screen_main))
+                    draw_main_game(gameTime, spriteBatch);
+                if (GameScreens.Contains(screens.screen_statistics))
+                    draw_statistics(gameTime);    // draw stats if activated      
+                // all supporting graphics
+                draw_engine(gameTime);
+                // finishing up         
+                engine.add_draw_calls_total(engine.get_draw_calls());
+                engine.clear_draw_calls_to_zero();                   // reset draw call number for next frame ( only count total of each frame and not total overall)      
+                engine.frame_plusone(); // increase frane count
+                render_stopwatch.Stop();
+            }
+            catch(NullReferenceException e) 
+            {
+                Debug.Write(e,":error:");
+            }
 
             base.Draw(gameTime);
         }  
@@ -299,16 +301,18 @@ public class Game1 : Game // create a child class
             spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
             engine.Draw(spriteBatch, engine.get_world_list().get_current());
             // format and display time
-            Vector2 length = statistics_font.MeasureString("current time: " + thisDay.Hour.ToString("D2") + ":" + thisDay.Minute.ToString("D2") + " " + thisDay.Second.ToString("D2") + " " + thisDay.ToString("tt", System.Globalization.CultureInfo.InvariantCulture));
+            Vector2 length = small_font.MeasureString("current time: " + thisDay.Hour.ToString("D2") + ":" + thisDay.Minute.ToString("D2") + " " + thisDay.Second.ToString("D2") + " " + thisDay.ToString("tt", System.Globalization.CultureInfo.InvariantCulture));
             engine.xna_draw_outlined_text(
                 "current time: " + thisDay.Hour.ToString("D2") + ":" + thisDay.Minute.ToString("D2") + " " + thisDay.Second.ToString("D2") + " " + thisDay.ToString("tt", System.Globalization.CultureInfo.InvariantCulture),
-                new Vector2(viewport.Width - (length.X + 5),5), Vector2.Zero, Color.White, Color.Black, statistics_font);
+                new Vector2(viewport.Width - (length.X + 5),5), Vector2.Zero, Color.White, Color.Black, small_font);
             spriteBatch.End();
         }
 // draw statistics
         public void draw_statistics(GameTime gameTime)
         {
             // variables
+            int h_offset = 300;
+            int v_offset = 300;
             Vector2 cell = engine.get_world_list().get_current().get_current_hovered_cell(engine.get_current_mouse_state(), engine);
             fps_color = Color.Lerp(Color.Red, Color.LimeGreen, engine.get_fps() / 60f);
 
@@ -318,71 +322,85 @@ public class Game1 : Game // create a child class
             int cells_in_world = engine.get_world_list().get_current().get_total_tiles_filled();
             double render_time = ((double)render_stopwatch.Elapsed.Ticks / 10000.0f);
             double update_time = ((double)update_stopwatch.Elapsed.Ticks / 10000.0f);
-
             float stats_transparency = 0.85f;
+
+            // begin drawing
+            //--------------
             GraphicsDevice.SetRenderTarget(null);
             spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+
+            engine.xna_draw_outlined_text("shift+escape to exit", new Vector2(10, 0), Vector2.Zero, Color.Orange, Color.Black, large_font);
             engine.xna_draw_outlined_text( Convert.ToString("# of renders: " + engine.get_draw_calls() /*+ " Total (" + stotal_draw_calls + ") "*/),
-                new Vector2(10, 220), Vector2.Zero, Color.White * stats_transparency,Color.Black, statistics_font);
+                new Vector2(h_offset, v_offset), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
             engine.xna_draw_outlined_text(Convert.ToString("Seconds elapsed: " + string.Format("{0:0.0}", (float)engine.get_current_game_millisecond() / 1000.0f)),
-                new Vector2(10, 240), Vector2.Zero, Color.White * stats_transparency, Color.Black, statistics_font);
+                new Vector2(h_offset, v_offset + 25), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
             engine.xna_draw_outlined_text(Convert.ToString("fps: " + string.Format("{0:0.0}", engine.get_fps()) + " | frame: " + engine.get_frame_count()),
-                new Vector2(10, 260), Vector2.Zero, fps_color, Color.Black, statistics_font);
+                new Vector2(h_offset, v_offset + 50), Vector2.Zero, fps_color, Color.Black, large_font);
             engine.xna_draw_outlined_text(Convert.ToString("Mouse position: " + engine.get_current_mouse_state().X + " : " + engine.get_current_mouse_state().Y),
-                new Vector2(10, 280), Vector2.Zero, Color.White * stats_transparency, Color.Black, statistics_font);
+                new Vector2(h_offset, v_offset + 75), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
             engine.xna_draw_outlined_text(Convert.ToString("Game clock " + " (" + engine.get_clock().get_time_in_minutes() + ") " + " [" + engine.get_clock().get_time_in_seconds() + "] " + engine.get_clock().get_time().X.ToString("00") + " : " + engine.get_clock().get_time().Y.ToString("00") + " : " + engine.get_clock().get_time().Z.ToString("00") + " " + engine.get_clock().get_am_pm()),
-                new Vector2(10, 300), Vector2.Zero, Color.GhostWhite * stats_transparency, Color.Black, statistics_font);
+                new Vector2(h_offset, v_offset + 100), Vector2.Zero, Color.GhostWhite * stats_transparency, Color.Black, large_font);
             
             // this function requires expensive method that calculated percentage of world filled - limit execution of this section
             if(engine.get_frame_count()%120 == 0)
                 world_percent_filled = engine.get_world_list().get_current().get_percent_filled() * 100; // update value twice a second
 
             engine.xna_draw_outlined_text(Convert.ToString("World: " + engine.get_world_list().get_current().worldname + " / cells: " + cells_in_world + " [" + string.Format("{0:0.00}", world_percent_filled) + "%]"),
-                new Vector2(10, 320), Vector2.Zero, Color.White * stats_transparency, Color.Black, statistics_font);
+                new Vector2(h_offset, v_offset + 125), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
 
-            if (engine.get_world_list().get_current().in_edit_mode()) // Only draw container hover statstics if in edit mode
-                engine.xna_draw_outlined_text("user interface: " + engine.get_editor().GUI.get_hovered_container_id() + " | element: " + engine.get_editor().GUI.get_hovered_element_id() + "( " + engine.get_editor().GUI.get_hovered_element_action_text() + " )",
-                new Vector2(10, viewport.Bounds.Height - 20), Vector2.Zero, Color.White * stats_transparency, Color.Black, statistics_font);
-
+            // Processing stats
             engine.xna_draw_outlined_text("render duration: " + string.Format("{0:0.00}", render_time) + " ms",
-                new Vector2(10, 340), Vector2.Zero, Color.White * stats_transparency, Color.Black, statistics_font);
+                new Vector2(h_offset, v_offset + 150), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
             engine.xna_draw_outlined_text("update duration: " + string.Format("{0:0.00}", update_time) + " ms",
-                new Vector2(10, 360), Vector2.Zero, Color.White * stats_transparency, Color.Black, statistics_font);
+                new Vector2(h_offset, v_offset + 175), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
             engine.xna_draw_outlined_text("total duration: " + string.Format("{0:0.00}", update_time + render_time) + " / 16.67 ms" + " [" + string.Format("{0:0.00}",((update_time + render_time)/16.67f)*100f) + " % ]",
-                new Vector2(10, 380), Vector2.Zero, Color.White * stats_transparency, Color.Black, statistics_font);
+                new Vector2(h_offset, v_offset + 200), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
+           
+            // Only draws container hover statstics if in edit mode
+            if (engine.get_world_list().get_current().in_edit_mode()) 
+                engine.xna_draw_outlined_text("user interface: " + engine.get_editor().GUI.get_hovered_container_id() + " | element: " + engine.get_editor().GUI.get_hovered_element_id() + "( " + engine.get_editor().GUI.get_hovered_element_action_text() + " )",
+                new Vector2(h_offset, v_offset + 225), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
+
             spriteBatch.End();
         }
 // save map data to the file
+        // optimization
         public void serialize_map_data(ContentManager content)
         {
             XmlWriterSettings settings = new XmlWriterSettings();
             settings.Indent = true;
 
             foreach (WorldStruct w in engine.get_world_list().worlds)
-            {// create an array of mapdata to save
-                MapData[] Tiles_save = new MapData[w.world.length * w.world.height];
-                // save map data (
+            {
+                // create an array of mapdata to save
+                //MapData[] tiles_save = new MapData[w.world.length * w.world.height];
+                ArrayList tiles_save = new ArrayList();
+                // save map data (new optimized version creates only as much space as needed)
                 for (int i = 0; i < w.world.length; i++)
                 {
                     for (int j = 0; j < w.world.height; j++)
                     {
                         if (!w.world.world_map[i, j].is_air())
                         {
-                            int position = i * w.world.height + j;
+                            int position = i * w.world.height + j; // calculates array position
+
                             MapData obj = new MapData();
                             obj.block_name = Tile.find_tile_name(w.world.world_map[i, j].tile_id);
                             obj.block_x = i + 1;
                             obj.block_y = j + 1;
                             obj.height = 1;
                             obj.width = 1;
-                            Tiles_save[position] = obj; // add MapData entry to the array
+
+                            // save the object
+                            //tiles_save[position] = obj; // add MapData entry to the array
+                            tiles_save.Add(obj);
                         }
                     }
                 }
                 // write xml
                 using (XmlWriter writer = XmlWriter.Create(w.filename, settings))
                 {
-                    IntermediateSerializer.Serialize(writer, Tiles_save, null); // write complete array to the xml file
+                    IntermediateSerializer.Serialize(writer, tiles_save, null); // write complete arraylist to the xml file
                 }
             }
         }
@@ -558,13 +576,16 @@ public class Game1 : Game // create a child class
                     }
                     else
                     {
-                        this.Exit(); // close the program
+                        // make sure combination left shift + escape closes the game
+                        if(engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftShift))
+                            this.Exit(); // close the program
                     }
                 }
                 // pressing TAB will enter/leave map edit mode
                 if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab) && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab))
                 {
                     engine.get_world_list().get_current().toggle_edit_mode();
+                    engine.get_editor().unfocus_inputs(); // remove focus from inputs if editor gui is closed
 
                     if (GameScreens.Contains(screens.screen_menu))
                         GameScreens.Remove(screens.screen_menu);
@@ -729,6 +750,12 @@ public class Game1 : Game // create a child class
 
         public void update_resolution(int width, int height)
         {
+            // don't change the resolution if screen width doesn't allow it
+            if(width > screen_max_width || height > screen_max_height)
+            {
+                engine.get_editor().GUI.get_text_engine().add_message_element(engine, "resolution "+width.ToString()+"[255,0,0] : "+height.ToString()+"[255,0,0] not applicable to this monitor");
+                return;
+            }
             // update window default starting position
             window.Position = new Point(0, 0);
             // update resolution

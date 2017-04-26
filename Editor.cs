@@ -211,7 +211,7 @@ namespace beta_windows
             // set world fill progress bar mask
             ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_mask(engine);
             ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_border(engine);
-            ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_progress_color(Color.GreenYellow);
+            ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_progress_color(Color.CornflowerBlue);
 
             ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_X")).set_progress_color(Color.OrangeRed); // changing progress color
             ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_Y")).set_progress_color(Color.MediumVioletRed); // changing progress color
@@ -243,7 +243,7 @@ namespace beta_windows
             //((UIlocker)GUI.find_element("LOCKER_UI_MOVEMENT")).enable_button(false, e.get_texture("editor_icon_locked"), e.get_texture("editor_icon_unlocked")); // locks ui movement by default
             // SET progress bars
             ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_element_values(0, 100, (int)e.get_current_world().get_percent_filled() * 100);
-            ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).update((int)(e.get_current_world().get_percent_filled() * 100f));
+            ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).update((int)(e.get_current_world().get_percent_filled() * 100.0f));
             ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_X")).set_element_values(0, 100, (int)((e.get_mouse_vector().X / e.get_viewport().Bounds.Width) * 100f));
             ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_Y")).set_element_values(0, 100, (int)((e.get_mouse_vector().Y / e.get_viewport().Bounds.Height) * 100f));
 
@@ -1755,6 +1755,24 @@ namespace beta_windows
             selection_end_cell = null;
             selection_matrix.Clear();
         }
+
+        // remove focus from inputs
+        // needed to prevent stuck aswd keys
+        public void unfocus_inputs()
+        {
+            try
+            {
+                current_focused.clear_text(); // remove text
+            }
+            catch (NullReferenceException)
+            {
+                // do nothing
+            }
+            finally
+            {
+                current_focused = null;       // clear focus from input
+            }
+        }
         // selection matrix handling function
         public void selection_driver(Engine engine)
         {
@@ -1839,14 +1857,21 @@ namespace beta_windows
 
         public void seed_interface_with_serialized_data(List<Container> deserialized_list)
         {
-            if (deserialized_list.Count == 0)
-                return;
-
-            // find all serialized containers and assign their positions to current default containers
-            foreach (Container c in deserialized_list)
+            try
             {
-                c.deserialize_rectangle_surrogate_string(); // recreates rectangle in deserialized copy of container
-                GUI.find_container(c.get_id()).set_origin(c.get_origin()); // assign exact origin of serialized containers from previous run
+                if (deserialized_list.Count == 0)
+                    return;
+
+                // find all serialized containers and assign their positions to current default containers
+                foreach (Container c in deserialized_list)
+                {
+                    c.deserialize_rectangle_surrogate_string(); // recreates rectangle in deserialized copy of container
+                    GUI.find_container(c.get_id()).set_origin(c.get_origin()); // assign exact origin of serialized containers from previous run
+                }
+            }
+            catch(NullReferenceException e)
+            {
+                // no user interface info saved - use defaults
             }
         }
 

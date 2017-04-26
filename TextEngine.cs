@@ -183,7 +183,7 @@ namespace beta_windows
             target_origin = text_area_origin;
             starting_line = 1;
             standard_color = std_color;
-            engine_font = Game1.statistics_font;
+            engine_font = Game1.small_font;
             generate_space_texture();
         }
 
@@ -341,7 +341,7 @@ namespace beta_windows
                     }
 
                     temp_text.set_color(current_encoder); // can vary
-                    temp_text.set_text_font(Game1.statistics_font);
+                    temp_text.set_text_font(Game1.small_font);
                     result.add_text_element(temp_text);
                     temp_text = new text_element(); // since it was copied  over a new structure can be created
 
@@ -382,6 +382,10 @@ namespace beta_windows
             {
                 temp = Game1.thisDay.Hour.ToString("D2") + ":" + Game1.thisDay.Minute.ToString("D2");
             }
+            else if (variable_tag.ToUpper() == "H")
+            {
+                temp = "~ms (show milliseconds since start), ~cam (show camera offset),~size (show total number of cells in the game world), ~fps (show current fps), ~time (show time)";
+            }
             else
             {
                 temp = "<undefined variable>";
@@ -415,6 +419,41 @@ namespace beta_windows
         // converts a string value to xna Color value
         public static Color delimited_string_to_color(string color_string)// format "int,int,int",e.g. 25,125,44
         {
+            // check actual color names first
+            if(color_string.Equals("green"))
+            {
+                return Color.Green;
+            }
+            else if(color_string.Equals("red"))
+            {
+                return Color.Red;
+            }
+            else if (color_string.Equals("blue"))
+            {
+                return Color.Blue;
+            }
+            else if (color_string.Equals("orange"))
+            {
+                return Color.Orange;
+            }
+            else if (color_string.Equals("pink"))
+            {
+                return Color.Pink;
+            }
+            else if (color_string.Equals("violet"))
+            {
+                return Color.BlueViolet;
+            }
+            else if (color_string.Equals("yellow"))
+            {
+                return Color.Yellow;
+            }
+            else if (color_string.Equals("skyblue"))
+            {
+                return Color.DeepSkyBlue;
+            }
+            
+            // numeric color codes
             int r = 0;// color value placeholders
             int g = 0;
             int b = 0;
@@ -422,32 +461,39 @@ namespace beta_windows
             string temp = ""; // a temp string to read in characters
             int order = 1; // which variable is being used
 
-            for (int i = 0; i < color_string.Length; i++) // read character by character
+            try
             {
-                if (color_string[i] == ',')
+                for (int i = 0; i < color_string.Length; i++) // read character by character
                 {
-                    // assign number and switch to the next variable
-                    if (order == 1)
+                    if (color_string[i] == ',')
                     {
-                        r = Int32.Parse(temp);
-                    }
-                    else if (order == 2)
-                    {
-                        g = Int32.Parse(temp);
+                        // assign number and switch to the next variable
+                        if (order == 1)
+                        {
+                            r = Int32.Parse(temp);
+                        }
+                        else if (order == 2)
+                        {
+                            g = Int32.Parse(temp);
+                        }
+                        else
+                        {
+                            b = Int32.Parse(temp);
+                        }
+                        temp = ""; // reset temp string
+                        order++;   // increase color component order
                     }
                     else
                     {
-                        b = Int32.Parse(temp);
+                        temp = String.Concat(temp, color_string[i]);
                     }
-                    temp = ""; // reset temp string
-                    order++;   // increase color component order
                 }
-                else
-                {
-                    temp = String.Concat(temp, color_string[i]);
-                }
+                b = Int32.Parse(temp); // collects the last number
             }
-            b = Int32.Parse(temp); // collects the last number
+            catch(FormatException)
+            {
+                return Color.White; // return a standard white color if encoding is wrong
+            }
 
             return new Color(r, g, b);
         }
