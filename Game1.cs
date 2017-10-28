@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Diagnostics;                                                   // stop watch class + debug
 using System.Collections;                                                   // stack
 using System.Collections.Generic;                                           // list
 using System.Linq;
@@ -9,88 +9,93 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
-using System.Globalization;
-//using Microsoft.Xna.Framework.GameWindow;
+using System.Globalization;                                                 // various string formats
 //----------------------------------
 using System.Xml;                                                           // use xml files
 using Microsoft.Xna.Framework.Content.Pipeline.Serialization.Intermediate;  // xml serialization
 using MyDataTypes;                                                          // data types structure for xml serialization
 using System.IO;                                                            // filestream
 
-/* 2015-2016 - aee. XNA > MonoGame project. 
- * Purpose: Research possibility of creating a small video game. Work with Microsoft game creation library(es)*/
-
-/* Future tech:
- * Lights sphere scale pulse (grow/shrink)
- * dynamic stored_elements: growing trees or plants? 
- * Add internal shadows based on how many ui_elements are around.
- * Add Tile variations to surface ui_elements to create a more chaotic looking landscape. once assigned - variation of shape will not change. Shapes = triangles, rounded, half-tile, etc.
- * 
- * 
- * slide left/right GUI animation for hiding elements in statistics window/container
- */
-namespace beta_windows
+/* 2015-2017 - aee. MonoGame UI project. Conversion from the XNA framework.
+ * Purpose: Research possibility of creating a small video game engine. Work with Microsoft game creation library(es)*/
+namespace EditorEngine
 {
     /// <summary>
-    /// This is the main type for a game.
+    /// This is the main class for a game app.
     /// </summary>
 public class Game1 : Game // create a child class
 {      
-        public static GraphicsDeviceManager graphics = null;          // graphics device
-        public SpriteBatch spriteBatch;                        // spritebatch
-        public Viewport viewport;                              // window
-        RenderTarget2D world_tile_buffer;                      // draw all world ui_elements to this memory
-        RenderTarget2D world_light_buffer;                     // draw all world lighting to this memory
+        public static GraphicsDeviceManager graphics = null;             // graphics device
+        public SpriteBatch spriteBatch;                                  // spritebatch
+        public Viewport viewport;                                        // window
+        RenderTarget2D world_tile_buffer;                                // draw all world ui_elements to this memory
+        RenderTarget2D world_light_buffer;                               // draw all world lighting to this memory
         RenderTarget2D world_ui_layer;
         RenderTarget2D world_ui_mask_layer;
-        RenderTarget2D world_ui_mask_temp;                     // temporary storage for UI elements that had shader masking applied
-        Effect fx_lightmap_shader, fx_blur_shader, fx_ui_masking_shader;             // shader effects
-        public static Texture2D pixel_texture;                 // assigned to Engine as static object
-        Color fps_color;                                       // draw fps statistics in different colors
+        RenderTarget2D world_ui_mask_temp;                               // temporary storage for UI elements that had shader masking applied
+        Effect fx_lightmap_shader, fx_blur_shader, fx_ui_masking_shader; // shader effect objects
+        public static Texture2D pixel_texture;                           // assigned to Engine as static object (a single pixel texture used to fill larger shapes, rectangles and circles)
+        Color fps_color;                                                 // draw fps statistics in a unique color based on current value
         public static SpriteFont small_font;
         public static SpriteFont large_font;
-        public Engine engine;                                  // all the support functions 
-        public List<screens> GameScreens = new List<screens>();       // contains all gamescreens
-        public float world_percent_filled = 0f;                // quick stat
+        public Engine engine;                                            // all the support functions 
+        public List<screens> GameScreens = new List<screens>();          // contains all gamescreens
+        public float world_percent_filled = 0f;                          // quick stat - fill percentage 
         public int screen_max_height = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
         public int screen_max_width  = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+
+        double render_time = 0.00;                                       // ms - entire draw cycle
+        double update_time = 0.00;                                       // ms - update cycle
+        double peak_render_time = 0.00;                                  // maximum drawing time
+        double peak_update_time = 0.00;                                  // maximum update time
+        int overtime_frames = 0;                                         // number of frames that took longer than 1/60thg of a second
+        int draw_call_previous = 0;                                      // number of total draw calls last frame
+
         // Time of Day
         public static DateTime thisDay = DateTime.Now;     
-        // -------------------------------------- stopwatches for quick measurements of code performance                           
+        // stopwatches for quick measurements of code performance                           
         Stopwatch render_stopwatch = new Stopwatch();
         Stopwatch update_stopwatch = new Stopwatch();
         GameWindow window = null;
- // Game class begins
+
+
+
+
+
+
+// Game class begins
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
-            Content.RootDirectory = "Content"; // where the assets are stored
+            graphics.GraphicsProfile = GraphicsProfile.HiDef;           // creates a hig definition graphics profile. helps with fx files quality(shaders)
+            Content.RootDirectory = "Content";                          // where the assets are stored
             this.Window.Title = "engine";
             Window.AllowUserResizing = false;
-            graphics.IsFullScreen = false;             // borderless instead
-            graphics.PreferredBackBufferHeight = 1080; // window height
-            graphics.PreferredBackBufferWidth  = 1920; // window width
+            graphics.PreferredBackBufferHeight = 1080;                  // window height
+            graphics.PreferredBackBufferWidth  = 1920;                  // window width
 
-            window = this.Window;              // set a window reference
+            window = this.Window;                                       // set a window reference
             window.AllowAltF4 = true;
-            window.Position = new Point(0, 0); // move window to the top left corner
-            window.IsBorderless = true;        // simulates fullscreen
-            //graphics.IsFullScreen = true;
-            graphics.ApplyChanges();           // apply all graphics properties
+            window.Position = new Point(0, 0);                          // move window to the top left corner
+            window.IsBorderless = true;                                 // simulates fullscreen
+            graphics.IsFullScreen = true;                               // start in fullscreen mode
+            graphics.ApplyChanges();                                    // apply all graphics properties
         }
- // Game Initialize Function
+
+// Game Initialize Function - load assets
         protected override void Initialize()
         {
             spriteBatch = new SpriteBatch(GraphicsDevice);
             viewport = graphics.GraphicsDevice.Viewport;
-            pixel_texture = new Texture2D(GraphicsDevice, 1, 1); // create a single pixel texture
-            Game1.pixel_texture.SetData<Color>(new[] { Color.White }); // initialize pixel texture for future color tint (make it white by default to support tint)
+            pixel_texture = new Texture2D(GraphicsDevice, 1, 1);          // create a single pixel texture
+            Game1.pixel_texture.SetData<Color>(new[] { Color.White });    // initialize pixel texture for future color tint (make it white by default to support tint)
             engine = new Engine(ref spriteBatch,ref viewport, this);
 
             this.IsMouseVisible = false;
-            this.IsFixedTimeStep = false; // default = true, target 60 fps, if false - unlimited fps
-            this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 75.0f);
-            graphics.SynchronizeWithVerticalRetrace = true; //default = true, V Sync to prevent screen tearing, drawback - lagging mouse
+            this.IsFixedTimeStep = true;                                  // default = true - provides best results for update() in release version, target 30 fps for laptop, if false - unlimited fps
+            this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 59.9f);
+            graphics.SynchronizeWithVerticalRetrace = false;              //default = true, V Sync to prevent screen tearing, drawback - lagging mouse
+
             // prevent game from crashing due to textures being not a power of 2 size
             GraphicsDevice.SamplerStates[0] = SamplerState.LinearClamp;
             GraphicsDevice.SamplerStates[1] = SamplerState.LinearClamp;
@@ -103,7 +108,7 @@ public class Game1 : Game // create a child class
             world_ui_mask_temp = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight);
             // initialize screens (main game will be displayed/updated in game loop)
             GameScreens.Add(screens.screen_main);
-            // pause
+            // initialize pause
             engine.set_pause(false);
             // base function call
             base.Initialize();
@@ -136,12 +141,11 @@ public class Game1 : Game // create a child class
             }
             engine.load_user_interface();
             engine.LoadContent(Content);
+            engine.get_world_list().change_current(engine, "test world2");
         }
  // Game Unload Content Function
         protected override void UnloadContent()
         {// finalize maps when game is closed
-            //serialize_map_data(Content); // this function saves all world info into an xml file
-
             //serializing GUI
             try
             {
@@ -156,34 +160,82 @@ public class Game1 : Game // create a child class
 
             Content.Unload();
         }
- // Game Update Function
+        // Game Update Function
         protected override void Update(GameTime gameTime)
         {
             update_stopwatch.Reset();
             update_stopwatch.Start(); // start counting - entire update should take 1-2 ms out of 16.67ms assigned per frame
-                engine.refresh_keyboard_and_mouse();
-                engine.set_currWheelValue(engine.get_current_mouse_state().ScrollWheelValue);           
-                engine.Update();
+            engine.refresh_keyboard_and_mouse();
+            engine.set_currWheelValue(engine.get_current_mouse_state().ScrollWheelValue);
+            engine.Update();
 
-                Controls();
+            // accept controls / input
+            Controls();
 
-                if (!engine.get_pause_status()) // update world clock if not paused
-                {
-                    engine.add_real_millisecond(gameTime.ElapsedGameTime.Milliseconds);
-                    engine.set_real_second((int)(engine.get_current_game_millisecond() / 1000));
+            if (!engine.get_pause_status()) // update world clock if not paused
+            {
+                engine.add_real_millisecond(gameTime.ElapsedGameTime.Milliseconds);
+                engine.set_real_second((int)(engine.get_current_game_millisecond() / 1000));
 
-                    engine.get_world_list().get_current().update_world(engine.get_clock(), engine);
-                    engine.get_world_list().get_current().update_light_spheres(engine.get_frame_count());
-                }
+                engine.get_world_list().get_current().update_world(engine.get_clock(), engine);
+                engine.get_world_list().get_current().update_light_spheres(engine.get_frame_count());
+            }
 
-                engine.save_previous_keyboard_and_mouse();
-                engine.set_prevWheelValue(engine.get_currWheelValue());
-            update_stopwatch.Stop();
+            engine.save_previous_keyboard_and_mouse();
+            engine.set_prevWheelValue(engine.get_currWheelValue());
+
 
             thisDay = DateTime.Now; // update current in-game time
+
+// update section for engine textarea
+            engine.engine_text_engine.clear_messages();
+            string statistics_text = "";
+            int draw_call_current = engine.get_draw_calls();
+            //float seconds_elapsed = 0.0f;
+            render_time = ((double)render_stopwatch.Elapsed.Ticks / 10000.0f);
+            update_time = ((double)update_stopwatch.Elapsed.Ticks / 10000.0f);
+
+            if ((render_time + update_time) > (1000.0/59.9)) // frames taht took longer than 16.67 ms (60 fps rate)
+                overtime_frames++;
+
+            if (engine.get_frame_count() > 120) // allow for all the loading to be done before reading peak values
+            {
+                peak_render_time = render_time >= peak_render_time ? render_time : peak_render_time; // assign peak
+                peak_update_time = update_time >= peak_update_time ? update_time : peak_update_time; // assign peak
+            }
+
+            statistics_text += "rendered[orange] objects:[orange] (per[orange] frame)[orange] /nl ---total: " + engine.number_to_KMB(engine.get_draw_calls()) + "[skyblue] /nl ---current: " + (draw_call_current - draw_call_previous) + "[0,255,40] /nl ";
+            statistics_text += "fps:[orange] " + string.Format("{0:0.0}", engine.get_fps()) + "[skyblue] frame:[orange] " + engine.get_frame_count() + "[skyblue] /nl long[orange] frames[orange]: "
+                + overtime_frames + "[red] " + " long[orange] frame[orange] %[orange]: " + string.Format("{0:0.00}", ((float)overtime_frames / (float)engine.get_frame_count()) * 100) + "[skyblue] % /nl ";
+
+            float seconds_elapsed = ((float)engine.get_current_game_millisecond() / 1000.0f);
+
+            render_time = ((double)render_stopwatch.Elapsed.Ticks / 10000.0f);
+            update_time = ((double)update_stopwatch.Elapsed.Ticks / 10000.0f);
+
+            WorldClock wc = engine.get_clock();
+            statistics_text += "Seconds[orange] elapsed:[orange] " + string.Format("{0:0.0}", seconds_elapsed) + "[skyblue] /nl ";
+            statistics_text += "Mouse[orange] position:[orange] " + engine.get_current_mouse_state().X + "[skyblue] : " + engine.get_current_mouse_state().Y + "[skyblue] /nl ";
+            statistics_text += "Game[orange] clock[orange] " + " (" + wc.get_time_in_minutes() + ")[skyblue] " + " [" + wc.get_time_in_seconds() + "][skyblue] "
+            + wc.get_time().X.ToString("00") + " : " + wc.get_time().Y.ToString("00") + " : "
+            + wc.get_time().Z.ToString("00") + " " + wc.get_am_pm() + " /nl ";
+
+            statistics_text += "render[orange] duration:[orange] " + string.Format("{0:00.00}", render_time) + "[skyblue] ms" + " (peak:[orange] " + string.Format("{0:00.00}", peak_render_time) + "[red])[orange] /nl ";
+            statistics_text += "update[orange] duration:[orange] " + string.Format("{0:00.00}", update_time) + "[skyblue] ms" + " (peak:[orange] " + string.Format("{0:00.00}", peak_update_time) + "[red])[orange] /nl "; ;
+
+            if (engine.get_world_list().get_current().in_edit_mode())
+                statistics_text += "/nl container:[green] " + engine.get_editor().GUI.get_hovered_container_id() +
+                "[skyblue] /nl element:[green] " + engine.get_editor().GUI.get_hovered_element_id() + "[skyblue] /nl action:[green] " + engine.get_editor().GUI.get_hovered_element_action_text() + "[skyblue]";
+
+            engine.engine_text_engine.add_message_element(engine, statistics_text); // create text 
+
+            // save states
+            draw_call_previous = draw_call_current;
+            // end of the new statistics
+            update_stopwatch.Stop();
             base.Update(gameTime);
         }
-// Game Draw function - target time <5ms per frame
+        // Game Draw function - target time <5ms per frame
         protected override void Draw(GameTime gameTime)
         {
             // turn these back on if game crashes
@@ -201,23 +253,23 @@ public class Game1 : Game // create a child class
 
                 if (GameScreens.Contains(screens.screen_main))
                     draw_main_game(gameTime, spriteBatch);
-                if (GameScreens.Contains(screens.screen_statistics))
-                    draw_statistics(gameTime);    // draw stats if activated      
+                //if (GameScreens.Contains(screens.screen_statistics))
+                // draw_statistics(gameTime);    // draw stats if activated      
                 // all supporting graphics
                 draw_engine(gameTime);
                 // finishing up         
                 engine.add_draw_calls_total(engine.get_draw_calls());
-                engine.clear_draw_calls_to_zero();                   // reset draw call number for next frame ( only count total of each frame and not total overall)      
+                //engine.clear_draw_calls_to_zero();                   // reset draw call number for next frame ( only count total of each frame and not total overall)      
                 engine.frame_plusone(); // increase frane count
                 render_stopwatch.Stop();
             }
-            catch(NullReferenceException e) 
+            catch (NullReferenceException e)
             {
-                Debug.Write(e,":error:");
+                Debug.Write(e, ":error:");
             }
 
             base.Draw(gameTime);
-        }  
+        }
 //====================================================================
 // CREATING RENDER TARGET FOR UI - COMBINES ELEMENTS AND PIXEL MASKS IN A PROPER ORDER
         public void create_ui_renders(SpriteBatch spritebatch)
@@ -260,7 +312,7 @@ public class Game1 : Game // create a child class
             GraphicsDevice.SetRenderTarget(world_light_buffer);
             GraphicsDevice.Clear(Color.Transparent);
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Additive);
-                fx_blur_shader.CurrentTechnique.Passes[0].Apply();
+                //fx_blur_shader.CurrentTechnique.Passes[0].Apply();
                 engine.get_world_list().get_current().world_draw_point_lights(engine, spritebatch);
             spriteBatch.End();
             // draw world map tiles
@@ -283,6 +335,8 @@ public class Game1 : Game // create a child class
             // draw world geometry lines
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
             engine.get_world_list().get_current().draw_world_geometry(engine, spritebatch);// eliminates masking issues with shaders used on user interface layer or lines showing above UI. Also removes lighting effects from point lights if drawn here
+            engine.get_world_list().get_current().world_draw_point_light_sources(engine); // actual light sources + info
+            engine.get_world_list().get_current().world_draw_water_generators(engine);    // water generator markers 
             spriteBatch.End();
         // UI complete mask       
             spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
@@ -320,8 +374,10 @@ public class Game1 : Game // create a child class
                 fps_color = Color.DeepSkyBlue;
 
             int cells_in_world = engine.get_world_list().get_current().get_total_tiles_filled();
-            double render_time = ((double)render_stopwatch.Elapsed.Ticks / 10000.0f);
-            double update_time = ((double)update_stopwatch.Elapsed.Ticks / 10000.0f);
+
+            render_time = ((double)render_stopwatch.Elapsed.Ticks / 10000.0f);
+            update_time = ((double)update_stopwatch.Elapsed.Ticks / 10000.0f);
+
             float stats_transparency = 0.85f;
 
             // begin drawing
@@ -329,7 +385,9 @@ public class Game1 : Game // create a child class
             GraphicsDevice.SetRenderTarget(null);
             spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
 
-            engine.xna_draw_outlined_text("shift+escape to exit", new Vector2(10, 0), Vector2.Zero, Color.Orange, Color.Black, large_font);
+            engine.xna_draw_rectangle(new Rectangle(h_offset - 10, v_offset - 10, 600, 250), Color.Black, 2, 0.3f);
+
+            engine.xna_draw_outlined_text("shift + esc to exit the app", new Vector2(10, 0), Vector2.Zero, Color.Orange, Color.Black, large_font);
             engine.xna_draw_outlined_text( Convert.ToString("# of renders: " + engine.get_draw_calls() /*+ " Total (" + stotal_draw_calls + ") "*/),
                 new Vector2(h_offset, v_offset), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
             engine.xna_draw_outlined_text(Convert.ToString("Seconds elapsed: " + string.Format("{0:0.0}", (float)engine.get_current_game_millisecond() / 1000.0f)),
@@ -349,17 +407,22 @@ public class Game1 : Game // create a child class
                 new Vector2(h_offset, v_offset + 125), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
 
             // Processing stats
-            engine.xna_draw_outlined_text("render duration: " + string.Format("{0:0.00}", render_time) + " ms",
+            engine.xna_draw_outlined_text("render duration: " + string.Format("{0:000.00}", render_time) + " ms",
                 new Vector2(h_offset, v_offset + 150), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
-            engine.xna_draw_outlined_text("update duration: " + string.Format("{0:0.00}", update_time) + " ms",
+            engine.xna_draw_outlined_text("update duration: " + string.Format("{0:000.00}", update_time) + " ms",
                 new Vector2(h_offset, v_offset + 175), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
-            engine.xna_draw_outlined_text("total duration: " + string.Format("{0:0.00}", update_time + render_time) + " / 16.67 ms" + " [" + string.Format("{0:0.00}",((update_time + render_time)/16.67f)*100f) + " % ]",
+            engine.xna_draw_outlined_text("total duration: " + string.Format("{0:000.00}", update_time + render_time) + " / 16.67 ms" + " [" + string.Format("{0:000.00}", ((update_time + render_time) / 16.67f) * 100f) + " % ]",
                 new Vector2(h_offset, v_offset + 200), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
-           
             // Only draws container hover statstics if in edit mode
-            if (engine.get_world_list().get_current().in_edit_mode()) 
-                engine.xna_draw_outlined_text("user interface: " + engine.get_editor().GUI.get_hovered_container_id() + " | element: " + engine.get_editor().GUI.get_hovered_element_id() + "( " + engine.get_editor().GUI.get_hovered_element_action_text() + " )",
-                new Vector2(h_offset, v_offset + 225), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
+            if (engine.get_world_list().get_current().in_edit_mode())
+            {
+                // 1st line
+                engine.xna_draw_outlined_text("user interface: container:" + engine.get_editor().GUI.get_hovered_container_id(),
+                new Vector2(h_offset, viewport.Height - 45), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
+                // 2nd line
+                engine.xna_draw_outlined_text("element: " + engine.get_editor().GUI.get_hovered_element_id() + "( action: " + engine.get_editor().GUI.get_hovered_element_action_text() + " )",
+                new Vector2(h_offset, viewport.Height - 25), Vector2.Zero, Color.CadetBlue * stats_transparency, Color.Black, large_font);
+            }
 
             spriteBatch.End();
         }
@@ -492,7 +555,7 @@ public class Game1 : Game // create a child class
 
 
         /// <summary>
-        /// Creates a hollow rectangular texture2d in a given size, color and border thickness
+        /// Creates a hollow rectangular texture2d in a given size, color and border outline_thickness
         /// </summary>
         /// <param name="bounds">rectangle dimensions</param>
         /// <param name="color">texture pixel color</param>
@@ -570,15 +633,18 @@ public class Game1 : Game // create a child class
             //end text input---------------------------------------------------------
                 if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape) && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
                 {
+                    // combination left shift + escape closes the game
+                    if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftShift))
+                        this.Exit(); // close the program
+
                     if (engine.get_world_list().get_current().in_edit_mode())
                     {
                         engine.get_world_list().get_current().toggle_edit_mode(); // close the edit windows
+                        engine.get_editor().unfocus_inputs(); // remove focus from inputs if editor gui is closed
+                        engine.get_editor().hide_all_contexts();
                     }
                     else
                     {
-                        // make sure combination left shift + escape closes the game
-                        if(engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftShift))
-                            this.Exit(); // close the program
                     }
                 }
                 // pressing TAB will enter/leave map edit mode
@@ -586,6 +652,7 @@ public class Game1 : Game // create a child class
                 {
                     engine.get_world_list().get_current().toggle_edit_mode();
                     engine.get_editor().unfocus_inputs(); // remove focus from inputs if editor gui is closed
+                    engine.get_editor().hide_all_contexts();
 
                     if (GameScreens.Contains(screens.screen_menu))
                         GameScreens.Remove(screens.screen_menu);
@@ -599,14 +666,7 @@ public class Game1 : Game // create a child class
                 //F1 - statistics overlay
                 if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F1) && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F1)) // prevents sticking
                 {
-                    if (GameScreens.Contains(screens.screen_statistics))
-                    {
-                        GameScreens.Remove(screens.screen_statistics);
-                    }
-                    else
-                    {
-                        GameScreens.Add(screens.screen_statistics); // adds statistics overlay
-                    }
+                    engine.get_editor().GUI.find_container("CONTAINER_STATISTICS_TEXT_AREA").set_visibility("toggle");
                 }
                 //F2 - menu overlay - will eventually be moved to ESC key, exit will be one of the options on the menu
                 if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2) && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2)) // prevents sticking
@@ -644,7 +704,10 @@ public class Game1 : Game // create a child class
                     // mouse button clicked
                     if (engine.get_world_list().get_current().in_edit_mode() && !GameScreens.Contains(screens.screen_menu))
                     {
-                        engine.get_world_list().get_current().execute_command(command.left_click, engine, this);
+                        if (!engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftControl))
+                            engine.get_world_list().get_current().execute_command(command.left_click, engine, this);
+                        else if(engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftControl))
+                            engine.get_world_list().get_current().execute_command(command.ctrl_plus_click, engine, this);
                     }
                     else if (GameScreens.Contains(screens.screen_menu) && !engine.get_world_list().get_current().in_edit_mode())
                     {
@@ -702,6 +765,18 @@ public class Game1 : Game // create a child class
                         engine.get_world_list().get_current().execute_command(command.right_release, engine, this);
                     }
                 }
+                if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Delete)
+                && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Delete))
+                {
+                    if (engine.get_world_list().get_current().in_edit_mode())
+                        engine.get_editor().editor_command(engine, command.delete_key);
+                }
+                if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Insert)
+                 && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Insert))
+                {
+                    if (engine.get_world_list().get_current().in_edit_mode())
+                        engine.get_editor().editor_command(engine, command.insert_key);
+                }
                 // alt + key combinations
                 if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftAlt) || engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightAlt))
                 {
@@ -712,11 +787,29 @@ public class Game1 : Game // create a child class
                         if (engine.get_world_list().get_current().in_edit_mode())
                             engine.get_editor().editor_command(engine, command.alt_q);
                     }
+                    else if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.C)
+                    && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.C))
+                    {
+                        if (engine.get_world_list().get_current().in_edit_mode())
+                            engine.get_editor().editor_command(engine, command.alt_c);
+                    }
                     else if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.E)
                     && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.E))
                     {
                         if (engine.get_world_list().get_current().in_edit_mode())
                             engine.get_editor().editor_command(engine, command.alt_e);
+                    }
+                    else if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Z)
+                    && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Z))
+                    {
+                        if (engine.get_world_list().get_current().in_edit_mode())
+                            engine.get_editor().editor_command(engine, command.destroy_water_gen);
+                    }
+                    else if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.X)
+                    && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.X))
+                    {
+                        if (engine.get_world_list().get_current().in_edit_mode())
+                            engine.get_editor().editor_command(engine, command.destroy_lights);
                     }
                     else if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.D1)
                     && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.D1))

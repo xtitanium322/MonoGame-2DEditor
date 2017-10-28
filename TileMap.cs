@@ -12,7 +12,7 @@ using Microsoft.Xna.Framework.Media;
  * Used as a structure which holds information about each World'engine collection of ui_elements
  * This is added to a World class in order to become useful: public tile_map[,] world_map; 
  */
-namespace beta_windows
+namespace EditorEngine
 {
     public struct tile_map
     {

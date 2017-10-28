@@ -9,7 +9,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
-namespace beta_windows
+namespace EditorEngine
 {   // 24 hour in-game clock class - base of the day/night cycle and related gameplay functions
     public class WorldClock
     {

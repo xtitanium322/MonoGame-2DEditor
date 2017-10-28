@@ -10,7 +10,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
-namespace beta_windows
+namespace EditorEngine
 {
     /// <summary>
     /// GraphicInterface is an overall GUI containing all containers/stored_elements. Also manages GUI related actions
@@ -318,8 +318,9 @@ namespace beta_windows
             foreach (Container c in containers)
                 foreach (UIElementBase e in c.get_element_list())
                 {
-                    // draw tooltips
-                    e.draw_tooltip(engine);
+                    // draw tooltips if element and container are visible
+                    if(e.is_visible() && c.is_visible())
+                        e.draw_tooltip(engine);
                 }
         }
 
@@ -381,7 +382,8 @@ namespace beta_windows
             update_all_component_states(/*engine*/);
             foreach (Container c in containers)
             {
-                if (c.get_rectangle().Intersects(engine.get_mouse_rectangle()) && c.is_visible())
+                if (c.get_rectangle().Intersects(engine.get_mouse_rectangle()) 
+                    && c.is_visible())
                 {// container is hovered
                     hovered_container = c; // assume that no containers are intersecting
                     action_list[0] = c.get_action();

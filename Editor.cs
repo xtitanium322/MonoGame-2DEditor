@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using System.Diagnostics;
 /*
  * Old element IDs
  * 1000 = MODE_BUTTON_ADDMODE
@@ -20,7 +21,7 @@ using Microsoft.Xna.Framework.Media;
  * 1043 = INFOLABEL_CURRENT_EDIT_TILE
  * 1044 = PREVIEW_EDITORGRID
  */
-namespace beta_windows
+namespace EditorEngine
 {
     [Serializable()]
     public struct color_theme
@@ -69,6 +70,10 @@ namespace beta_windows
         [NonSerialized]
         private List<Vector2> selection_matrix;                         // list of all selected cells
         [NonSerialized]
+        private List<PointLight> selection_lights;                      // list of all lights inside selection matrix
+        [NonSerialized]
+        private List<WaterGenerator> selection_watergen;                // list of all water generators inside selection matrix
+        [NonSerialized]
         private List<Vector2> line_matrix;                              // list of all line cells
         [NonSerialized]
         public GraphicInterface GUI;                                    // create a User Interface object in this host class  
@@ -93,7 +98,7 @@ namespace beta_windows
         [NonSerialized]
         private actions? action;                                        // current editor action
         [NonSerialized]
-        public bool gui_move_mode;                                      // testing gui element movement
+        public bool gui_move_mode;                                      // gui element movement flag
         [NonSerialized]
         public bool locked;                                             // locked?
         [NonSerialized]
@@ -127,6 +132,8 @@ namespace beta_windows
             line_start_cell = new Vector2(-1, -1);
             line_end_cell = new Vector2();
             selection_matrix = new List<Vector2>(1024); // initialize selection matrix
+            selection_lights = new List<PointLight>();
+            selection_watergen = new List<WaterGenerator>();
             line_matrix = new List<Vector2>(512);
             GUI = new GraphicInterface(engine); // initialize user interface
             //sel_transparency = 0.5f;
@@ -134,7 +141,7 @@ namespace beta_windows
             gui_move_mode = false; // UI can't be repositioned
             overwrite_cells = false; // default = false
             editor_actions_locked = false;
-            selection_color = new Color(0, 175, 250); 
+            selection_color = new Color(0, 175, 250);
             selection_color_surrogate = TextEngine.color_to_delimited_string(selection_color);
             // loading themes (contains alist of system defined colors)
             themes.Add(new color_theme("Dark", Color.Black, Color.White, 1f));
@@ -217,7 +224,7 @@ namespace beta_windows
             ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_Y")).set_progress_color(Color.MediumVioletRed); // changing progress color
             ((TextInput)GUI.find_element("TEXTINPUT_SYSTEM")).set_input_target("TEXTAREA_SYSTEM"); // sets source for text area
 
-            // set boundaries for text area
+            // set boundaries for system text area
             GUI.get_text_engine().set_target(((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_rectangle(), ((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_origin());
 
         }
@@ -474,6 +481,22 @@ namespace beta_windows
                 // draw line selection_start_cell coordinate at line start and draw line length
                 // draw selection start cell coordinate, selection height, selection length and selection area
             }
+
+            // draw text instructions
+            engine.xna_draw_outlined_text("alt + Q = decrease tool, alt + E = increase tool", new Vector2(40, 20), Vector2.Zero, Color.White,
+                Color.DarkSlateGray, Game1.small_font);
+            engine.xna_draw_outlined_text("alt + 1 2 3 or 4 = quick mode change", new Vector2(40, 40), Vector2.Zero, Color.White,
+                Color.DarkSlateGray, Game1.small_font);
+            engine.xna_draw_outlined_text("alt + Z = destroy all water gen, alt + X = destroy all lights", new Vector2(40, 60), Vector2.Zero, Color.White,
+                Color.DarkSlateGray, Game1.small_font);
+            engine.xna_draw_outlined_text("TAB = toggle editor mode, F1 = toggle statistics display, F2 = change active world", new Vector2(40, 80), Vector2.Zero, Color.White,
+                Color.DarkSlateGray, Game1.small_font);
+            engine.xna_draw_outlined_text("in selection mode: insert/delete to add/remove tiles, alt+c - to change the tile type to currently active", new Vector2(40, 100), Vector2.Zero, Color.White,
+               Color.DarkSlateGray, Game1.small_font);
+            engine.xna_draw_outlined_text("~h = list of commands, ~a = list of actions", new Vector2(40, 120), Vector2.Zero, Color.White,
+               Color.DarkSlateGray, Game1.small_font);
+            engine.xna_draw_outlined_text("shift + escape - exit the program/close editor", new Vector2(40, 140), Vector2.Zero, Color.OrangeRed,
+               Color.DarkSlateGray, Game1.small_font);
         }
 
         public void draw_masking_layer()
@@ -484,7 +507,8 @@ namespace beta_windows
         public void draw_post_processing(Engine e, SpriteBatch sb)
         {
             GUI.draw_post_processing(e, current_theme.interface_color, current_theme.interface_transparency);
-            GUI.get_text_engine().textengine_draw(e, ((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_rectangle()); // draw text stored inside text engine
+            if(e.get_editor().GUI.find_container("CONTAINER_EDITOR_TEXT_AREA").is_visible())
+                GUI.get_text_engine().textengine_draw(e); // draw text stored inside text engine
         }
 
         public void preview_tile(int x, int y, Engine engine, int radius, modes current)
@@ -557,6 +581,14 @@ namespace beta_windows
             engine_offset.X = x; engine_offset.Y = y;
         }
 
+        public void set_brush_size(int val)
+        {
+            if (val >= 0 || val <= 10)
+            {
+                ((Slider)GUI.find_unit(actions.update_brush_size)).set_slider_value(val);
+                //submode_brush_radius = val;
+            }
+        }
         // current edit tile id
         public void Update(Engine engine)
         {
@@ -687,6 +719,7 @@ namespace beta_windows
                         if (gui_move_mode && GUI.hover_detect() && GUI.get_hovered_container() != null)
                         {
                             set_hostUI_lock(true);
+
                             try
                             {
                                 // change the slider value
@@ -714,6 +747,14 @@ namespace beta_windows
                     break;
                 case command.alt_e: // cycle submode right
                     submode_increase();
+                    hide_expandable_containers_only();
+                    break;
+                case command.destroy_lights: // remove all point lights
+                    engine.get_current_world().destroy_lights();
+                    hide_expandable_containers_only();
+                    break;
+                case command.destroy_water_gen: // remove all point lights
+                    engine.get_current_world().destroy_water_generators();
                     hide_expandable_containers_only();
                     break;
                 case command.alt_1:
@@ -754,11 +795,86 @@ namespace beta_windows
                     break;
                 case command.enter_key:
                     {
+                        // submit the text to output handler
                         if (current_focused != null && current_focused.get_text().Length > 0) // make sure there is a text input active
                         {// then send text info to text area and erase current data in the text input
                             //((TextArea)GUI.find_element(current_focused.get_input_target_id())).accept_text_output(current_focused.get_text()); // send input
-                            GUI.get_text_engine().add_message_element(engine, "system[0,75,220] ( ~time ): " + current_focused.get_text()); // adding a coded system word to input ot signify a source
+                            GUI.get_text_engine().add_message_element(engine, "system[0,75,220] ( ~time ): " + current_focused.get_text()); // adding a coded system word to input to mark message source
                             current_focused.clear_text();
+                        }
+                        // unfocus the main input - only if there is no text
+                        else if (current_focused != null && current_focused.get_text().Length == 0) 
+                        {
+                            if (current_focused != null)
+                            {
+                                current_focused.set_focus(false);
+                                current_focused = null;
+                            }
+                        }
+                        // focus main input if Enter is pressed and there is no focused element
+                        else
+                        {
+                            current_focused = (TextInput)GUI.find_element("TEXTINPUT_SYSTEM"); // assign main input 
+                            current_focused.set_focus(true); // mark element focused internally
+                        }
+                    }
+                    break;
+                // new functionality: tile creation/deletion for the selection mode
+                case command.delete_key:
+                    {
+                        // if world editor is in selection mode, delete key can be used to remove a selected group of cells 
+                        if (editor_mode == modes.select)
+                        {
+                            // delete cells (but only if no lights in the selection matrix - lights are deleted first!)
+                            if (selection_lights.Count == 0 && selection_watergen.Count == 0)
+                            {
+                                foreach (Vector2 v in selection_matrix)
+                                {
+                                    engine.get_current_world().erase_tile((int)v.X, (int)v.Y, engine); // remove tiles contained in the selection matrix
+                                }
+                            }
+
+                            // delete lights
+                            foreach (PointLight p in selection_lights)
+                            {
+                                if (engine.get_current_world().world_lights.Contains(p))
+                                {
+                                    engine.get_current_world().world_lights.Remove(p); // delete this light from world objects
+                                }
+                            }
+                            // delete water generators
+                            foreach (WaterGenerator w in selection_watergen)
+                            {
+                                if (engine.get_current_world().wsources.Contains(w))
+                                {
+                                    engine.get_current_world().wsources.Remove(w); // delete this 
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case command.insert_key:
+                    {
+                        // if world editor is in selection mode, delete key can be used to remove a selected group of cells 
+                        if (editor_mode == modes.select)
+                        {
+                            foreach (Vector2 v in selection_matrix)
+                            {
+                                engine.get_current_world().generate_tile(get_current_editor_cell(), (int)v.X, (int)v.Y, engine); // create tiles of currently selected type inside the selection
+                            }
+                        }
+                    }
+                    break;
+                case command.alt_c:
+                    {
+                        // if world editor is in selection mode, delete key can be used to remove a selected group of cells 
+                        if (editor_mode == modes.select)
+                        {
+                            foreach (Vector2 v in selection_matrix)
+                            {
+                                if (engine.get_current_world().tile_exists(v)) // only change for existing tiles
+                                    engine.get_current_world().update_tile_type((int)v.X, (int)v.Y, engine);
+                            }
                         }
                     }
                     break;
@@ -844,7 +960,11 @@ namespace beta_windows
                                             else if (editor_tools == tools.water) // NOTE: testing WATER generation
                                             {
                                                 clear_selection();
-                                                engine.get_current_world().generate_tile(-1, (int)active_cell.X, (int)active_cell.Y, engine, submode_brush_radius, engine.generate_int_range(50, 100));
+                                                //engine.get_current_world().generate_tile(-1, (int)active_cell.X, (int)active_cell.Y, engine, submode_brush_radius, engine.generate_int_range(50, 100));
+                                                if (c == command.left_click && !editor_actions_locked)
+                                                {
+                                                    engine.get_current_world().generate_water_generator(engine.get_current_mouse_state(), engine);
+                                                }
                                             }
                                         }
                                         else if (c == command.right_click || c == command.right_hold)
@@ -962,7 +1082,7 @@ namespace beta_windows
                                         clear_selection();
                                         if (c == command.left_click && !editor_actions_locked)
                                         {
-                                            engine.get_current_world().generate_light_source(new Color(engine.generate_int_range(0, 0), engine.generate_int_range(0, 255), engine.generate_int_range(0, 255)), engine.get_current_mouse_state(), engine, 600, 0.65f);
+                                            engine.get_current_world().generate_light_source(new Color(engine.generate_int_range(0, 255), engine.generate_int_range(0, 255), engine.generate_int_range(0, 255)), engine.get_current_mouse_state(), engine, engine.generate_int_range(600, 1200), engine.generate_float_range(0.65f, 1.0f));
                                         }
                                     }
                                     break;
@@ -984,6 +1104,12 @@ namespace beta_windows
                                             current_focused.set_focus(false);
 
                                         current_focused = null; // if there is no hover - current focus should be unfocused
+                                    }
+                                    break;
+                                case command.ctrl_plus_click:
+                                    {
+                                        // build selection matrix by clicking once and then ctrl+clicking the end cell instead of dragging
+                                        selection_matrix.Add(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(),engine));
                                     }
                                     break;
                                 default:
@@ -1094,7 +1220,7 @@ namespace beta_windows
                         hide_expandable_containers_only();
                         break;
                     case actions.resolution_1920_1080:
-                        engine.getGame1().update_resolution(1920,1080);
+                        engine.getGame1().update_resolution(1920, 1080);
                         hide_expandable_containers_only();
                         break;
                     case actions.resolution_1440_900:
@@ -1115,7 +1241,7 @@ namespace beta_windows
                         break;
                     // END // various resolutions and modes
                     case actions.go_to_world_origin:
-                        engine.set_camera_offset(new Vector2(-engine.get_viewport().Width/2, -engine.get_viewport().Height/2)); // reset camera offset
+                        engine.set_camera_offset(new Vector2(-engine.get_viewport().Width / 2, -engine.get_viewport().Height / 2)); // reset camera offset
                         break;
                     case actions.unlock_ui_move:
                         {
@@ -1360,6 +1486,15 @@ namespace beta_windows
                             current_focused = null;
                         }
                         break;
+                    case actions.toggle_system_chat:
+                        {
+                            if (c == command.left_click)
+                            {
+                                GUI.find_container("CONTAINER_EDITOR_TEXT_AREA").set_visibility("toggle");
+                                GUI.find_container("CONTAINER_MAIN_TEXT_INPUT").set_visibility("toggle");
+                            }
+                        }
+                        break;
                     default:
                         break;
                 }//end of action switch statement
@@ -1401,6 +1536,10 @@ namespace beta_windows
             }
         }
 
+        public List<PointLight> get_selection_lights()
+        {
+            return selection_lights;
+        }
         public bool accepting_input()
         {
             return (current_focused != null);
@@ -1770,6 +1909,9 @@ namespace beta_windows
             }
             finally
             {
+                if(current_focused != null)
+                   current_focused.set_focus(false);
+
                 current_focused = null;       // clear focus from input
             }
         }
@@ -1853,6 +1995,28 @@ namespace beta_windows
                     }
                 }
             }
+
+            // add world object to selection lists
+            selection_lights.Clear(); // prepare for refresh
+            foreach (PointLight p in engine.get_current_world().world_lights)
+            {
+                //engine.get_current_world().vector_position_to_cell(p.position);// if selection matrix contains
+                if (selection_matrix.Contains(engine.get_current_world().vector_position_to_cell(p.position)))
+                {
+                    selection_lights.Add(p); // add this light to selection lights
+                }
+            }
+
+            // add water gen to selection matrix
+            selection_watergen.Clear();
+            foreach (WaterGenerator w in engine.get_current_world().wsources)
+            {
+                //engine.get_current_world().vector_position_to_cell(p.position);// if selection matrix contains
+                if (selection_matrix.Contains(engine.get_current_world().vector_position_to_cell(w.get_position())))
+                {
+                    selection_watergen.Add(w); // add this light to selection lights
+                }
+            }
         }
 
         public void seed_interface_with_serialized_data(List<Container> deserialized_list)
@@ -1869,7 +2033,7 @@ namespace beta_windows
                     GUI.find_container(c.get_id()).set_origin(c.get_origin()); // assign exact origin of serialized containers from previous run
                 }
             }
-            catch(NullReferenceException e)
+            catch (NullReferenceException e)
             {
                 // no user interface info saved - use defaults
             }
@@ -1889,7 +2053,7 @@ namespace beta_windows
             {
                 selection_color = TextEngine.delimited_string_to_color(deserialized_editor.get_selection_color_surrogate());
             }
-            catch(NullReferenceException e)
+            catch (NullReferenceException e)
             {
                 selection_color = current_theme.get_color(); // if it doesn't exist in the serialized copy - assign default value
             }
@@ -1902,4 +2066,4 @@ namespace beta_windows
         }
 
     }// class end
-}// namespace end
+}

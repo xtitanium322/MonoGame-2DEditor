@@ -8,7 +8,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
-namespace beta_windows
+namespace MonoGameEngine
 {
     /*Animated Texture and Particle concept 
     Completed design: supports various animation types handled by Animation Engine class. 

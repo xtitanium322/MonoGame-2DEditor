@@ -10,7 +10,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
-namespace beta_windows
+namespace EditorEngine
 {
     /// <summary>
     /// All the enumerations used inside Game classes
@@ -68,8 +68,8 @@ namespace beta_windows
         resolution_1366_768,
         resolution_1280_800,
         resolution_1024_576,
-        go_to_world_origin
-
+        go_to_world_origin,
+        toggle_system_chat
     };
     // command passed by keyboard/mouse
     public enum command
@@ -80,6 +80,7 @@ namespace beta_windows
         right_click,
         right_hold,
         right_release,
+        alt_c,
         alt_e,
         alt_q,
         alt_1,
@@ -88,7 +89,12 @@ namespace beta_windows
         alt_4,
         mouse_scroll_up,
         mouse_scroll_down,
-        enter_key
+        enter_key,
+        delete_key,
+        insert_key,
+        destroy_water_gen,
+        destroy_lights,
+        ctrl_plus_click
     };
     // current_state = current current_state of GUI unit. default = inactive, hovered = mouse on top, highlighted = associated current_state active
     public enum state

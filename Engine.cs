@@ -8,6 +8,7 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using System.Globalization;                                                 // various string formats
 
 using System.Xml;                                                           // use xml files
 using Microsoft.Xna.Framework.Content.Pipeline.Serialization.Intermediate;  // xml serialization
@@ -16,7 +17,7 @@ using MyDataTypes;                                                          // d
 using System.IO;
 using System.Windows.Forms;
 /* Class contains all engine variables/values used in the game */
-namespace beta_windows
+namespace EditorEngine
 {
     public class Engine
     {
@@ -47,6 +48,9 @@ namespace beta_windows
         private List<texture_element> all_textures;                           // list of frequently used named textures
         private SpriteFont UIfont;                                            // font assigned to GUI       
         private ValueTimer<long> update_timer;
+
+        //GraphicInterface engineGUI;
+        public TextEngine engine_text_engine;
         // keyboard and mouse
         private KeyboardState keyboardState;
         private KeyboardState OldKeyboardState;
@@ -141,6 +145,8 @@ namespace beta_windows
 
             world_list = new WorldCollection();
             editor = new Editor(this);
+            //engineGUI = new GraphicInterface(this); // a separate graphic Interface for engine 
+            engine_text_engine = new TextEngine(get_UI_font(), Rectangle.Empty, Vector2.Zero, Color.White);
         }
         // load content
         public void LoadContent(ContentManager content)
@@ -167,16 +173,19 @@ namespace beta_windows
             all_textures.Add(new texture_element(content.Load<Texture2D>("lock_open_icon"), "editor_icon_unlocked"));
 
             world_list.add_world("world1.xml", new World(this, content, "test world", 600, 120));
-            world_list.add_world("world2.xml", new World(this, content, "test world2", 100, 50));
+            world_list.add_world("world2.xml", new World(this, content, "test world2", 250, 50));
             world_list.load_tiles(this); // load all the xml files containing world tile info
 
             editor.LoadContent(content, this); // loads default user interface into the editor
             // deserializes previously saved user interface
-                deserialize_data<List<Container>>("user_interface.bin"); // user interface  container list
-                deserialize_data<Editor>("editor.bin");                  // selected editor variables
+            deserialize_data<List<Container>>("user_interface.bin"); // user interface  container list
+            deserialize_data<Editor>("editor.bin");                  // selected editor variables
             // update necessary values using deserialized list of user interface containers and their inner elements 
-                editor.seed_interface_with_serialized_data(deserialized_containers);
-                editor.seed_interface_with_color_data(deserialized_editor);
+            editor.seed_interface_with_serialized_data(deserialized_containers);
+            editor.seed_interface_with_color_data(deserialized_editor);
+
+            engine_text_engine.set_target(((TextArea)editor.GUI.find_element("TEXTAREA_STATISTICS")).get_rectangle(), ((TextArea)editor.GUI.find_element("TEXTAREA_STATISTICS")).get_origin());
+            engine_text_engine.set_font(get_UI_font());                     // set the font 
         }
         public void UnloadContent()
         {   // finalize objects when game is closed
@@ -206,6 +215,8 @@ namespace beta_windows
             grid_color = new Color(gridcolor_r, gridcolor_g, gridcolor_b);
 
             editor.Update(this);
+            engine_text_engine.set_target(((TextArea)editor.GUI.find_element("TEXTAREA_STATISTICS")).get_rectangle(), ((TextArea)editor.GUI.find_element("TEXTAREA_STATISTICS")).get_origin());
+            engine_text_engine.update(); // need to update to create message lines 
         }
         // update viewport
         public void refresh_viewport(ref Viewport v)
@@ -223,7 +234,7 @@ namespace beta_windows
                 {
                     xna_draw(this.get_texture("mouse_hand"), get_mouse_vector(), null, negative_color(editor.get_interface_color()), 0f, new Vector2(18, 18), 1f, SpriteEffects.None, 1f);
                 }
-                else // non-hovered
+                else // not-hovered
                 {
                     xna_draw(this.get_texture("mouse_default"), get_mouse_vector(), null, negative_color(editor.get_interface_color()), 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f);
                 }
@@ -231,8 +242,13 @@ namespace beta_windows
             // move mode
             else
             {
-                xna_draw(this.get_texture("mouse_move_indicator"), get_mouse_vector(), null, negative_color(editor.get_interface_color()), 0f, get_texture_center(this.get_texture("mouse_move_indicator")), 1f, SpriteEffects.None, 1f);
+                xna_draw(this.get_texture("mouse_move_indicator"), get_mouse_vector(), null, negative_color(editor.get_interface_color()), 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f);
             }
+
+            // draw statistics 
+            // show text in the text area
+            if (editor.GUI.find_container("CONTAINER_STATISTICS_TEXT_AREA").is_visible() && get_current_world().in_edit_mode())
+                engine_text_engine.textengine_draw(this, true);
         }
         /// <summary>
         /// Get current editor object 
@@ -415,6 +431,26 @@ namespace beta_windows
             xna_draw(Engine.pixel, new Vector2(line.X, line.Y), line, outline, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f); // left
 
             line.X += target.Width - thickness; // move origin to the right side
+            xna_draw(Engine.pixel, new Vector2(line.X, line.Y), line, outline, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f); // right
+        }
+
+        public void xna_draw_rectangle(Rectangle target, Color outline, short outline_thickness, float transparency)
+        {
+            // background
+            Rectangle line = new Rectangle(target.X, target.Y, target.Width, target.Height); // default
+            xna_draw(Engine.pixel, new Vector2(line.X, line.Y), line, outline * transparency, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f); // top
+
+            // outline
+            line = new Rectangle(target.X, target.Y, target.Width, outline_thickness); // default
+            xna_draw(Engine.pixel, new Vector2(line.X, line.Y), line, outline, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f); // top
+
+            line.Y += (target.Height - outline_thickness); // change origin to the bottom left corner 
+            xna_draw(Engine.pixel, new Vector2(line.X, line.Y), line, outline, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f); // bottom
+            line.Y -= (target.Height - outline_thickness); // change back
+            line.Width = outline_thickness; line.Height = target.Height; // change crop rectangle to go vertical from origin
+            xna_draw(Engine.pixel, new Vector2(line.X, line.Y), line, outline, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f); // left
+
+            line.X += target.Width - outline_thickness; // move origin to the right side
             xna_draw(Engine.pixel, new Vector2(line.X, line.Y), line, outline, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f); // right
         }
         // camera 
@@ -611,6 +647,10 @@ namespace beta_windows
                         result = "[";
                     else if (key == Microsoft.Xna.Framework.Input.Keys.OemCloseBrackets)
                         result = "]";
+                    else if (key == Microsoft.Xna.Framework.Input.Keys.OemQuestion)
+                        result = "/";
+                    else if (key == Microsoft.Xna.Framework.Input.Keys.OemPipe)
+                        result = "\\";
                     else if (key == Microsoft.Xna.Framework.Input.Keys.OemComma)
                         result = ",";
                 }
@@ -628,6 +668,10 @@ namespace beta_windows
                         result = ">";
                     else if (key == Microsoft.Xna.Framework.Input.Keys.OemOpenBrackets)
                         result = "{";
+                    else if (key == Microsoft.Xna.Framework.Input.Keys.OemPipe)
+                        result = "|";
+                    else if (key == Microsoft.Xna.Framework.Input.Keys.OemQuestion)
+                        result = "?";
                     else if (key == Microsoft.Xna.Framework.Input.Keys.OemCloseBrackets)
                         result = "}";
                     else if (key == Microsoft.Xna.Framework.Input.Keys.OemComma)
@@ -699,6 +743,22 @@ namespace beta_windows
         {
             return draw_calls_total;
         }
+        /// <summary>
+        /// Formats number with K,M or B indicator for thousands, millions and billions
+        /// </summary>
+        /// <param name="num">converted number</param>
+        /// <returns>string representation of a number</returns>
+        public string number_to_KMB(int num)
+        {
+            if (num < 1000)
+                return num.ToString();
+            else if(num > 1000 && num < 1000000)
+                return num.ToString("#,##0,K", CultureInfo.InvariantCulture);
+            else if(num > 1000000 && num < 1000000000)
+                return num.ToString("#,##0,0##,M", CultureInfo.InvariantCulture);
+            else
+                return num.ToString("#,##0,000,0##,B", CultureInfo.InvariantCulture);
+        }
         /*public void add_draw_calls(int value)
         {
             draw_calls += value;
@@ -718,7 +778,7 @@ namespace beta_windows
         }
         public int get_frame_count()
         {
-            return frames;
+            return frames == 0 ? 1 : frames; // never return 0
         }
         // world clock rates/values
         public void set_world_clock_rate(int value)
@@ -760,7 +820,19 @@ namespace beta_windows
         {
             // no game action for main menu GUI yet
         }
+        /// <summary>
+        /// Equality of Vector2 objects
+        /// </summary>
+        /// <param name="a">1st vec</param>
+        /// <param name="b">2nd vec</param>
+        /// <returns>bool true or false</returns>
+        public bool are_vectors_equal(Vector2 a, Vector2 b)
+        {
+            if (a.X == b.X && a.Y == b.Y)
+                return true;
 
+            return false;
+        }
         /* generate some random numbers*/
         public int generate_int_range(int low, int high)
         {
@@ -1421,7 +1493,7 @@ namespace beta_windows
             }
             h = Int32.Parse(temp); // collects the last number
 
-            return new Rectangle(x,y,w,h);
+            return new Rectangle(x, y, w, h);
         }
         // testing string reversal
         public static string reverse(string original)
@@ -1433,24 +1505,24 @@ namespace beta_windows
                 return reverse(original.Substring(1,original.Length-1)) + original[0];*/
 
             //1 line solution
-            return ((original == null || original.Length == 1) ? original : reverse(original.Substring(1,original.Length-1)) + original[0]);
+            return ((original == null || original.Length == 1) ? original : reverse(original.Substring(1, original.Length - 1)) + original[0]);
         }
 
         public static int reverse(int num)
         {
-            return num < 10 ? num : (num % 10) * (int)Math.Pow(10, (int)Math.Log10(num)) + reverse(num/10); // (int)log10 of 12345 is 4, 10 to power of 4 = 10000, 10000*5(last dig) = 50000, + reverse of remainder 1234
+            return num < 10 ? num : (num % 10) * (int)Math.Pow(10, (int)Math.Log10(num)) + reverse(num / 10); // (int)log10 of 12345 is 4, 10 to power of 4 = 10000, 10000*5(last dig) = 50000, + reverse of remainder 1234
         }
 
         public static bool isPowerofTwo(int n)
         {
             // using one arithmetic operator
-                //return (n & (n - 1)) == 0; // biotwise comparison of a number and it's previous number. for a power of two previous number has every bit different from the original number, so bitwise returns a 0
+            //return (n & (n - 1)) == 0; // biotwise comparison of a number and it's previous number. for a power of two previous number has every bit different from the original number, so bitwise returns a 0
             // using no arithmetic operators
-                while(((n&1)==0) && n > 1)
-                {
-                    n = n>>1; // shift 1 position
-                }
-                return (n == 1); // if number is 1 after everything then it was a power of two
+            while (((n & 1) == 0) && n > 1)
+            {
+                n = n >> 1; // shift 1 position
+            }
+            return (n == 1); // if number is 1 after everything then it was a power of two
         }
 
         public Game1 getGame1()
