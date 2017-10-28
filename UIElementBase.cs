@@ -9,7 +9,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
-namespace beta_windows
+namespace EditorEngine
 {
     public interface ISectored
     {
@@ -153,6 +153,13 @@ namespace beta_windows
         {
             visible = value;
         }
+        public void set_visible(string val)
+        {
+            if(val.Equals("toggle"))
+            {
+                visible = !visible; // toggle value
+            }
+        }
         /// <summary>
         /// Rendering function for the entire GUI unit. Draw()
         /// </summary>
@@ -232,8 +239,8 @@ namespace beta_windows
 
         public void draw_tooltip(Engine engine)
         {
-            // draw a tooltip if hovered and if it exists
-            if (this.current_state == state.hovered && tooltip_text != null && tooltip_text != "")
+            // draw a tooltip if hovered, the element is visible and the tooltip text exists
+            if (this.current_state == state.hovered && this.visible==true && tooltip_text != null && tooltip_text != "")
             {
                 Vector2 position = engine.get_mouse_vector() + new Vector2(25, 0); // display position adjusted for pointer texture
                 Vector2 text_size = engine.get_UI_font().MeasureString(tooltip_text.ToString());

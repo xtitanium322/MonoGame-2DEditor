@@ -228,6 +228,37 @@
 			<label>fill all</label>
 			<tooltip>fills all cells with current active variation</tooltip>
 		</Item>	
+		<!-- resolution change context-->
+		<Item>
+			<id>BUTTON_ENABLE_RESOLUTION_SUBCONTEXT</id>
+			<parent_id>CONTAINER_MAIN_CONTEXT</parent_id>
+			<subcontext_id>CONTAINER_RESOLUTION_SUBCONTEXT</subcontext_id>
+			<ui_type>expandable_button</ui_type>
+			<action>toggle_subcontext</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>250</dimension_w>
+			<dimension_h>20</dimension_h>
+			<icon_name>null</icon_name>
+			<label>screen resolution</label>
+			<tooltip>change screen resolution</tooltip>
+		</Item>		
+		<Item>
+			<id>BUTTON_WORLD_ORIGIN</id>
+			<parent_id>CONTAINER_MAIN_CONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>go_to_world_origin</action>
+			<confirmation>yes</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>250</dimension_w>
+			<dimension_h>20</dimension_h>
+			<icon_name>null</icon_name>
+			<label>center world origin</label>
+			<tooltip>go to world origin</tooltip>
+		</Item>	
 		<!-- grid colours -->		
 		<Item>
 			<id>SLIDER_GRID_TRANSPARENCY</id>
@@ -632,8 +663,8 @@
 			<confirmation>no</confirmation>
 			<dimension_x>0</dimension_x>
 			<dimension_y>0</dimension_y>
-			<dimension_w>290</dimension_w>
-			<dimension_h>40</dimension_h>
+			<dimension_w>200</dimension_w>
+			<dimension_h>20</dimension_h>
 			<icon_name>null</icon_name>
 			<label>world fill</label>
 			<tooltip>world fill level percentage</tooltip>
@@ -648,8 +679,8 @@
 			<confirmation>no</confirmation>
 			<dimension_x>0</dimension_x>
 			<dimension_y>0</dimension_y>
-			<dimension_w>100</dimension_w>
-			<dimension_h>100</dimension_h>
+			<dimension_w>75</dimension_w>
+			<dimension_h>75</dimension_h>
 			<icon_name>null</icon_name>
 			<label>world fill</label>
 			<tooltip>x mouse position</tooltip>
@@ -663,8 +694,8 @@
 			<confirmation>no</confirmation>
 			<dimension_x>0</dimension_x>
 			<dimension_y>0</dimension_y>
-			<dimension_w>100</dimension_w>
-			<dimension_h>100</dimension_h>
+			<dimension_w>75</dimension_w>
+			<dimension_h>75</dimension_h>
 			<icon_name>null</icon_name>
 			<label>world fill</label>
 			<tooltip>y mouse position</tooltip>
@@ -679,7 +710,7 @@
 			<confirmation>no</confirmation>
 			<dimension_x>0</dimension_x>
 			<dimension_y>0</dimension_y>
-			<dimension_w>300</dimension_w>
+			<dimension_w>400</dimension_w>
 			<dimension_h>30</dimension_h>
 			<icon_name>null</icon_name>
 			<label>system chat</label>
@@ -695,8 +726,8 @@
 			<confirmation>no</confirmation>
 			<dimension_x>0</dimension_x>
 			<dimension_y>0</dimension_y>
-			<dimension_w>300</dimension_w>
-			<dimension_h>300</dimension_h>
+			<dimension_w>400</dimension_w>
+			<dimension_h>360</dimension_h>
 			<icon_name>null</icon_name>
 			<label>system chat area</label>
 			<tooltip>text area for system chat</tooltip>
@@ -716,6 +747,113 @@
 			<icon_name>null</icon_name>
 			<label/>
 			<tooltip>lock or unlock UI movement mode</tooltip>
-		</Item>		
+		</Item>	
+		<!-- adding options to subcontext resolution changer -->
+		<Item>
+			<id>BUTTON_1920_1080</id>
+			<parent_id>CONTAINER_RESOLUTION_SUBCONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>resolution_1920_1080</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>200</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>null</icon_name>
+			<label>1920x1080</label>
+			<tooltip>changes the resolution to 1080p</tooltip>
+		</Item>			
+		<Item>
+			<id>BUTTON_1440_900</id>
+			<parent_id>CONTAINER_RESOLUTION_SUBCONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>resolution_1440_900</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>200</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>null</icon_name>
+			<label>1440x900</label>
+			<tooltip>changes the resolution to 1440 x 900</tooltip>
+		</Item>			
+		<Item>
+			<id>BUTTON_1366_768</id>
+			<parent_id>CONTAINER_RESOLUTION_SUBCONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>resolution_1366_768</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>200</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>null</icon_name>
+			<label>1366x768</label>
+			<tooltip>changes the resolution to 1366x768</tooltip>
+		</Item>			
+		<Item>
+			<id>BUTTON_1280_800</id>
+			<parent_id>CONTAINER_RESOLUTION_SUBCONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>resolution_1280_800</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>200</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>null</icon_name>
+			<label>1280x800</label>
+			<tooltip>changes the resolution to 1280x800</tooltip>
+		</Item>			
+		<Item>
+			<id>BUTTON_1024_576</id>
+			<parent_id>CONTAINER_RESOLUTION_SUBCONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>resolution_1024_576</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>200</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>null</icon_name>
+			<label>1024x576</label>
+			<tooltip>changes the resolution to 1024x576</tooltip>
+		</Item>	
+		<!-- text area for stats-->
+		<Item> 
+			<id>TEXTAREA_STATISTICS</id>
+			<parent_id>CONTAINER_STATISTICS_TEXT_AREA</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>text_area</ui_type>
+			<action>none</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>0</dimension_y>
+			<dimension_w>400</dimension_w>
+			<dimension_h>300</dimension_h>
+			<icon_name>null</icon_name>
+			<label>statistics text area</label>
+			<tooltip>text area for statistics display</tooltip>
+		</Item>
+		<Item>
+			<id>TOGGLE_CHAT_BUTTON</id>
+			<parent_id>CONTAINER_TOGGLE_SYSTEM</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>toggle_system_chat</action>
+			<confirmation>yes</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>0</dimension_y>
+			<dimension_w>150</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>null</icon_name>
+			<label>toggle system chat</label>
+			<tooltip>hide or show system chat</tooltip>
+		</Item>	
 	</Asset> 
 </XnaContent>

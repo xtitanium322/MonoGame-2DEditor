@@ -11,7 +11,7 @@ using Microsoft.Xna.Framework.Media;
 /*
  * Stores ui_elements data for easy access
  */
-namespace beta_windows
+namespace EditorEngine
 {
     public struct tile_struct
     {

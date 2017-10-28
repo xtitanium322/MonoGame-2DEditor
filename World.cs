@@ -12,12 +12,18 @@ using Microsoft.Xna.Framework.Media;
 /*
  * Generates a playable map for the hero to explore
  */
-namespace beta_windows
+namespace EditorEngine
 {
     public class World //map generator
     {
         private int w;                             // length/width
         private int h;                             // height 
+        // water simulation variables
+        private const int water_zone_width = 240;  // number of horizontal cells in a single simulation zone multiplied by all vertical cells
+        private int water_zone_edge = 0;           // left most cell + water_zone_width = boundary for sim calculations
+        private int water_zone_stopper = 0;        // right most cell = boundary
+        private const int surface_smoothness = 16; // straightens water surface this many cells away from the currently checked source
+
         private const int tile_size = 20;          // size of square in pixels
         private String world_name;                 // name of this playable world
         private bool edit_mode;                    // is the world in edit mode?
@@ -26,14 +32,10 @@ namespace beta_windows
         private Stack<Vector2> updated_cells;      // contains every cell that has been updated during current frame, cells deleted after calculations
         private Color[] sky_color;                 // an array of values for world background color in relation to world time
         private Color sky;                         // current color of the sky
-        //private Color grid_color;                  // used to draw editor grid
-        public List<PointLight> world_lights;      // a list of all highlighted lights   
-        //public Editor editor;                      // World editor class - for adding/deleting/selecting/tweaking ui_elements,lights etc.
-        //public float grid_transparency_value;      // used to display cell placement grid
-        //public int gridcolor_r;
-        //public int gridcolor_g;
-        //public int gridcolor_b;
+        public List<PointLight> world_lights;     // a list of all highlighted lights   
+        public List<WaterGenerator> wsources;     // a list of all highlighted lights 
         Rectangle[] corner_src;
+
         // constructors
         public World(Engine engine, ContentManager content, String name, int length, int height)
         {
@@ -42,11 +44,8 @@ namespace beta_windows
             w = length;
             h = height;
             world_name = name;
-            //edit_tile_number = 1;
             map_origin = new Vector2(0, 0);
-            //grid_transparency_value = 0.25f;
 
-            //world_init();
             for (int i = 0; i < w; i++)
             {
                 for (int j = 0; j < h; j++)
@@ -54,33 +53,22 @@ namespace beta_windows
                     world_map[i, j] = new tile_map(0, 0); // create air ui_elements, id=0, variant = 0
                 }
             }
-            //
             // create memory for updated cells
             updated_cells = new Stack<Vector2>();
             // create World Light list
             world_lights = new List<PointLight>();
-            // create world editor object
-            //editor = new Editor(engine);
-
-
+            wsources = new List<WaterGenerator>();
             sky = new Color(135, 206, 235);          // default sky color
             // sky colors (effects to be added for sun and moon transitions
             sky_color = new Color[3];
             sky_color[0] = new Color(10, 10, 10);      // midnight color 
             sky_color[1] = new Color(135, 206, 235); // noon color
             sky_color[2] = new Color(0, 191, 250);     // day color 
-            //grid color assignment
-            //gridcolor_r = 255;
-            //gridcolor_g = 255;
-            //gridcolor_b = 255;
-            //grid_color = new Color(gridcolor_r, gridcolor_g, gridcolor_b);
-
             corner_src = new Rectangle[4];
         }
 
         public void LoadContent(ContentManager content, Engine engine)
         {
-            //engine.get_editor().LoadContent(content, engine, this);
         }
 
         public void draw_map(Engine engine, SpriteBatch sb)
@@ -216,16 +204,10 @@ namespace beta_windows
             // reset after special effects have been drawn
             //reset_water();
         }
-        ///===============WATER testing=========================================================================================================
+        ///===============WATER sim included =========================================================================================================
         // Update world: Tile connections
         public void update_world(WorldClock c, Engine engine)
         {
-            // update GUI option connected values
-            /*grid_transparency_value = engine.get_editor().GUI.get_slider_value(actions.update_slider_grid_transparency);
-            gridcolor_r = (int)engine.get_editor().GUI.get_slider_value(actions.update_slider_grid_color_red);
-            gridcolor_g = (int)engine.get_editor().GUI.get_slider_value(actions.update_slider_grid_color_green);
-            gridcolor_b = (int)engine.get_editor().GUI.get_slider_value(actions.update_slider_grid_color_blue);
-            grid_color = new Color(gridcolor_r, gridcolor_g, gridcolor_b);*/
             // calculate sky color
             sky = calculate_sky_color(c);
             // new code: calculates changes only for updated cells
@@ -244,29 +226,61 @@ namespace beta_windows
             if (updated_cells.Count > 0)
                 updated_cells.Clear(); // delete cells from stack
 
-            // editor updates
-            //editor.Update(this, engine);
-            // water updates    
+            // water generation 
+            foreach (WaterGenerator w in wsources)
+            {
+                int x = (int)w.get_cell_address().X;
+                int y = (int)w.get_cell_address().Y;
 
-            water_test(engine);
+                // check tile for air
+                if (world_map[x, y].tile_id != -1)
+                {
+                    world_map[x, y].tile_id = -1;
+                }
+
+                // add water based on generator intensity
+                world_map[x, y].water_units += w.get_intensity();
+
+                // check validity
+                if (world_map[x, y].water_units > 100)
+                    world_map[x, y].water_units = 100;
+            }
+            // water update  
+            water_simulation(engine);
         }
 
-        // limit to area 100v100
-        public void water_test(Engine engine)
+        /// <summary>
+        /// Simulates water flow
+        /// </summary>
+        /// <param name="engine"> engine object </param>
+        public void water_simulation(Engine engine)
         {
-            int rate = 7; // vertical rate
+            // zone adjustment (to save CPU processing power)
+            water_zone_edge += water_zone_width;
+
+            // reset to 1st cell if edge is beyond last cell in the world
+            if (water_zone_edge >= w)
+                water_zone_edge = 0;
+
+            // adkust right edge
+            water_zone_stopper = water_zone_edge + water_zone_width; // where the last cell is
+            //adjust final horizontal cell
+            if (water_zone_stopper > w)
+                water_zone_stopper = w;
+            // simulation
+            int rate = 16; // vertical rate
 
             for (int y = h; y > 0; y--) // bottom --> top
-            //for (int y = 0; y < h; y++)
             {
-                //for(int x = 100; x > 0; x--) // better visuals, buggy calculation
-                for (int x = 0; x < 100; x++)  // worse visuals, better calculation (limited to a 100 cell zone in width
+                for (int x = water_zone_edge; x < water_zone_stopper; x++) // left --> right (adjusted for simulation zones)
                 {
                     // --------------------------------------------
                     // VERTICAL flow
                     // --------------------------------------------
-                    if (valid_array(x, y + 1) && world_map[x, y + 1].pressure - world_map[x, y].pressure <= 1)
+                    if (valid_array(x, y + 1))
                     {
+                        if (world_map[x, y].tile_id > 0)
+                            continue;
                         // calculations and transfers
                         if (world_map[x, y].tile_id == -1 && world_map[x, y + 1].tile_id <= 0 && world_map[x, y + 1].water_units < 100) // current (water); target (air, water, not full)
                         {
@@ -288,7 +302,6 @@ namespace beta_windows
                                     world_map[x, y + 1].water_units += world_map[x, y].water_units;
                                     world_map[x, y].water_units = 0;
                                     world_map[x, y].tile_id = 0;
-                                    world_map[x, y].pressure = 0;
 
                                     if (world_map[x, y + 1].tile_id == 0)
                                         world_map[x, y + 1].tile_id = -1;
@@ -315,9 +328,9 @@ namespace beta_windows
                     // --------------------------------------------
                     // HORIZONTAL flow
                     // --------------------------------------------
-
-                    // new right transfer test
-                    int preferred_rate = 8;
+                    // --------------------------------------------                    
+                    // right transfer 
+                    int preferred_rate = 16;
                     int actual_rate = 0; // calculated for each pair of cells
                     int sx, sy; // source coordinates
                     int tx, ty; // target coordinates
@@ -331,7 +344,7 @@ namespace beta_windows
                         //      if rule 1A was used - break out of the for loop after transfer
                         // 2. if there is no cell above - continue offset loop until good target cell is found or termination condition met (solid cell)
                         //      note: if air cell is found - it counts as target with 0 units only if it has 100unit cell or solid below it.
-                        for (int offset = 1; offset < w; offset++)
+                        for (int offset = 1; offset < surface_smoothness; offset++)
                         {
                             // variables setup
                             sx = x; sy = y;          // current source
@@ -388,7 +401,6 @@ namespace beta_windows
 
                                             world_map[sx, sy].water_units = 0;
                                             world_map[sx, sy].tile_id = 0;
-                                            world_map[sx, sy].pressure = 0;
 
                                             world_map[sx, sy + 1].water_units -= remainder;
                                             world_map[tx, ty].water_units += actual_rate;
@@ -403,7 +415,6 @@ namespace beta_windows
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
-                                                world_map[sx, sy].pressure = 0;
                                             }
 
                                             break;
@@ -424,7 +435,6 @@ namespace beta_windows
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
-                                                world_map[sx, sy].pressure = 0;
                                             }
 
                                             if (world_map[sx, sy].water_units < 0)
@@ -432,7 +442,6 @@ namespace beta_windows
                                                 world_map[sx, sy].tile_id = 0;
                                                 world_map[sx, sy + 1].water_units += world_map[sx, sy].water_units; // add negative units to cell below
                                                 world_map[sx, sy].water_units = 0; // reset
-                                                world_map[sx, sy].pressure = 0;
                                             }
 
                                             break;
@@ -448,7 +457,6 @@ namespace beta_windows
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
-                                                world_map[sx, sy].pressure = 0;
                                             }
 
                                             break;
@@ -474,7 +482,6 @@ namespace beta_windows
                                 if (world_map[sx, sy].water_units == 0)
                                 {
                                     world_map[sx, sy].tile_id = 0;
-                                    world_map[sx, sy].pressure = 0;
                                 }
                                 // no break in this part
                                 continue;
@@ -527,7 +534,216 @@ namespace beta_windows
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
-                                                world_map[sx, sy].pressure = 0;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }// end offset loop
+                    }// right horizontal flow end
+                    // --------------------------------------------
+                    // left transfer
+                    if (valid_array(x, y) && valid_array(x - 1, y)) // check initial current and right cells to be within borders
+                    {
+                        //      for RIGHT transfers - set of rules:
+                        // 0. if right cell has the same or smaller number of water units and it's not 100 - break the loop without transfer
+                        // 1. calculate actual rate - if within 1-preferred rate = ok, if more - set to preferred rate, if 0 - check rule 1A
+                        // 1A. check cell above current source - if it's water make it new source but add 100 to water_units for calculation purposes. then recalculate actual rate and transfer
+                        //      if rule 1A was used - break out of the for loop after transfer
+                        // 2. if there is no cell above - continue offset loop until good target cell is found or termination condition met (solid cell)
+                        //      note: if air cell is found - it counts as target with 0 units only if it has 100unit cell or solid below it.
+                        for (int offset = 1; offset < surface_smoothness; offset++)
+                        {
+                            // variables setup
+                            sx = x; sy = y;          // current source
+                            tx = x - offset; ty = y; // current target
+                            // check valid array condition
+                            if (!valid_array(tx, ty))
+                                break;
+                            // check for solid cell termination condition
+                            if (world_map[tx, ty].tile_id > 0)
+                                break;
+                            // check if source is air or solid
+                            if (world_map[sx, sy].tile_id >= 0)
+                                break;
+                            // rule 0. source <= target
+                            if (world_map[sx, sy].water_units <= world_map[tx, ty].water_units)
+                            {
+                                if (world_map[sx, sy].water_units < world_map[tx, ty].water_units)
+                                    break;
+                                else // additional rule allows for 100 water units in all cells before pressure calculations
+                                {
+                                    continue;
+                                }
+                            }
+                            // rule 1.
+                            actual_rate = calculate_transfer_rate(sx, sy, tx, ty);
+                            if (actual_rate >= preferred_rate)
+                            {
+                                actual_rate = preferred_rate;
+                            }
+                            //--------------------------------------
+                            // direct TRANSFER conditions
+                            //--------------------------------------
+                            if (actual_rate == 0 && world_map[sx, sy].water_units == 100)
+                            {
+                                if (valid_array(tx, ty + 1)
+                                    && world_map[tx, ty + 1].tile_id == 0)
+                                    break;
+                                //-------------------------------------------------------------standard section
+                                // enable rule 1A.
+                                if (valid_array(sx, sy - 1) && world_map[sx, sy - 1].water_units > 0) // something above source
+                                {
+                                    sy = sy - 1; // assign new source coordinates
+                                    actual_rate = calculate_transfer_rate(sx, sy, tx, ty, 100); // calculate new rate with adjustment 
+                                    // adjust new rate: if more than preferred - set to preferred
+                                    if (actual_rate > preferred_rate)
+                                        actual_rate = preferred_rate;
+                                    // complete transfer by rule 1A (this can leave new source cell empty, check at the end and assign air if needed)
+                                    // target cell can overflow, if it does, create new water cell above and fill it with remaining water units
+                                    if (world_map[tx, ty].water_units + actual_rate <= 100) // target doesn't overflow
+                                    {
+                                        if (world_map[sx, sy].water_units - actual_rate < 0) // if there is not enough in current source cell for transfer to be successful
+                                        {
+                                            int remainder = actual_rate - world_map[sx, sy].water_units;
+
+                                            world_map[sx, sy].water_units = 0;
+                                            world_map[sx, sy].tile_id = 0;
+
+                                            world_map[sx, sy + 1].water_units -= remainder;
+                                            world_map[tx, ty].water_units += actual_rate;
+
+                                            break;
+                                        }
+                                        else // enough in cell above original source
+                                        {
+                                            world_map[sx, sy].water_units -= actual_rate;
+                                            world_map[tx, ty].water_units += actual_rate;
+                                            // check new source cell: assign air if needed
+                                            if (world_map[sx, sy].water_units == 0)
+                                            {
+                                                world_map[sx, sy].tile_id = 0;
+                                            }
+
+                                            break;
+                                        }
+                                    }
+                                    else // target overflows
+                                    {
+                                        if (valid_array(tx, ty - 1) && world_map[tx, ty - 1].tile_id <= 0) // make sure new cell can be created above current target
+                                        {
+                                            int remainder = actual_rate - (100 - world_map[tx, ty].water_units); // tx and ty have been confirmed valid earlier in the code
+                                            // transfer + create new water cell
+                                            world_map[sx, sy].water_units -= actual_rate;
+
+                                            world_map[tx, ty].water_units = 100; // set initial target to full capacity
+                                            world_map[tx, ty - 1].tile_id = -1;
+                                            world_map[tx, ty - 1].water_units = remainder;
+                                            // check new source cell: assign air if needed
+                                            if (world_map[sx, sy].water_units == 0)
+                                            {
+                                                world_map[sx, sy].tile_id = 0;
+                                            }
+
+                                            if (world_map[sx, sy].water_units < 0)
+                                            {
+                                                world_map[sx, sy].tile_id = 0;
+                                                world_map[sx, sy + 1].water_units += world_map[sx, sy].water_units; // add negative units to cell below
+                                                world_map[sx, sy].water_units = 0; // reset
+                                            }
+
+                                            break;
+                                        }
+                                        else if (valid_array(tx, ty - 1) && world_map[tx, ty - 1].tile_id > 0) // do partial transfer
+                                        {
+                                            if (actual_rate + world_map[tx, ty].water_units > 100)
+                                                actual_rate = 100 - world_map[tx, ty].water_units;
+
+                                            world_map[tx, ty].water_units += actual_rate;
+                                            world_map[sx, sy].water_units -= actual_rate;
+                                            // check new source cell: assign air if needed
+                                            if (world_map[sx, sy].water_units == 0)
+                                            {
+                                                world_map[sx, sy].tile_id = 0;
+                                            }
+
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            break;
+                                        }
+                                    }
+                                }
+                                else if (valid_array(sx, sy - 1) && world_map[sx, sy - 1].water_units == 0)// if there is nothing above source
+                                {
+                                    // rule 2.
+                                    continue;
+                                }
+                                else // break needed?
+                                {
+                                    break;
+                                }
+                            }
+                            else if (actual_rate == 0 && world_map[sx, sy].water_units != 100) // ignore transfer
+                            {
+                                if (world_map[sx, sy].water_units == 0)
+                                {
+                                    world_map[sx, sy].tile_id = 0;
+                                }
+                                // no break in this part
+                                continue;
+                            }
+                            else if (actual_rate > 0) // [STANDARD TRANSFER [1-preferred]] -- currently testing smooth flow
+                            {
+                                if (world_map[sx, sy].water_units <= 100
+                                    && world_map[tx, ty].water_units < 100
+                                    && world_map[sx, sy].water_units - actual_rate >= world_map[tx, ty].water_units + actual_rate)
+                                {
+                                    // RULES for target:
+                                    bool rule1 = false; // 1. water with water below
+                                    bool rule2 = false; // 2. air with solid below and vertical transfer didn't happen
+                                    bool rule3 = false; // 3. air with 100w below and vertical transfer didn't happen
+                                    bool rule4 = false; // 4. left ledge = source with solid below, target is air
+
+                                    if (valid_array(tx, ty + 1)
+                                        && world_map[tx, ty].tile_id == -1
+                                        && world_map[tx, ty + 1].tile_id != 0
+                                        )
+                                        rule1 = true;
+                                    else if (world_map[tx, ty].tile_id == 0 && valid_array(tx, ty + 1))
+                                    {
+                                        if (world_map[tx, ty + 1].tile_id > 0) //bottom cell is solid
+                                            rule2 = true;
+                                        else if (world_map[tx, ty + 1].tile_id == -1 && world_map[tx, ty + 1].water_units > 90) // overflow for almost filled cells
+                                            rule3 = true;
+                                    }
+                                    //ledge (rule4 changed to properly account for 1 cell before target - ledge.
+                                    if (valid_array(tx + 1, ty + 1) // one before ledge
+                                        && world_map[tx + 1, ty + 1].tile_id > 0 // one before ledgte must be a solid
+
+                                        && valid_array(tx, ty + 1) // one just over the ledge
+                                        && world_map[tx, ty + 1].tile_id <= 0) // water/air
+                                    {
+                                        rule4 = true;
+                                    }
+
+                                    //transfer here
+                                    if (rule1 || rule2 || rule3 || rule4)
+                                    {
+                                        if (world_map[sx, sy].water_units - actual_rate >= world_map[tx, ty].water_units + actual_rate) // only if there is no overflow
+                                        {
+                                            world_map[sx, sy].water_units -= actual_rate;
+                                            world_map[tx, ty].water_units += actual_rate;
+
+                                            if (world_map[tx, ty].tile_id == 0)
+                                                world_map[tx, ty].tile_id = -1;               // if target is air it will become water, solids are filtered out before this point
+
+                                            // check new source cell: assign air if needed
+                                            if (world_map[sx, sy].water_units == 0)
+                                            {
+                                                world_map[sx, sy].tile_id = 0;
                                             }
                                         }
                                     }
@@ -537,138 +753,6 @@ namespace beta_windows
                         }// end offset loop
                     }// horizontal flow end
 
-                    //FINAL pressure attempt before giving up
-                    // check current cell for source 
-                    bool pressure_source = false;
-                    bool pressure_target = false;
-                    int ptx = 0;
-                    int pty = 0;
-
-                    if (valid_array(x, y))
-                    {
-                        if (is_top_of_the_column(x, y) /*&& valid_array(x + 1, y) && world_map[x + 1, y].tile_id > 0*/ && world_map[x, y].tile_id == -1)
-                            pressure_source = true;
-                        // if source is found
-                        if (pressure_source)
-                        {
-                            // find bottom of source's column
-                            int upper_limit = y;
-                            int lower_limit = find_bottom_of_column(x, y);
-
-                            for (int i = lower_limit; i >= upper_limit; i--)// go from bottom to top (i is scan value for current depth)
-                            {
-                                for (int j = x; x < w; j++) // move to the right (j is the X value for target cell)
-                                {
-                                    // find top of the column 
-                                    int target_y = find_top_of_the_column_index(j, i);
-                                    // check target
-                                    /*
-                                    target:
-                                    1. must not be adjacent column to the source
-                                    2. must have a solid cell blockage to the left (any column in between source/target)
-                                    3. must not be on the same height as current level being checked in scan loop
-                                    4. must not be full. if it is full - if there  is air above make it new target (if it's on or below source's level)
-                                    */
-                                    bool rule1 = false;
-                                    bool rule2 = false; // between current j and x there must be a solid cell at target height 
-                                    bool rule3 = false;
-                                    bool rule4 = false;
-
-                                    if (world_map[j, target_y].water_units < 100)
-                                    {
-                                        rule4 = true;
-                                    }
-                                    else if (world_map[j, target_y].water_units == 100)
-                                    {
-                                        if (world_map[j, target_y - 1].tile_id == 0)
-                                        {
-                                            target_y -= 1;
-                                            rule4 = true;
-                                        }
-                                    }
-
-                                    if (j - x > 1)
-                                        rule1 = true;
-
-                                    if (is_blocked(x, j, target_y))
-                                        rule2 = true;
-
-                                    if (target_y <= i)
-                                        rule3 = true;
-
-
-                                    // if not good target - continue this loop until solid is found
-                                    if (rule1 && rule2 && rule3 && rule4)
-                                    {
-                                        pressure_target = true;
-                                        ptx = j;
-                                        pty = target_y;
-
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        if (valid_array(j + 1, i) && world_map[j + 1, i].tile_id == -1)
-                                            continue;
-                                        else
-                                            break;
-                                    }
-                                }
-                                // exit main loop
-                                if (!pressure_target)
-                                    break;
-                            }
-                            // check if target exists, if not - do nothing
-                            if (pressure_target)
-                            {
-                                int psx = x;
-                                int psy = y;
-                                // transfer between source and target
-
-                                // different heights
-                                if (psy < pty)
-                                {
-                                    if (world_map[psx, psy].water_units > 0 && world_map[ptx, pty].water_units < 100)
-                                    {
-                                        world_map[psx, psy].water_units--;
-                                        world_map[ptx, pty].water_units++;
-                                        world_map[ptx, pty].tile_id = -1;
-                                    }
-                                    else// target is 100
-                                    {
-                                        // start a new cell
-                                        if (world_map[ptx, pty - 1].tile_id <= 0)
-                                        {
-                                            world_map[psx, psy].water_units--;
-                                            world_map[ptx, pty - 1].water_units++;
-                                            world_map[ptx, pty - 1].tile_id = -1;
-                                        }
-                                    }
-
-                                    if (world_map[psx, psy].water_units == 0)
-                                    {
-                                        world_map[psx, psy].tile_id = 0;
-                                    }
-                                }
-                                //same height
-                                else if (psy == pty)
-                                {
-                                    if (world_map[psx, psy].water_units > 0 && world_map[ptx, pty].water_units < 100
-                                        && world_map[psx, psy].water_units - 1 >= world_map[ptx, pty].water_units + 1)
-                                    {
-                                        world_map[psx, psy].water_units--;
-                                        world_map[ptx, pty].water_units++;
-                                        world_map[ptx, pty].tile_id = -1;
-
-                                        if (world_map[psx, psy].water_units == 0)
-                                        {
-                                            world_map[psx, psy].tile_id = 0;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
                     // ===========================
                 }//main for loop
             }// main for loop
@@ -785,6 +869,31 @@ namespace beta_windows
                 }
             }
         }
+        /// <summary>
+        /// Removes all point lights
+        /// </summary>
+        public void destroy_lights()
+        {
+            world_lights.Clear();
+        }
+        /// <summary>
+        /// Removes all water generators
+        /// </summary>
+        public void destroy_water_generators()
+        {
+            wsources.Clear();
+        }
+        // generate a water source (cell that produces water)
+        public void generate_water_generator(MouseState m, Engine engine)
+        {
+            Vector2 cell = get_current_hovered_cell(m, engine);
+
+            // add a water generator if there isn't one already and if cell is air
+            if (!is_watergen_object_in_cell(cell) && valid_cell((int)cell.X - 1, (int)cell.Y - 1) && world_map[(int)cell.X - 1, (int)cell.Y - 1].tile_id == 0)
+            {
+                wsources.Add(new WaterGenerator(cell - Vector2.One, get_tile_center(cell), engine.generate_int_range(20, 80)));
+            }
+        }
         // generate a light, in player-specified cell. (unless it is a default light)
         // player/map editor input
         public void generate_light_source(Color color, MouseState m, Engine engine, int radius, float intensity)
@@ -810,6 +919,19 @@ namespace beta_windows
             foreach (PointLight pl in world_lights)
             {
                 if (pl.cell == cell)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        // detect a wwater generator in the cell
+        public bool is_watergen_object_in_cell(Vector2 cell)
+        {
+            foreach (WaterGenerator w in wsources)
+            {
+                if (w.get_cell_address() == cell)
                 {
                     return true;
                 }
@@ -881,7 +1003,9 @@ namespace beta_windows
         public void toggle_edit_mode()
         {
             edit_mode = !edit_mode;
+            
         }
+
         public bool in_edit_mode()
         {
             return edit_mode;
@@ -1037,7 +1161,16 @@ namespace beta_windows
             }
             return true;
         }
-
+        //update tile type
+        public void update_tile_type(int x, int y, Engine engine)
+        {
+            if (valid_cell(engine) && this.tile_exists(x, y))
+            {
+                world_map[x - 1, y - 1].tile_id = get_current_edit_tile(engine); // update tile type here
+                world_map[x - 1, y - 1].water_units = 0;
+                updated_cells.Push(new Vector2(x, y)); // push updated cell on to updates stack
+            }
+        }
         public void erase_tile(int x, int y, Engine engine, int radius)
         {
             for (int i = -radius; i <= radius; i++)
@@ -1266,7 +1399,7 @@ namespace beta_windows
             // viewport dimensions
             int max_visible_cell_x = minimal_visible_cell_x + (engine.get_viewport().Width / tile_size);
             int max_visible_cell_y = minimal_visible_cell_y + (engine.get_viewport().Height / tile_size);
-            
+
             // make sure partial cells don't get cut off
             max_visible_cell_x += 1;
             max_visible_cell_y += 1;
@@ -1803,6 +1936,13 @@ namespace beta_windows
 
             return ambient;
         }
+        public Vector2 vector_position_to_cell(Vector2 pos)
+        {
+            int X = ((int)pos.X) / tile_size + 1;
+            int Y = ((int)pos.Y) / tile_size + 1;
+
+            return new Vector2(X, Y);
+        }
         // cast circle from light source
         public void world_draw_point_lights(Engine engine, SpriteBatch sb)
         {
@@ -1811,16 +1951,44 @@ namespace beta_windows
                 engine.xna_draw(pl.light_sphere, pl.position - engine.get_camera_offset() - new Vector2(pl.active_radius() / 2, pl.active_radius() / 2), null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 1f);
             }
         }
-
+        // draw actual light emitters
         public void world_draw_point_light_sources(Engine engine)
         {
-            // draw objects (light)
-            int count = 0;
-            foreach (PointLight pl in world_lights)
+            // point light indicators should only be drawn if editor is active
+            if (in_edit_mode())
             {
-                Vector2 object_offset = new Vector2(pl.sprite.Width / 2, pl.sprite.Height / 2);
-                engine.xna_draw(pl.sprite, pl.position - engine.get_camera_offset() - object_offset, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0.4f);
-                count++;
+                // draw objects (light)
+                int count = 0;
+                foreach (PointLight pl in world_lights)
+                {
+                    // draw the indicator
+                    Vector2 object_offset = new Vector2(pl.sprite.Width / 2, pl.sprite.Height / 2);
+                    engine.xna_draw(pl.sprite, pl.position - engine.get_camera_offset() - object_offset, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1.0f);
+                    // draw information on hover
+                    if (engine.are_vectors_equal(get_current_hovered_cell(engine.get_current_mouse_state(), engine), vector_position_to_cell(pl.position)))
+                    {
+                        engine.xna_draw_outlined_text("light color: " + pl.get_color().ToString() + " radius: " + pl.active_radius().ToString() + " intensity: " + pl.get_intensity().ToString(),
+                         pl.position - engine.get_camera_offset() - object_offset + new Vector2(20, 0), Vector2.Zero, Color.Yellow, Color.Black, engine.get_UI_font());
+                    }
+                    count++;
+                }
+            }
+        }
+        // draw water generator sprites
+        public void world_draw_water_generators(Engine engine)
+        {
+            // water source indicators should only be drawn if editor is active
+            if (in_edit_mode())
+            {
+                // draw objects (light)
+                int count = 0;
+                foreach (WaterGenerator pl in wsources)
+                {
+                    // draw the indicator
+                    Vector2 object_offset = new Vector2(pl.sprite.Width / 2, pl.sprite.Height / 2);
+                    engine.xna_draw(pl.sprite, pl.get_position() - engine.get_camera_offset() - object_offset, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1.0f);
+                    count++;
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace beta_windows
+namespace EditorEngine
 {
 #if WINDOWS || LINUX
     /// <summary>

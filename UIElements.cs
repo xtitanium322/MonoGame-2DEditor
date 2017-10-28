@@ -11,7 +11,7 @@ using Microsoft.Xna.Framework.Media;
 /*
  ALL elements available for the user interface. Custom built.
  */
-namespace beta_windows
+namespace EditorEngine
 {
     //-----------------------------------------------------------------------------------------------------------------------
     [Serializable()]

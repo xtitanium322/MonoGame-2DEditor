@@ -129,6 +129,30 @@
 			<origin_x>0</origin_x>
 			<origin_y>0</origin_y>
 			<visible>true</visible>
-		</Item>			
+		</Item>
+		<Item>
+			<c_id>CONTAINER_RESOLUTION_SUBCONTEXT</c_id><!-- 17. Resolution Update Button Container -->
+			<contexttype>expansion</contexttype>
+			<name>resolution change</name>
+			<origin_x>0</origin_x>
+			<origin_y>0</origin_y>
+			<visible>false</visible>
+		</Item> 
+		<Item>
+			<c_id>CONTAINER_STATISTICS_TEXT_AREA</c_id><!-- 18. TEXT AREA FOR STATISTICS-->
+			<contexttype>none</contexttype>
+			<name>stats chat area</name>
+			<origin_x>30</origin_x>
+			<origin_y>200</origin_y>
+			<visible>false</visible>
+		</Item>		
+		<Item>
+			<c_id>CONTAINER_TOGGLE_SYSTEM</c_id><!-- 19. container for toggle chat button -->
+			<contexttype>none</contexttype>
+			<name>toggle system chat</name>
+			<origin_x>30</origin_x>
+			<origin_y>200</origin_y>
+			<visible>true</visible>
+		</Item>	
 	</Asset>
 </XnaContent>

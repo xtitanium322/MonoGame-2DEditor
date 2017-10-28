@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace beta_windows
+namespace EditorEngine
 {
     /// <summary>
     /// Zones used to create separations inside GUI stored_elements for display and functional purposes

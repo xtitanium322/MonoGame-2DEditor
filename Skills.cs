@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace beta_windows
+namespace MonoGameEngine
 {
     /* INCOMPLETE */
     public abstract class Skill

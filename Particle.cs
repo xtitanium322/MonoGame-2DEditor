@@ -16,7 +16,7 @@ v = vo + at
 d = vo*t + 1/2at^2
 vf^2 – vo^2 = 2ad*/
 
-namespace beta_windows
+namespace MonoGameEngine
 {
     public enum trajectory_type { laser_line, chaotic, fall, rise, weightlessness, ballistic_curve, static_, upward_fountain, homing_missile };
     /*Particle Struct

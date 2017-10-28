@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
@@ -8,22 +9,22 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
-namespace beta_windows
+namespace EditorEngine
 {
     /*Text rendering Engine - display system quest and other game messages in specified containers (UI elements with a Rectangle defined for text).
-    Suports randomly colored and highlighted words in a message.
+            Suports randomly colored and highlighted words in a message.
 
-    1. define a message element
-    2. define a display engine
+            1. define a message element
+            2. define a display engine
 
-    Example of encoded text message for TextEngine to process
-    Create a library of text messages that can be copied and added to engine
-    */
+            Example of encoded text message for TextEngine to process
+            Create a library of text messages that can be copied and added to engine
+            */
 
-/*-------------------------------------------------------------------------------------------------------------------------------------------*/
+    /*-------------------------------------------------------------------------------------------------------------------------------------------*/
     // a message will be broken out into text elements according to its encoding
     // collect only one word in order to be able to break messages into lines smoothly
-    enum decode_mode { none, variable, color };
+    enum decode_mode { none, variable, color, action };
 
     /*
       Usage: List<text_element> lst; // creates a list of text elements to be used in the message element
@@ -70,7 +71,7 @@ namespace beta_windows
 
         public string get_text()
         {
-        		return text;
+            return text;
         }
 
         public Color get_color()
@@ -88,7 +89,7 @@ namespace beta_windows
             text += val;
         }
     }
-/*-------------------------------------------------------------------------------------------------------------------------------------------*/
+    /*-------------------------------------------------------------------------------------------------------------------------------------------*/
     // text elements will be collected into a single message
     /*
       Usage: List<message_element> messages; // create a list of all messages being used by a text engine class.
@@ -129,7 +130,7 @@ namespace beta_windows
         // calculate how many lines will this message represent in a given text area. Assign starting text_element number to each line and store in the index list
         public int calculate_lines(Engine engine, Rectangle text_area, int padding = 0)
         {
-            int max = text_area.Width - (padding*2); // current width for drawing
+            int max = text_area.Width - (padding * 2); // current width for drawing
             int temp = 0;
             int lines = 1;
             // create a texture for every word given it's color and add it's width to temp
@@ -151,7 +152,7 @@ namespace beta_windows
         }
     }
 
-/*-------------------------------------------------------------------------------------------------------------------------------------------*/
+    /*-------------------------------------------------------------------------------------------------------------------------------------------*/
     // shows all the messages that fit into target area, then crops the oldest ones and any scrolled messages
     // scrolling will decide which line is the anchor at the bottom of the chat by manipulating a Vector2 draw_origin
     //	if 1 - origin is not offset down, if 2 - origin is moved 1 line down and messages get truncated from both sides using a shader. a scrollbar will appear
@@ -210,11 +211,11 @@ namespace beta_windows
         // add a message to chat queue of this Engine object
         public void add_message_element(message_element a, int current_time)
         {
-            if(messages.Count == MAX_MESSAGES)
-            	messages.Dequeue(); // remove oldest
+            if (messages.Count == MAX_MESSAGES)
+                messages.Dequeue(); // remove oldest
 
             a.set_timestamp(current_time); //current ms value
-				messages.Enqueue(a);
+            messages.Enqueue(a);
         }
 
         public void add_message_element(Engine engine, string input_text)
@@ -253,7 +254,7 @@ namespace beta_windows
             int max_lines = target_bounds.Height / line_height;
 
             // truncate list for non-shader masked rendering (does not support scrolling yet)
-            if (line_list.Count > max_lines) 
+            if (line_list.Count > max_lines)
             {
                 small_line_list = line_list.GetRange(0, max_lines).ToList();
             }
@@ -262,13 +263,17 @@ namespace beta_windows
                 small_line_list = line_list;
             }
         }
-
+        public void clear_messages()
+        {
+            messages.Clear();
+        }
         public void set_target(Rectangle target_area, Vector2 origin)
         {
             target_bounds = target_area;
             target_origin = origin;
         }
-        // decoder will have to calculate each frame due to variables being used changing - example a time stamp in ms or current time of day
+
+        // decoder will have to calculate each frame due to variables changing - example a time stamp in ms or current time of day
         // this function creates a rendereable message_element based on the coded string containing such codes as text color and variable names. Variable and color codes must not have spaces in them.
         // Design of this function is completed
         // other example messages:
@@ -276,36 +281,44 @@ namespace beta_windows
         "~CURRENT_TIME[16,0,200] system:[16,200,200] Light has been added to ~CURRENT_CELL[0,255,0]"  << IMPORTANT: here the value for color can be auto-generated based on system color dictionary values. look up by system color type and append a formatted value in string decoder format
         "~CURRENT_TIME[16,0,200] system:[16,200,200] Mode changed to ~CURRENT_EDIT_MODE[0,255,255]" << example system message for changed editor mode
         "~CURRENT_TIME[16,0,200] system:[16,200,200] SubMode changed to ~CURRENT_EDIT_SUBMODE[0,255,255]" << example system message for changed editor submode
+        "{one two three}[red] - this message will have all words colored the same"
         */
-        public message_element create_message_element(Engine e, string encoded_string) // based on an encoded message from library or a direct paramater - create a message/text elements
+
+        /// <summary>
+        /// Updated version of the message creator
+        /// step 1. resolve all variables and substitute them with new text, updated text string will go through step 2
+        /// step 2. create text elements, assigning color values to each one
+        /// </summary>
+        /// <param name="e">Engine</param>
+        /// <param name="encoded_string">a raw string of the message with variables and other tags</param>
+        /// <returns></returns>
+        public message_element create_message_element(Engine e, string encoded_string)
         {
             message_element result = new message_element("decoder message");
             text_element temp_text = new text_element();
+            List<text_element> grouped = new List<text_element>();             // a temporary group used to assign the same coloor to multiple text messages , retroactively
+            bool grouping = false;
             string temp = "";
+            string encoded_action = "";
 
-            string t = encoded_string; //"~CURRENT_MS[20,145,200] Testing colored[125,20,0] text decoding"; // TEST INPUT<change when added to XNA>. create a list of variables available for use in these kinds of messages. Special characters signal decode mode change. Space signals complete word(text_element)
-            t = String.Concat(t, ' '); 					      // adds a space signaling the end of last word
-            Color current_encoder = standard_color; 			// initialize with standard color
-            decode_mode dm = decode_mode.none; 					// default decoder mode
+            string t = encoded_string;                   // "~CURRENT_MS[20,145,200] Testing colored[125,20,0] text decoding"; // TEST INPUT<change when added to XNA>. create a list of variables available for use in these kinds of messages. Special characters signal decode mode change. Space signals complete word(text_element)
+            t = String.Concat(t, ' '); 					 // adds a space signaling the end of last word
+            Color current_encoder = standard_color; 	 // initialize with standard color
+            decode_mode dm = decode_mode.none; 			 // default decoder mode
 
-            for (int i = 0; i < t.Length; i++) // read character by character
+            // step 1 - decode variables
+            t = replace_variables(e, t);
+
+            // step 2 - decode colors
+            for (int i = 0; i < t.Length; i++)
             {
-                if (t[i] == '~') //variable until next space or bracket
-                {
-                    dm = decode_mode.variable; // set decode mode variable
-                }
-                else if (t[i] == '[')
+                if (t[i] == '[')
                 {
                     // stop writing to temp
                     if (dm == decode_mode.none)
                     {
                         temp_text.set_text(temp); // assign collected text if its not a variable
                         temp = ""; // reset temp string
-                    }
-                    else if (dm == decode_mode.variable)
-                    {
-                        temp_text.set_text(decode_variable(e, temp, out current_encoder));
-                        temp = ""; // reset string to collect the next part of string
                     }
 
                     // start color decoding
@@ -318,113 +331,443 @@ namespace beta_windows
                     {
                         case (decode_mode.variable): // no functionality
                             break;
-                        case (decode_mode.color):
-                            current_encoder = delimited_string_to_color(temp); //NEEDS try-catch block implemented in case user enters a wrong format of color../ convert current color in temp string to a real value and assigned to current encoded color
+                        case (decode_mode.color): // assigns color to encoder
+                            try
+                            {
+                                current_encoder = delimited_string_to_color(temp); //NEEDS try-catch block implemented in case user enters a wrong format of color../ convert current color in temp string to a real value and assigned to current encoded color
+                            }
+                            catch
+                            {
+                                current_encoder = Color.White;
+                            }
+                                                       
                             break;
                         case (decode_mode.none): // no functionality
                             break;
                         default:
                             break;
                     }
-                    // change decode mode after proper action has been done
-                    //dm = decode_mode.none;
+                    // create text element
+                    temp_text.set_color(current_encoder);       // can vary
+                    temp_text.set_text_font(Game1.small_font);  // font size
+                   
+                    // for all grouped messages - color them now
+                    if(grouped.Count > 0)
+                    {
+                        foreach(text_element te in grouped)
+                        {
+                            te.set_color(current_encoder);
+                            result.add_text_element(te);
+                        }
+
+                        grouped.Clear();
+                    }
+                    // after adding all the grouped messages - finish up with the most recent one
+                    result.add_text_element(temp_text);         // ADD text element to result
+                    // clean-up
+                    dm = decode_mode.none;                      // reset decode mode
+                    current_encoder = standard_color;           // reset in case it was changed by color tag of coded message
+                    temp = ""; //reset temp string again
+
+                    temp_text = new text_element();             // since it was copied over a new structure can be created
+                }
+                else if(t[i] == '{')
+                {
+                    grouping = true;
+                }
+                else if(t[i] == '}') // {~fps is this}[red]
+                {
+                    grouping = false;
+                }
+                else if (t[i] == '*')
+                {
+                    dm = decode_mode.action;                    // this new mode allows for parameters after the command
                 }
                 else if (t[i] == ' ')// at this point a text_element is completed and can be added to message_element
                 {
-                    // temp_text.text has already been setup by this point if current mode is color
-                    if (dm == decode_mode.none)
-                        temp_text.set_text(temp);
-                    else if (dm == decode_mode.variable)
+                    //Debug.WriteLine(encoded_action);
+                    if (dm != decode_mode.action)
                     {
-                        temp_text.set_text(decode_variable(e, temp, out current_encoder));
-                        temp = ""; // reset string to collect the next part of string
+                        if (temp.Length > 0) // make sure there is something to add before creating a text element
+                        {
+                            // temp_text.text has already been setup by this point if current mode is color
+                            if (dm == decode_mode.none)
+                                temp_text.set_text(temp);
+
+                            // create text element
+                            temp_text.set_color(current_encoder);       // can vary
+                            temp_text.set_text_font(Game1.small_font);  // font size
+
+
+                            if (grouping)
+                                grouped.Add(temp_text);
+                            else
+                            {
+                                if (grouped.Count > 0)
+                                {
+                                    foreach (text_element te in grouped)
+                                    {
+                                        te.set_color(current_encoder);
+                                        result.add_text_element(te);
+                                    }
+
+                                    grouped.Clear();
+                                    // clean up
+                                    result.add_text_element(temp_text);         // ADD text element to result
+                                }
+                                else
+                                    result.add_text_element(temp_text);         // ADD text element to result
+                            }
+
+                            // clean-up
+                            dm = decode_mode.none;                      // reset decode mode
+                            current_encoder = standard_color;           // reset in case it was changed by color tag of coded message
+                            temp = ""; //reset temp string again
+
+                            temp_text = new text_element();             // since it was copied  over a new structure can be created
+                        }
                     }
+                    else
+                    {
+                        // perform an actions specified by the user command typed in system input
+                        string answer = perform_action(e, encoded_action, t.Substring(i)); // run the action on the remaining string which should have only the parameters required for the action and get response
+                        temp_text.set_color(Color.OrangeRed);
+                        temp_text.set_text_font(Game1.small_font);     // font size
+                        temp_text.set_text(answer);
+                        
 
-                    temp_text.set_color(current_encoder); // can vary
-                    temp_text.set_text_font(Game1.small_font);
-                    result.add_text_element(temp_text);
-                    temp_text = new text_element(); // since it was copied  over a new structure can be created
+                        if (grouping)
+                            grouped.Add(temp_text);
+                        else
+                            result.add_text_element(temp_text);
 
-                    dm = decode_mode.none; // reset decode mode
-                    current_encoder = standard_color; // reset in case it was changed by color tag of coded message
-
-                    temp = ""; //reset temp string again
+                        return result; // end the function
+                    }
                 }
                 else // any other valid character or number will simply be appended to temporary string
                 {
-                    temp = String.Concat(temp, t[i]); // write a character to current temp string
+                    if (dm != decode_mode.action)
+                    {
+                        temp = String.Concat(temp, t[i]); // write a character to current temp string
+                    }
+                    else if (dm == decode_mode.action)
+                    {
+                        encoded_action = String.Concat(encoded_action, t[i]); // write a character to encoded action string
+                    }
                 }
             }
-
-            return result; // value variable can be returned here without introducing bugs due to the nature of this specific function
+            // done
+            return result;
         }
+        /// <summary>
+        /// Performs an action based on user input
+        /// </summary>
+        /// <param name="e">engine needed for access to world and other important objects</param>
+        /// <param name="action">name of the command</param>
+        /// <param name="ps">substring with relevant parameters</param>
+        /// <returns>string to display in system chat</returns>
+        public string perform_action(Engine e, string action, string ps)
+        {
+            string par1 = "";
 
-        public string decode_variable(Engine e, string variable_tag, out Color decoder_color)
+            if (action.Equals("settime"))
+            {
+                for (int i = 0; i < ps.Length; i++)
+                {
+                    if (ps[i] != ' ')
+                    {
+                        par1 = String.Concat(par1, ps[i]);
+                    }
+                    else if (ps[i] == ' ')
+                    {
+                        // skip
+                        if (par1.Length == 0)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            int time;
+
+                            if (Int32.TryParse(par1, out time))
+                            {
+                                // set the in-game clock
+                                if (time >= 0 && time <= 23)
+                                {
+                                    e.clock.set_clock(time, 0);
+                                    return "*settime " + time.ToString() + ":00 success";
+                                }
+                                else
+                                    return time + " is incorrect value for *settime";
+                            }
+                            else
+                            {
+                                return "wrong parameters for *settime";
+                            }
+                        }
+                    }
+                }
+                return "<bad command format>"; // if there is no space at the end of the string
+            }
+            else if (action.Equals("brush"))
+            {
+                for (int i = 0; i < ps.Length; i++)
+                {
+                    if (ps[i] != ' ')
+                    {
+                        par1 = String.Concat(par1, ps[i]);
+                    }
+                    else if (ps[i] == ' ')
+                    {
+                        // skip
+                        if (par1.Length == 0)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            int size;
+
+                            if (Int32.TryParse(par1, out size))
+                            {
+                                // set the in-game clock
+                                if (size >= 0 && size <= 10)
+                                {
+                                    e.get_editor().set_brush_size(size);
+                                    return "brush size changed to " + size;
+                                }
+                                else
+                                    return size + " is incorrect value for *brush";
+                            }
+                            else
+                            {
+                                return "wrong parameters for *brush";
+                            }
+                        }
+                    }
+                }
+                return "<bad command format>"; // if there is no space at the end of the string
+            }
+            else if (action.Equals("stats"))
+            {
+                //Game1.toggle_stats(); // turns statistic display on or off
+                // make stats container visible invisible
+                e.get_editor().GUI.find_container("CONTAINER_STATISTICS_TEXT_AREA").set_visibility("toggle");
+                return "statistic display toggled";
+            }
+            else if(action.Equals("lc"))
+            {
+                // switches light colors for all the lights currently in selection matrix
+                // only several values are available
+                for (int i = 0; i < ps.Length; i++)
+                {
+                    if (ps[i] != ' ')
+                    {
+                        par1 = String.Concat(par1, ps[i]);
+                    }
+                    else if (ps[i] == ' ')
+                    {
+                        // skip
+                        if (par1.Length == 0)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            List<PointLight> l = e.get_editor().get_selection_lights();
+
+                            if (par1.Equals("red"))
+                            {   
+                                // switch the light color
+                                foreach(PointLight pl in l)
+                                {
+                                    pl.change_light_color(Color.Red);
+                                }
+                            }
+                            else if(par1.Equals("green"))
+                            {
+                                // switch the light color
+                                foreach (PointLight pl in l)
+                                {
+                                    pl.change_light_color(Color.Green);
+                                }
+                            }
+                            else if (par1.Equals("blue"))
+                            {
+                                // switch the light color
+                                foreach (PointLight pl in l)
+                                {
+                                    pl.change_light_color(Color.Blue);
+                                }
+                            }
+                            else if (par1.Equals("yellow"))
+                            {
+                                // switch the light color
+                                foreach (PointLight pl in l)
+                                {
+                                    pl.change_light_color(Color.Yellow);
+                                }
+                            }
+                            else if (par1.Equals("violet"))
+                            {
+                                // switch the light color
+                                foreach (PointLight pl in l)
+                                {
+                                    pl.change_light_color(Color.Violet);
+                                }
+                            }
+                            else if (par1.Equals("white"))
+                            {
+                                // switch the light color
+                                foreach (PointLight pl in l)
+                                {
+                                    pl.change_light_color(Color.White);
+                                }
+                            }
+                            else if (par1.Equals("transparent")) // black color lightens up the textures behind it but gives no color to tint the scenery, so it's the most natural lighting possible
+                            {
+                                // switch the light color
+                                foreach (PointLight pl in l)
+                                {
+                                    pl.change_light_color(Color.Black);
+                                }
+                            }
+                            else
+                            {
+                                return "wrong parameters for *lightcolor, use red,green, blue, yellow, violet or white";
+                            }
+                            return "light color switched to " + par1;
+                        }
+                    }
+                }
+
+                return "<bad command format>";
+            }
+            else if (action.Equals("lightsoff"))
+            {
+                e.get_current_world().destroy_lights();
+                return "light emitters destroyed";
+            }
+            else if (action.Equals("wateroff"))
+            {
+                e.get_current_world().destroy_water_generators();
+                return "water generators destroyed";
+            }
+            else
+            {
+                return "<undefined action>";
+            }
+        }
+        /// <summary>
+        /// Replaces ~variables in the string
+        /// </summary>
+        /// <returns>updated string</returns>
+        public string replace_variables(Engine e, string t)
+        {
+            string out_string = "";           // contains complete string with resolved variables
+            string var_name = "";           // contains variable name, will be resolved by decode_variable()
+            bool building_variable = false;   // switch the mode
+
+            // read the string
+            for (int i = 0; i < t.Length; i++)
+            {
+                // variable not detected - build the output string
+                if (!building_variable)
+                {
+                    if (t[i] == '~') // variable identifying symbol 
+                    {
+                        building_variable = true; // mode has been switched and the character doesn't have to be duplicated in the output string
+                    }
+                    else
+                    {
+                        out_string = String.Concat(out_string, t[i]); // normal mode - build the output string
+                    }
+                }
+                // variable detected - switch to building variable name which will later be replaced
+                else
+                {
+                    // variable name ends
+                    if (t[i] == '[' || t[i] == ' ')
+                    {
+                        out_string = String.Concat(out_string, decode_variable(e, var_name)); // add decoded result to the overall result and continue building the string
+                        building_variable = false;            // reset for the rest of the string                      
+                        var_name = "";
+
+                        if(t[i] != ' ')
+                            out_string = String.Concat(out_string, t[i]); // concatenate the character as well
+                    }
+                    // variable name continues
+                    else
+                    {
+                        var_name = String.Concat(var_name, t[i]);
+                    }
+                }
+            }
+            return out_string;
+        }
+        /// <summary>
+        /// Replaces a variable with appropriate information. Custom color tags are added for several variables.
+        /// </summary>
+        /// <param name="e">Engine</param>
+        /// <param name="variable_tag">variable name: e.g. ~fps </param>
+        /// <param name="decoder_color">output color of the decoded string</param>
+        /// <returns></returns>
+        public string decode_variable(Engine e, string variable_tag)
         {
             string temp = "";
             if (variable_tag.ToUpper() == "MS") // based on the key - get the value of this variable
             {
-                temp = e.get_current_game_millisecond().ToString();
+                temp = "ms:[orange] " + e.get_current_game_millisecond().ToString() + "[" + color_to_delimited_string(Color.DarkGreen) + "]";
             }
             else if (variable_tag.ToUpper() == "CAM")
             {
-                temp = "offset = " + e.get_camera_offset().ToString();
+                temp = "cam:[orange] offset = " + e.get_camera_offset().ToString();
             }
             else if (variable_tag.ToUpper() == "SIZE")
             {
-                temp = e.get_current_world().get_world_size().ToString();
+                temp = "size:[orange] " + e.get_current_world().get_world_size().ToString() + "[violet]";
             }
             else if (variable_tag.ToUpper() == "FPS")
             {
-                temp = e.get_fps().ToString();
+                temp = "fps:[orange] " + e.get_fps().ToString() + "[skyblue]";
             }
             else if (variable_tag.ToUpper() == "TIME")
             {
-                temp = Game1.thisDay.Hour.ToString("D2") + ":" + Game1.thisDay.Minute.ToString("D2");
+                temp = Game1.thisDay.Hour.ToString("D2") + ":" + Game1.thisDay.Minute.ToString("D2") + "[skyblue]";
             }
             else if (variable_tag.ToUpper() == "H")
             {
-                temp = "~ms (show milliseconds since start), ~cam (show camera offset),~size (show total number of cells in the game world), ~fps (show current fps), ~time (show time)";
+                temp = "help(h):[orange] " + "~ms[orange] (show milliseconds since start), /nl ~colors[orange] (show colors available for the [] tag), /nl ~cam[orange] (show camera offset), /nl ~size[orange] (show total number of cells in the game world), /nl ~fps[orange] (show current fps), /nl ~time[orange] (show time)";
+            }
+            else if (variable_tag.ToUpper() == "A")
+            {
+                temp = "actions(a):[orange] " + "settime[orange] <0-23> (set game world clock), /nl lc[orange] - change light color of selected light(s), /nl wateroff[orange] - destroy water generators, /nl lightsoff[orange]  - destroy light sources, /nl brush[orange]  <0-10>, /nl stats[orange]  - display or hide statistics";
+            }
+            else if (variable_tag.ToUpper() == "COLORS")
+            {
+                temp = "colors:[orange] " + " red[red], /nl green[green], /nl blue[blue], /nl violet[violet], /nl orange[orange], /nl pink[pink], /nl yellow[yellow], /nl skyblue[skyblue]";
+            }
+            else if (variable_tag.ToUpper() == "TEST")
+            {
+                temp = "test[orange]";
             }
             else
             {
-                temp = "<undefined variable>";
+                temp = variable_tag + "[orange] is " + "undefined";
             }
-
-            decoder_color = decode_variable_color_special(variable_tag); // sets a standard special colored value for a resolved variable value (can be overriden by explicit color tag in typed message
 
             return temp;
         }
-
-        public Color decode_variable_color_special(string variable_tag)
-        {
-            if (variable_tag.ToUpper() == "FPS")
-            {
-                return Color.CornflowerBlue;
-            }
-            else if (variable_tag.ToUpper() == "MS")
-            {
-                return Color.DarkOrange;
-            }
-            else if (variable_tag.ToUpper() == "TIME")
-            {
-                return Color.LawnGreen;
-            }
-            // if variable tag is any different - set a standard variable color
-            return Color.SandyBrown;
-        }
-
-
 
         // converts a string value to xna Color value
         public static Color delimited_string_to_color(string color_string)// format "int,int,int",e.g. 25,125,44
         {
             // check actual color names first
-            if(color_string.Equals("green"))
+            if (color_string.Equals("green"))
             {
                 return Color.Green;
             }
-            else if(color_string.Equals("red"))
+            else if (color_string.Equals("red"))
             {
                 return Color.Red;
             }
@@ -452,7 +795,7 @@ namespace beta_windows
             {
                 return Color.DeepSkyBlue;
             }
-            
+
             // numeric color codes
             int r = 0;// color value placeholders
             int g = 0;
@@ -490,7 +833,7 @@ namespace beta_windows
                 }
                 b = Int32.Parse(temp); // collects the last number
             }
-            catch(FormatException)
+            catch (FormatException)
             {
                 return Color.White; // return a standard white color if encoding is wrong
             }
@@ -514,18 +857,23 @@ namespace beta_windows
         /// <param name="area">A rectangle on screen where message should go</param>
         /// <param name="line_height">A value added to origin vector every line change</param>
         /// <param name="padding">A pixel value to indent text from each side</param>
-        public void textengine_draw(Engine engine, Rectangle area)
+        public void textengine_draw(Engine engine, bool top_to_bottom = false)
         {// first-in-first-out = oldest 1st
-        		//int area_lines = area.Height/line_height; // NOT NEEDED - overflow will be culled using a specialized masking shader truncates floating point - number of lines supported by the Rectangle
+            //int area_lines = area.Height/line_height; // NOT NEEDED - overflow will be culled using a specialized masking shader truncates floating point - number of lines supported by the Rectangle
             if (messages.Count > 0)
             {
                 int current_line = 1; // top-to-bottom offset added to original vector (in or outside of screen space)
                 int horizontal_offset = padding;
-                int cutoff_length = area.Width - (padding*2);
+                int cutoff_length = target_bounds.Width - (padding * 2);
 
                 //convert_to_ordered_lines(line_list, cutoff_length); // needs optimization (create a class variable that gets reset at the end of each draw cycle and rebuilt at the start of another)
 
-                Vector2 main_origin = target_origin + new Vector2(0, target_bounds.Height) - new Vector2(0, small_line_list.Count * line_height); // find origin by subtracting total height of all messages from target origin's lowest line
+                Vector2 main_origin;
+                // calculate origin of the text display
+                if(!top_to_bottom)
+                    main_origin = target_origin + new Vector2(0, target_bounds.Height) - new Vector2(0, small_line_list.Count * line_height); // find origin by subtracting total height of all messages from target origin's lowest line
+                else
+                    main_origin = target_origin + new Vector2(0, (current_line-1) * line_height);
 
                 small_line_list.Reverse(); // reverse for chronological order
 
@@ -534,8 +882,12 @@ namespace beta_windows
                     // specify drawing logic  (keep track of origin vector, line height offset and horizontal offset)
                     foreach (text_element t in line)
                     {
+                         Vector2 draw_origin;
                         // set current origin vector
-                        Vector2 draw_origin = main_origin + new Vector2(horizontal_offset, (current_line - 1) * line_height);
+                        if(!top_to_bottom)
+                            draw_origin = main_origin + new Vector2(horizontal_offset, (current_line - 1) * line_height);
+                        else
+                            draw_origin = main_origin + new Vector2(horizontal_offset, (current_line - 1) * line_height);
                         // draw text according to it`s color and any other values
                         Vector2 text_length = engine.get_UI_font().MeasureString(t.get_text());
                         engine.xna_draw_text(t.get_text(), draw_origin, Vector2.Zero, t.get_color(), t.get_font()); // using text and text_color variables in text_element t
@@ -564,13 +916,24 @@ namespace beta_windows
 
             //optimization: convert to for loops?
             //foreach (message_element m in messages)
-            for (int i = 0; i < messages.Count; i++ )
+            for (int i = 0; i < messages.Count; i++)
             {
                 message_element m = messages.ElementAt(i);
                 //foreach (text_element t in m.get_message())
                 for (int j = 0; j < m.get_message().Count; j++)
                 {
                     text_element t = m.get_message().ElementAt(j);
+
+                    //determine if there is a line break keyword /nl in the text element
+                    if (t.get_text().Equals("/nl"))
+                    {
+                        // create a line break
+                        message.Add(line);         // add line to temporary list of lines
+                        line = new List<text_element>();   // create a new line
+                        current_length = 0;
+                        continue;
+                    }
+
                     t.set_text(t.get_text() + " "); // add a space to separate words when rendered
 
                     float length = engine_font.MeasureString(t.get_text()).X;
@@ -612,7 +975,7 @@ namespace beta_windows
 
             message.Reverse();
             converted.AddRange(message);
-        }  
+        }
         /// <summary>
         /// Splits message in two parts. Element 0 = fills the rest of the line and adds - at the end, element 1 = remainder to be processed again
         /// </summary>
@@ -626,7 +989,7 @@ namespace beta_windows
 
             for (int i = full_text.Length - 1; i > 0; i--)
             {
-                if((int)engine_font.MeasureString(full_text.Substring(0,i)).X <= length || i == 1) // calculate cutoff point or split at the very first character (counteracted by padding value)
+                if ((int)engine_font.MeasureString(full_text.Substring(0, i)).X <= length || i == 1) // calculate cutoff point or split at the very first character (counteracted by padding value)
                 {
                     result[0] = new text_element(t.get_font(), t.get_color(), full_text.Substring(0, i));
                     result[1] = new text_element(t.get_font(), t.get_color(), full_text.Substring(i));

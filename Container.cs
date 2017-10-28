@@ -9,7 +9,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
-namespace beta_windows
+namespace EditorEngine
 {
     /// <summary>
     /// container is a part of GUI. Container hold GUI stored_elements such as buttons, sliders, selectors etc.
@@ -514,6 +514,15 @@ namespace beta_windows
         public void set_visibility(bool value)
         {
             visible = value;
+        }
+        /// <summary>
+        /// Set visibility value for this Container. Opposite of current value
+        /// </summary>
+        /// <param name="value">A string "toggle"</param>
+        public void set_visibility(string value)
+        {
+            if(value.Equals("toggle"))
+                visible = !visible;
         }
         public void make_visible(Engine engine)
         {

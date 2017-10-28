@@ -18,7 +18,7 @@ using System.IO;
 /*
  * Every world in the game + functions that let player interact with these worlds
  */
-namespace beta_windows
+namespace EditorEngine
 {
     public struct WorldStruct   // Structure representing worlds in the World list
     {
