@@ -16,7 +16,7 @@ namespace EditorEngine
 {
     public class World //map generator
     {
-        private int w;                             // length/width
+        private int w;                             // width/width
         private int h;                             // height 
         // water simulation variables
         private const int water_zone_width = 240;  // number of horizontal cells in a single simulation zone multiplied by all vertical cells
@@ -28,13 +28,14 @@ namespace EditorEngine
         private String world_name;                 // name of this playable world
         private bool edit_mode;                    // is the world in edit mode?
         private Vector2 map_origin;                // map origin (top left corner)
-        public tile_map[,] world_map;             // contains all Tile definitions for this world
+        public tile_map[,] world_map;              // contains all Tile definitions for this world
         private Stack<Vector2> updated_cells;      // contains every cell that has been updated during current frame, cells deleted after calculations
         private Color[] sky_color;                 // an array of values for world background color in relation to world time
         private Color sky;                         // current color of the sky
-        public List<PointLight> world_lights;     // a list of all highlighted lights   
-        public List<WaterGenerator> wsources;     // a list of all highlighted lights 
+        public List<PointLight> world_lights;      // a list of all highlighted lights   
+        public List<WaterGenerator> wsources;      // a list of all highlighted lights 
         Rectangle[] corner_src;
+        public List<Tree> trees;                   // a list of trees in this world
 
         // constructors
         public World(Engine engine, ContentManager content, String name, int length, int height)
@@ -58,13 +59,14 @@ namespace EditorEngine
             // create World Light list
             world_lights = new List<PointLight>();
             wsources = new List<WaterGenerator>();
+            trees = new List<Tree>();
             sky = new Color(135, 206, 235);          // default sky color
             // sky colors (effects to be added for sun and moon transitions
             sky_color = new Color[3];
             sky_color[0] = new Color(10, 10, 10);      // midnight color 
-            sky_color[1] = new Color(135, 206, 235); // noon color
+            sky_color[1] = new Color(135, 206, 235);   // noon color
             sky_color[2] = new Color(0, 191, 250);     // day color 
-            corner_src = new Rectangle[4];
+            corner_src = new Rectangle[4];             
         }
 
         public void LoadContent(ContentManager content, Engine engine)
@@ -83,6 +85,36 @@ namespace EditorEngine
             Rectangle src = new Rectangle();
             Vector2 position = Vector2.Zero;
 
+            // tree loop
+            foreach (Tree t in trees)
+            {
+                //draw base
+                Vector2 object_offset = new Vector2(-10, -20);
+                Texture2D s = engine.get_texture("tree_base1");
+
+                engine.xna_draw(
+                    s, t.get_position() * tilesize - engine.get_camera_offset() + object_offset,
+                    null,
+                    Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f);
+
+                // draw trunks
+                int count = 1;                                                  // begin at first trunk level
+                Texture2D trunk_sprite = engine.get_texture("trunk1");          // texture var
+                foreach(int x in t.get_trunks())
+                {
+                    if(x == 1)
+                    {
+                        trunk_sprite = engine.get_texture("trunk1");
+                    }
+
+                    engine.xna_draw(
+                        trunk_sprite, t.get_position() * tilesize - engine.get_camera_offset() + object_offset - new Vector2(-10,40*count), // compensate 
+                        null,
+                        Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f);
+
+                    count++;
+                }
+            }
             // tile loop - go through all ui_elements
             foreach (tile_struct t in Tile.tile_list)
             {
@@ -127,7 +159,7 @@ namespace EditorEngine
                     }// end height loop
                 }// end width loop  
             }// end foreach loop
-
+            
             // water tile loop
             for (int i = (int)min_limit.X - 1; i < (int)max_limit.X; i++)
             {
@@ -138,9 +170,7 @@ namespace EditorEngine
 
                     tile_map current;
                     tile_map above_current;
-                    tile_map below_current;
-                    tile_map right;
-                    tile_map left;
+                    tile_map below_current;              
 
                     float water_vol = world_map[i, j].until_empty(); // amount of air
                     int air_pixels = tile_size - (int)((water_vol / 100f) * tile_size);
@@ -149,13 +179,13 @@ namespace EditorEngine
                     position.X = i * tile_size;
                     position.Y = map_origin.Y + j * tile_size + air_pixels;
                     // draw this cell
-                    if (valid_array(i, j - 1) && valid_array(i, j + 1) && valid_array(i, j) && valid_array(i - 1, j - 1) && valid_array(i + 1, j - 1))
+                    if (valid_array(i, j - 1) && valid_array(i, j + 1) && valid_array(i, j) /*&& valid_array(i - 1 , j - 1)*/ /*&& valid_array(i + 1, j - 1)*/)
                     {
                         current = world_map[i, j];
                         above_current = world_map[i, j - 1];
                         below_current = world_map[i, j + 1];
-                        right = world_map[i + 1, j];
-                        left = world_map[i - 1, j];
+                       /* right = world_map[i + 1, j];*/
+                        //left = world_map[i - 1, j];
 
                         if (current.water_units == 100)
                         {
@@ -225,7 +255,11 @@ namespace EditorEngine
             // clear update cell matrix
             if (updated_cells.Count > 0)
                 updated_cells.Clear(); // delete cells from stack
-
+            // tree growth
+            foreach(Tree t in trees)
+            {
+                t.generate_trunk();
+            }
             // water generation 
             foreach (WaterGenerator w in wsources)
             {
@@ -270,7 +304,7 @@ namespace EditorEngine
             // simulation
             int rate = 16; // vertical rate
 
-            for (int y = h; y > 0; y--) // bottom --> top
+            for (int y = h; y >= 0; y--) // bottom --> top
             {
                 for (int x = water_zone_edge; x < water_zone_stopper; x++) // left --> right (adjusted for simulation zones)
                 {
@@ -849,22 +883,18 @@ namespace EditorEngine
         {
             return ((world_map[sx, sy].water_units + adjustment) - world_map[tx, ty].water_units) / 2;
         }
-        // reset updated flags
+        // delete all water
         public void reset_water()
         {
-            for (int y = 0; y <= 100; y++)
+            for (int y = 0; y <= h; y++)
             {
-                for (int x = 0; x <= 100; x++)
+                for (int x = 0; x <= w; x++)
                 {
                     // prime variables for next run
-                    if (valid_array(x, y))
+                    if (valid_array(x, y) && world_map[x,y].tile_id == -1)
                     {
-                        world_map[x, y].flow = false;
-                    }
-
-                    if (valid_array(x, y + 1))
-                    {
-                        world_map[x, y + 1].flow = false;
+                        world_map[x, y].water_units = 0;
+                        world_map[x, y].tile_id = 0;
                     }
                 }
             }
@@ -883,13 +913,22 @@ namespace EditorEngine
         {
             wsources.Clear();
         }
+        public void generate_tree_base(MouseState m, Engine engine)
+        {
+            Vector2 cell = get_current_hovered_cell(m, engine);
+
+            if(engine.get_editor().preview_tree((int)cell.X,(int)cell.Y,engine,true))
+                trees.Add(new Tree(cell - Vector2.One,engine.generate_int_range(3,10), 5000, 5000));
+        }
         // generate a water source (cell that produces water)
         public void generate_water_generator(MouseState m, Engine engine)
         {
             Vector2 cell = get_current_hovered_cell(m, engine);
 
             // add a water generator if there isn't one already and if cell is air
-            if (!is_watergen_object_in_cell(cell) && valid_cell((int)cell.X - 1, (int)cell.Y - 1) && world_map[(int)cell.X - 1, (int)cell.Y - 1].tile_id == 0)
+            if (!is_watergen_object_in_cell(cell) 
+                /*&& valid_cell((int)cell.X - 1, (int)cell.Y - 1) */
+                && world_map[(int)cell.X - 1, (int)cell.Y - 1].tile_id == 0)
             {
                 wsources.Add(new WaterGenerator(cell - Vector2.One, get_tile_center(cell), engine.generate_int_range(20, 80)));
             }
@@ -901,17 +940,26 @@ namespace EditorEngine
             Vector2 cell = get_current_hovered_cell(m, engine);
             if (!is_light_object_in_cell(cell))
             {
-                world_lights.Add(new PointLight(cell, color, get_tile_center(cell), radius, intensity));
+                world_lights.Add(new PointLight(engine,cell, color, get_tile_center(cell), radius, intensity));
                 // create a light sphere
-                world_lights.Last().create_light_sphere(radius, color, intensity);
+                //world_lights.Last().create_light_sphere(radius, color, intensity);
+            }
+        }
+        public void generate_light_source(Vector2 cell, Color color, MouseState m, Engine engine, int radius, float intensity)
+        {
+            if (!is_light_object_in_cell(cell))
+            {
+                world_lights.Add(new PointLight(engine, cell, color, get_tile_center(cell), radius, intensity));
+                // create a light sphere
+                //world_lights.Last().create_light_sphere(radius, color, intensity);
             }
         }
         // automatic
-        public void add_light_source(Color color, Vector2 cell, int radius, float intensity)
+        public void add_light_source(Engine engine, Color color, Vector2 cell, int radius, float intensity)
         {
-            world_lights.Add(new PointLight(cell, color, get_tile_center(cell), radius, intensity));
+            world_lights.Add(new PointLight(engine, cell, color, get_tile_center(cell), radius, intensity));
             // create a light sphere
-            world_lights.Last().create_light_sphere(radius, color, intensity);
+            //world_lights.Last().create_light_sphere(radius, color, intensity);
         }
         // detect a light in the cell
         public bool is_light_object_in_cell(Vector2 cell)
@@ -926,6 +974,7 @@ namespace EditorEngine
 
             return false;
         }
+
         // detect a wwater generator in the cell
         public bool is_watergen_object_in_cell(Vector2 cell)
         {
@@ -948,7 +997,7 @@ namespace EditorEngine
             }
         }
         // get world'engine information
-        public int length
+        public int width
         {
             get { return w; }
         }
@@ -968,7 +1017,7 @@ namespace EditorEngine
         public bool tile_exists(int x, int y) // cell coordinates
         {
             // contain in boundaries
-            if (x <= 0 || y <= 0 || x > w || y > h) //coordinates can't be 0 or equal length/height of map due to arrays starting at 0
+            if (x <= 0 || y <= 0 || x > w || y > h) //coordinates can't be 0 or equal width/height of map due to arrays starting at 0
                 return false;
             // ui_elements exists
             if (!world_map[x - 1, y - 1].is_air())
@@ -976,10 +1025,10 @@ namespace EditorEngine
             else
                 return false;
         }
-        public bool not_tile_exists(int x, int y) // cell coordinates
+        public bool tile_doesnt_exist(int x, int y) // cell coordinates
         {
             // contain in boundaries
-            if (x <= 0 || y <= 0 || x > w || y > h) //coordinates can't be 0 or equal length/height of map due to arrays starting at 0
+            if (x <= 0 || y <= 0 || x > w || y > h) //coordinates can't be 0 or equal width/height of map due to arrays starting at 0
                 return true;
             // ui_elements exists
             if (world_map[x - 1, y - 1].is_air())
@@ -991,7 +1040,7 @@ namespace EditorEngine
         public bool tile_exists(Vector2 cell) // cell coordinates
         {
             // contain in boundaries
-            if (cell.X <= 0 || cell.Y <= 0 || cell.X > w || cell.Y > h) //coordinates can't be 0 or equal length/height of map due to arrays starting at 0
+            if (cell.X <= 0 || cell.Y <= 0 || cell.X > w || cell.Y > h) //coordinates can't be 0 or equal width/height of map due to arrays starting at 0
                 return false;
             // ui_elements exists
             if (!world_map[(int)cell.X - 1, (int)cell.Y - 1].is_air())
@@ -1013,7 +1062,7 @@ namespace EditorEngine
         // add a Tile to the map
         public bool generate_tile(short id, int x, int y, Engine engine, int vol = 0)
         {
-            if (this.not_tile_exists(x, y) || engine.get_editor().cell_overwrite_mode())
+            if (this.tile_doesnt_exist(x, y) || engine.get_editor().cell_overwrite_mode())
             {
                 if (valid_cell(x, y))
                 {
@@ -1126,7 +1175,7 @@ namespace EditorEngine
 
         public bool preview(int x, int y, Engine engine, modes current)
         {
-            if (this.not_tile_exists(x, y) || engine.get_editor().cell_overwrite_mode() || current == modes.delete)
+            if (this.tile_doesnt_exist(x, y) || engine.get_editor().cell_overwrite_mode() || current == modes.delete)
             {
                 if (valid_cell(x, y))
                 {
@@ -1292,14 +1341,14 @@ namespace EditorEngine
         {
             Vector2 hover_cell = this.get_current_hovered_cell(engine.get_current_mouse_state(), engine); // get_current_hovered_cell calculates cell numbers, not coordinates
 
-            if (hover_cell.X > 0 && hover_cell.X <= length && hover_cell.Y > 0 && hover_cell.Y <= height)
+            if (hover_cell.X > 0 && hover_cell.X <= width && hover_cell.Y > 0 && hover_cell.Y <= height)
                 return true;
 
             return false;
         }
         public bool valid_cell(int x, int y) //(coordinates)
         {
-            if (x <= 0 || y <= 0 || x > w || y > h) //coordinates can't be 0 or equal length/height of map due to arrays starting at 0
+            if (x <= 0 || y <= 0 || x > w || y > h) //coordinates can't be 0 or equal width/height of map due to arrays starting at 0
                 return false;
             else
                 return true;
@@ -1313,7 +1362,7 @@ namespace EditorEngine
         }
         public bool valid_cell(Vector2 v) //(coordinates)
         {
-            if (v.X <= 0 || v.Y <= 0 || v.X > w || v.Y > h) //coordinates can't be 0 or equal length/height of map due to arrays starting at 0
+            if (v.X <= 0 || v.Y <= 0 || v.X > w || v.Y > h) //coordinates can't be 0 or equal width/height of map due to arrays starting at 0
                 return false;
             else
                 return true;
@@ -1481,17 +1530,17 @@ namespace EditorEngine
         public void draw_world_bounds(Engine engine, SpriteBatch sb)
         {
 
-            //draw lines (rectangle (0,0,length of line, height of line)
+            //draw lines (rectangle (0,0,width of line, height of line)
             if (edit_mode && !engine.get_editor().gui_move_mode)
             {
                 engine.xna_draw(Engine.pixel, // top
                     map_origin - engine.get_camera_offset(), // origin of the line
-                    new Rectangle(0, 0, tile_size * length, 1),
+                    new Rectangle(0, 0, tile_size * width, 1),
                     engine.adjusted_color(engine.get_grid_color(), 0.85f), 0, Vector2.Zero, 1, SpriteEffects.None, 0);
 
                 engine.xna_draw(Engine.pixel, // bottom
                     map_origin - engine.get_camera_offset() + new Vector2(0, tile_size * height), // origin of the line
-                    new Rectangle(0, 0, tile_size * length, 1),
+                    new Rectangle(0, 0, tile_size * width, 1),
                     engine.adjusted_color(engine.get_grid_color(), 0.85f), 0, Vector2.Zero, 1, SpriteEffects.None, 0);
 
                 engine.xna_draw(Engine.pixel, // left
@@ -1500,7 +1549,7 @@ namespace EditorEngine
                     engine.adjusted_color(engine.get_grid_color(), 0.85f), 0, Vector2.Zero, 1, SpriteEffects.None, 0);
 
                 engine.xna_draw(Engine.pixel, // right
-                    map_origin - engine.get_camera_offset() + new Vector2(tile_size * length, 0), // origin of the line
+                    map_origin - engine.get_camera_offset() + new Vector2(tile_size * width, 0), // origin of the line
                     new Rectangle(0, 0, 1, tile_size * height),
                     engine.adjusted_color(engine.get_grid_color(), 0.85f), 0, Vector2.Zero, 1, SpriteEffects.None, 0);
             }
@@ -1570,15 +1619,25 @@ namespace EditorEngine
             int x = state.X + (int)engine.get_camera_offset().X;
             int y = (int)map_origin.Y + (int)engine.get_camera_offset().Y + state.Y;
 
-            if (x > 0 && x < tile_size * length && y > 0 && y < tile_size * height)
+            if (x > 0 && x < tile_size * width && y > 0 && y < tile_size * height)
             {
                 horizontal_cell = x / tile_size + 1;
                 vertical_cell = y / tile_size + 1;
             }
             else
             {
-                horizontal_cell = -1;
-                vertical_cell = -1;
+                horizontal_cell = (x / tile_size);
+                vertical_cell = (y / tile_size);
+                // adjust for out of bounds
+                if (horizontal_cell > w)
+                    horizontal_cell = w;
+                if (horizontal_cell <= 0)
+                    horizontal_cell = 1;
+
+                if (vertical_cell > h)
+                    vertical_cell = h;
+                if (vertical_cell <= 0)
+                    vertical_cell = 1;
             }
 
             return new Vector2(horizontal_cell, vertical_cell);
@@ -1853,14 +1912,14 @@ namespace EditorEngine
             engine.set_camera_offset(Vector2.Zero);
         }
 
-        public string get_tile_id(Vector2 source)
+        public short get_tile_id(Vector2 source)
         {
             if (valid_cell((int)source.X, (int)source.Y))
             {
-                return world_map[(int)source.X - 1, (int)source.Y - 1].tile_id.ToString();
+                return world_map[(int)source.X - 1, (int)source.Y - 1].tile_id;
             }
             else
-                return "";
+                return -1;
         }
         public float get_tile_water(Vector2 source)
         {
@@ -1946,10 +2005,25 @@ namespace EditorEngine
         // cast circle from light source
         public void world_draw_point_lights(Engine engine, SpriteBatch sb)
         {
+            Texture2D light_base = engine.get_texture("light_sphere_base");
+
             foreach (PointLight pl in world_lights)
             {
-                engine.xna_draw(pl.light_sphere, pl.position - engine.get_camera_offset() - new Vector2(pl.active_radius() / 2, pl.active_radius() / 2), null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 1f);
+                engine.xna_draw(
+                    light_base, 
+                    pl.position - engine.get_camera_offset() - new Vector2(pl.active_radius() / 2, pl.active_radius() / 2), 
+                    null, 
+                    pl.get_color()*pl.get_intensity(), 
+                    0, 
+                    Vector2.Zero, 
+                    (pl.get_radius()/1001f),//engine.fade_sine_wave_smooth(15000f,1f,1.025f), // slow pulsating
+                    SpriteEffects.None, 
+                    1f);
             }
+        }
+        public int get_number_of_lights()
+        {
+            return world_lights.Count;
         }
         // draw actual light emitters
         public void world_draw_point_light_sources(Engine engine)
@@ -1959,14 +2033,43 @@ namespace EditorEngine
             {
                 // draw objects (light)
                 int count = 0;
+                // get textures
+                Texture2D lsr = engine.get_texture("light_circle");
+                Texture2D ls = engine.get_texture("light_source_indicator");
+                // draw lights
                 foreach (PointLight pl in world_lights)
                 {
                     // draw the indicator
-                    Vector2 object_offset = new Vector2(pl.sprite.Width / 2, pl.sprite.Height / 2);
-                    engine.xna_draw(pl.sprite, pl.position - engine.get_camera_offset() - object_offset, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1.0f);
-                    // draw information on hover
-                    if (engine.are_vectors_equal(get_current_hovered_cell(engine.get_current_mouse_state(), engine), vector_position_to_cell(pl.position)))
+                    // for perfect rotation pixel height and width must be odd and the origin set at the exact center 
+                    Vector2 object_offset = new Vector2(0,0);
+                    engine.xna_draw(ls, pl.position - engine.get_camera_offset() - object_offset, null, pl.get_color(), engine.cyclical_fade(4000f, 0.000000f, (float)Math.PI * 2.00000000f), new Vector2((float)ls.Width / 2, (float)ls.Height / 2), 
+                        engine.fade_sine_wave_smooth(3000.0f * (2.0f - (pl.get_intensity() - 0.05f)), 0.45f, 1.25f), SpriteEffects.None, 1.0f); // fast pulsing if intense light
+
+                    // draw light radius text
+                    engine.xna_draw_outlined_text(pl.get_radius().ToString(), pl.position - engine.get_camera_offset() + new Vector2(20, 5), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
+                    // draw information on hover                 
+                    if(engine.show_light_pulses() || engine.are_vectors_equal(get_current_hovered_cell(engine.get_current_mouse_state(), engine), vector_position_to_cell(pl.position)))
                     {
+                        // reach circle pulsating animation
+                        // 1 - long travel of pulse
+                        engine.xna_draw(
+                            lsr, 
+                            pl.position - engine.get_camera_offset() - object_offset, 
+                            null, 
+                            engine.adjusted_color(pl.get_color(), 0.65f)*0.25f, 
+                            0f,
+                            new Vector2((float)lsr.Width / 2, (float)lsr.Height / 2),
+                            engine.cyclical_fade(4000f*(2f-pl.get_intensity()),pl.get_radius() / 1400f, pl.get_radius() / 1000f), 
+                            SpriteEffects.None, 
+                            1.0f); // radius of the light reach (scale up the basic model
+                        // 2 - maximum reach
+                        engine.xna_draw(lsr, pl.position - engine.get_camera_offset() - object_offset, null, engine.adjusted_color(pl.get_color(), 0.55f) * 0.25f, engine.cyclical_fade(3000.0f, 0.000000f, (float)Math.PI * 2.00000000f), new Vector2((float)lsr.Width / 2, (float)lsr.Height / 2),
+                        pl.get_radius() / 1000f, SpriteEffects.None, 1.0f); // radius of the light reach (scale up the basic model
+                        // 3 - short travel of pulse
+                        engine.xna_draw(lsr, pl.position - engine.get_camera_offset() - object_offset, null, engine.adjusted_color(pl.get_color(), 0.85f) * 0.25f, 0f, new Vector2((float)lsr.Width / 2, (float)lsr.Height / 2),
+                        engine.cyclical_fade(1000f*(2f-pl.get_intensity()), pl.get_radius() / 14000f, pl.get_radius() / 1400f), SpriteEffects.None, 1.0f); // radius of the light reach (scale up the basic model
+                        
+                        // text info on the radius
                         engine.xna_draw_outlined_text("light color: " + pl.get_color().ToString() + " radius: " + pl.active_radius().ToString() + " intensity: " + pl.get_intensity().ToString(),
                          pl.position - engine.get_camera_offset() - object_offset + new Vector2(20, 0), Vector2.Zero, Color.Yellow, Color.Black, engine.get_UI_font());
                     }

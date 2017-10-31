@@ -301,13 +301,13 @@ namespace EditorEngine
             string temp = "";
             string encoded_action = "";
 
-            string t = encoded_string;                   // "~CURRENT_MS[20,145,200] Testing colored[125,20,0] text decoding"; // TEST INPUT<change when added to XNA>. create a list of variables available for use in these kinds of messages. Special characters signal decode mode change. Space signals complete word(text_element)
+            string t = encoded_string;                   // initial message that hasn't been processed yet
             t = String.Concat(t, ' '); 					 // adds a space signaling the end of last word
             Color current_encoder = standard_color; 	 // initialize with standard color
             decode_mode dm = decode_mode.none; 			 // default decoder mode
 
             // step 1 - decode variables
-            t = replace_variables(e, t);
+            t = replace_variables(e, t) + " ";// in case the variable has no space at the end (might cause missing text)
 
             // step 2 - decode colors
             for (int i = 0; i < t.Length; i++)
@@ -413,10 +413,14 @@ namespace EditorEngine
 
                                     grouped.Clear();
                                     // clean up
+                                    temp_text.set_text(temp);
                                     result.add_text_element(temp_text);         // ADD text element to result
                                 }
                                 else
+                                {
+                                    temp_text.set_text(temp);
                                     result.add_text_element(temp_text);         // ADD text element to result
+                                }
                             }
 
                             // clean-up
@@ -470,7 +474,7 @@ namespace EditorEngine
         {
             string par1 = "";
 
-            if (action.Equals("settime"))
+            if (action.Equals("st"))
             {
                 for (int i = 0; i < ps.Length; i++)
                 {
@@ -495,14 +499,14 @@ namespace EditorEngine
                                 if (time >= 0 && time <= 23)
                                 {
                                     e.clock.set_clock(time, 0);
-                                    return "*settime " + time.ToString() + ":00 success";
+                                    return "*st " + time.ToString() + ":00 success";
                                 }
                                 else
-                                    return time + " is incorrect value for *settime";
+                                    return time + " is incorrect value for *st";
                             }
                             else
                             {
-                                return "wrong parameters for *settime";
+                                return "wrong parameters for *st";
                             }
                         }
                     }
@@ -554,6 +558,49 @@ namespace EditorEngine
                 // make stats container visible invisible
                 e.get_editor().GUI.find_container("CONTAINER_STATISTICS_TEXT_AREA").set_visibility("toggle");
                 return "statistic display toggled";
+            }
+            else if(action.Equals("gl")) // generate lights
+            {
+                for (int i = 0; i < ps.Length; i++)
+                {
+                    if (ps[i] != ' ')
+                    {
+                        par1 = String.Concat(par1, ps[i]);
+                    }
+                    else if (ps[i] == ' ')
+                    {
+                        // skip
+                        if (par1.Length == 0)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            int size;
+
+                            if (Int32.TryParse(par1, out size))
+                            {
+                                // set the in-game clock
+                                if (size >= 0 && size <= 1000) // currently takes a second per 100 lights - will create a smoother functionality that doesnt put all lights in one frame, but rather limited number per frame, so that drawing can continue while lights are created
+                                {
+                                    // generate lights
+                                    // instead of generating them all in this frame, just add a number to light generating queue
+                                    // each frame this queue will generate a limited amount of lights until number is exhausted
+                                    e.order_light_generation(size);
+                                    // report success
+                                    return "generated " + size + " lights in random positions";
+                                }
+                                else
+                                    return size + " is incorrect parameter for *gl /nl maximum = 1000";
+                            }
+                            else
+                            {
+                                return "wrong parameters for *gl";
+                            }
+                        }
+                    }
+                }
+                return "<bad command format>"; // if there is no space at the end of the string
             }
             else if(action.Equals("lc"))
             {
@@ -737,11 +784,11 @@ namespace EditorEngine
             }
             else if (variable_tag.ToUpper() == "H")
             {
-                temp = "help(h):[orange] " + "~ms[orange] (show milliseconds since start), /nl ~colors[orange] (show colors available for the [] tag), /nl ~cam[orange] (show camera offset), /nl ~size[orange] (show total number of cells in the game world), /nl ~fps[orange] (show current fps), /nl ~time[orange] (show time)";
+                temp = "help(h):[orange] " + "~ms[orange] (show milliseconds since start), /nl ~colors[orange] (show colors available for the [] tag), /nl ~cam[orange] (show camera offset), /nl ~size[orange] (show total number of cells in the game world), /nl ~fps[orange] (show current fps), /nl ~time[orange] (show time) ";
             }
             else if (variable_tag.ToUpper() == "A")
             {
-                temp = "actions(a):[orange] " + "settime[orange] <0-23> (set game world clock), /nl lc[orange] - change light color of selected light(s), /nl wateroff[orange] - destroy water generators, /nl lightsoff[orange]  - destroy light sources, /nl brush[orange]  <0-10>, /nl stats[orange]  - display or hide statistics";
+                temp = "actions(a):[orange] " + "{gl <0-100>}[orange] (generate point lights at random positions) /nl st[orange] <0-23> (set game world clock), /nl lc[orange] - change light color of selected light(s), /nl wateroff[orange] - destroy water generators, /nl lightsoff[orange]  - destroy light sources, /nl brush[orange]  <0-10>, /nl stats[orange]  - display or hide statistics ";
             }
             else if (variable_tag.ToUpper() == "COLORS")
             {
@@ -925,7 +972,7 @@ namespace EditorEngine
                     text_element t = m.get_message().ElementAt(j);
 
                     //determine if there is a line break keyword /nl in the text element
-                    if (t.get_text().Equals("/nl"))
+                    if (t.get_text() != null && t.get_text().Equals("/nl"))
                     {
                         // create a line break
                         message.Add(line);         // add line to temporary list of lines
@@ -980,7 +1027,7 @@ namespace EditorEngine
         /// Splits message in two parts. Element 0 = fills the rest of the line and adds - at the end, element 1 = remainder to be processed again
         /// </summary>
         /// <param name="t">non-split message</param>
-        /// <param name="length">Number of pixels that has to equal string length in engine font</param>
+        /// <param name="width">Number of pixels that has to equal string width in engine font</param>
         /// <returns>an array of text elements</returns>
         public text_element[] split_message(text_element t, int length)
         {
@@ -1036,10 +1083,10 @@ namespace EditorEngine
                 foreach (text_element t in m.get_message())
                 {
                     t.set_text(t.get_text() + " "); // add a space to separate words when rendered
-                    Vector2 length = engine_font.MeasureString(t.get_text());
+                    Vector2 width = engine_font.MeasureString(t.get_text());
 
                     line.Add(t);
-                    current_length += (int)length.X;
+                    current_length += (int)width.X;
 
                     // decide if a line break happened
                     if (current_length >= max_length) // create a line break

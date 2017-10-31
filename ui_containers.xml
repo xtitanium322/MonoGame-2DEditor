@@ -91,22 +91,6 @@
 			<visible>true</visible>
 		</Item>
 		<Item>
-			<c_id>CONTAINER_GAUGE_MOUSE_X</c_id><!-- 13. mouse position x -->
-			<contexttype>none</contexttype>
-			<name>progress circle x</name>
-			<origin_x>1250</origin_x>
-			<origin_y>600</origin_y>
-			<visible>true</visible>
-		</Item>	
-		<Item>
-			<c_id>CONTAINER_GAUGE_MOUSE_Y</c_id><!-- 13. mouse position y -->
-			<contexttype>none</contexttype>
-			<name>progress circle y</name>
-			<origin_x>1358</origin_x>
-			<origin_y>600</origin_y>
-			<visible>true</visible>
-		</Item>	
-		<Item>
 			<c_id>CONTAINER_MAIN_TEXT_INPUT</c_id><!-- 14. A TEXT INPUT FOR SYSTEM CHAT -->
 			<contexttype>none</contexttype>
 			<name>system text input</name>
@@ -153,6 +137,22 @@
 			<origin_x>30</origin_x>
 			<origin_y>200</origin_y>
 			<visible>true</visible>
+		</Item>
+		<Item>
+			<c_id>CONTAINER_LIGHTS_CONTEXT</c_id><!-- 20. right click context for LIGHTS menu -->
+			<contexttype>context</contexttype>
+			<name>lights context menu</name>
+			<origin_x>0</origin_x>
+			<origin_y>0</origin_y>
+			<visible>false</visible>
 		</Item>	
+		<Item>
+			<c_id>CONTAINER_SUBMODES</c_id><!-- 20. all sub-modes for add / delete -->
+			<contexttype>none</contexttype>
+			<name>submode context menu</name>
+			<origin_x>400</origin_x>
+			<origin_y>400</origin_y>
+			<visible>true</visible>
+		</Item>			
 	</Asset>
 </XnaContent>

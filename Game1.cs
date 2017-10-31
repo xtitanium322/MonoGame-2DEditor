@@ -48,8 +48,9 @@ public class Game1 : Game // create a child class
         double update_time = 0.00;                                       // ms - update cycle
         double peak_render_time = 0.00;                                  // maximum drawing time
         double peak_update_time = 0.00;                                  // maximum update time
-        int overtime_frames = 0;                                         // number of frames that took longer than 1/60thg of a second
-        int draw_call_previous = 0;                                      // number of total draw calls last frame
+        int overtime_frames     = 0;                                     // number of frames that took longer than 1/60thg of a second
+        int draw_call_previous  = 0;                                     // number of total draw calls last frame
+        double target_frame_rate = 59.9;                                 // preferred frame rate
 
         // Time of Day
         public static DateTime thisDay = DateTime.Now;     
@@ -78,7 +79,7 @@ public class Game1 : Game // create a child class
             window.AllowAltF4 = true;
             window.Position = new Point(0, 0);                          // move window to the top left corner
             window.IsBorderless = true;                                 // simulates fullscreen
-            graphics.IsFullScreen = true;                               // start in fullscreen mode
+            graphics.IsFullScreen = false;                               // start in fullscreen mode
             graphics.ApplyChanges();                                    // apply all graphics properties
         }
 
@@ -93,8 +94,8 @@ public class Game1 : Game // create a child class
 
             this.IsMouseVisible = false;
             this.IsFixedTimeStep = true;                                  // default = true - provides best results for update() in release version, target 30 fps for laptop, if false - unlimited fps
-            this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 59.9f);
-            graphics.SynchronizeWithVerticalRetrace = false;              //default = true, V Sync to prevent screen tearing, drawback - lagging mouse
+            this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / target_frame_rate);
+            graphics.SynchronizeWithVerticalRetrace = false;              // default = true, V Sync to prevent screen tearing, drawback - lagging mouse
 
             // prevent game from crashing due to textures being not a power of 2 size
             GraphicsDevice.SamplerStates[0] = SamplerState.LinearClamp;
@@ -116,14 +117,19 @@ public class Game1 : Game // create a child class
  // Game Load Content Function
         protected override void LoadContent()
         {
+            // loading fonts
+            small_font = Content.Load<SpriteFont>("stats");
+            large_font = Content.Load<SpriteFont>("largefont");
+            engine.set_UI_font(small_font); // assign GUI font
+            // display something while content is loading
+            spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+                GraphicsDevice.Clear(Color.Black);
+                engine.xna_draw_outlined_text("LOADING", new Vector2(viewport.Width/2,viewport.Height/2), Vector2.Zero, Color.Purple, Color.Black, small_font);
+            spriteBatch.End();
             // loading effects
             fx_lightmap_shader   = Content.Load<Effect>("lightmap_shader");
             fx_blur_shader       = Content.Load<Effect>("Blur");
             fx_ui_masking_shader = Content.Load<Effect>("ui_mask_shader");
-            // loading font
-            small_font = Content.Load<SpriteFont>("stats");
-            large_font = Content.Load<SpriteFont>("largefont");
-            engine.set_UI_font(small_font); // assign GUI font
             // adding Tile definitions
             // to add a new tile sprite - just load and name a texture in here. Everything else is created automatically
             Tile.add_tile(this.Content.Load<Texture2D>("testcell"), "test cell", 1);
@@ -134,6 +140,9 @@ public class Game1 : Game // create a child class
             Tile.add_tile(this.Content.Load<Texture2D>("lava"), "lava", 6);
             Tile.add_tile(this.Content.Load<Texture2D>("ice_block"), "ice", 7);
             Tile.add_tile(this.Content.Load<Texture2D>("sapphire"), "sapphire", 8);
+            Tile.add_tile(this.Content.Load<Texture2D>("snow"), "snow", 9);
+            Tile.add_tile(this.Content.Load<Texture2D>("iron"), "iron", 10);
+            Tile.add_tile(this.Content.Load<Texture2D>("gold"), "gold", 11);
             // load icons into editor menus
             foreach(WorldStruct w in engine.get_world_list().worlds)
             {
@@ -183,8 +192,6 @@ public class Game1 : Game // create a child class
 
             engine.save_previous_keyboard_and_mouse();
             engine.set_prevWheelValue(engine.get_currWheelValue());
-
-
             thisDay = DateTime.Now; // update current in-game time
 
 // update section for engine textarea
@@ -195,7 +202,7 @@ public class Game1 : Game // create a child class
             render_time = ((double)render_stopwatch.Elapsed.Ticks / 10000.0f);
             update_time = ((double)update_stopwatch.Elapsed.Ticks / 10000.0f);
 
-            if ((render_time + update_time) > (1000.0/59.9)) // frames taht took longer than 16.67 ms (60 fps rate)
+            if ((render_time + update_time) > (1000.0 / target_frame_rate)) // frames taht took longer than 16.67 ms (60 fps rate)
                 overtime_frames++;
 
             if (engine.get_frame_count() > 120) // allow for all the loading to be done before reading peak values
@@ -222,9 +229,9 @@ public class Game1 : Game // create a child class
 
             statistics_text += "render[orange] duration:[orange] " + string.Format("{0:00.00}", render_time) + "[skyblue] ms" + " (peak:[orange] " + string.Format("{0:00.00}", peak_render_time) + "[red])[orange] /nl ";
             statistics_text += "update[orange] duration:[orange] " + string.Format("{0:00.00}", update_time) + "[skyblue] ms" + " (peak:[orange] " + string.Format("{0:00.00}", peak_update_time) + "[red])[orange] /nl "; ;
-
+            statistics_text += "{number of lights:}[orange] " + engine.get_world_list().get_current().get_number_of_lights() + " selected:[orange] " + engine.get_editor().get_selection_lights().Count + " /nl ";
             if (engine.get_world_list().get_current().in_edit_mode())
-                statistics_text += "/nl container:[green] " + engine.get_editor().GUI.get_hovered_container_id() +
+                statistics_text += "container:[green] " + engine.get_editor().GUI.get_hovered_container_id() +
                 "[skyblue] /nl element:[green] " + engine.get_editor().GUI.get_hovered_element_id() + "[skyblue] /nl action:[green] " + engine.get_editor().GUI.get_hovered_element_action_text() + "[skyblue]";
 
             engine.engine_text_engine.add_message_element(engine, statistics_text); // create text 
@@ -312,7 +319,7 @@ public class Game1 : Game // create a child class
             GraphicsDevice.SetRenderTarget(world_light_buffer);
             GraphicsDevice.Clear(Color.Transparent);
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Additive);
-                //fx_blur_shader.CurrentTechnique.Passes[0].Apply();
+                fx_blur_shader.CurrentTechnique.Passes[0].Apply();
                 engine.get_world_list().get_current().world_draw_point_lights(engine, spritebatch);
             spriteBatch.End();
             // draw world map tiles
@@ -329,8 +336,10 @@ public class Game1 : Game // create a child class
             GraphicsDevice.Clear(engine.get_world_list().get_current().get_sky_color() * engine.get_world_list().get_current().get_ambient_light(engine.get_clock())); // set sky color behind world
             spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
             if (engine.lighting_on())
-                fx_lightmap_shader.CurrentTechnique.Passes[0].Apply();// (effect) create a spotlight on the next drawn element 
-                engine.xna_draw(world_tile_buffer, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f); // draw world buffer
+                fx_lightmap_shader.CurrentTechnique.Passes[0].Apply();// (effect) create a spotlight on the NEXT drawn element (world_tile_buffer)
+                engine.xna_draw(world_tile_buffer, Vector2.Zero, null, Color.White, 0f, Vector2.Zero,
+                    1f, // scaling
+                    SpriteEffects.None, 1f); // draw world buffer
             spriteBatch.End();
             // draw world geometry lines
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
@@ -362,7 +371,7 @@ public class Game1 : Game // create a child class
             spriteBatch.End();
         }
 // draw statistics
-        public void draw_statistics(GameTime gameTime)
+       /* public void draw_statistics(GameTime gameTime)
         {
             // variables
             int h_offset = 300;
@@ -388,7 +397,7 @@ public class Game1 : Game // create a child class
             engine.xna_draw_rectangle(new Rectangle(h_offset - 10, v_offset - 10, 600, 250), Color.Black, 2, 0.3f);
 
             engine.xna_draw_outlined_text("shift + esc to exit the app", new Vector2(10, 0), Vector2.Zero, Color.Orange, Color.Black, large_font);
-            engine.xna_draw_outlined_text( Convert.ToString("# of renders: " + engine.get_draw_calls() /*+ " Total (" + stotal_draw_calls + ") "*/),
+            engine.xna_draw_outlined_text( Convert.ToString("# of renders: " + engine.get_draw_calls()),
                 new Vector2(h_offset, v_offset), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
             engine.xna_draw_outlined_text(Convert.ToString("Seconds elapsed: " + string.Format("{0:0.0}", (float)engine.get_current_game_millisecond() / 1000.0f)),
                 new Vector2(h_offset, v_offset + 25), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
@@ -425,7 +434,7 @@ public class Game1 : Game // create a child class
             }
 
             spriteBatch.End();
-        }
+        }*/
 // save map data to the file
         // optimization
         public void serialize_map_data(ContentManager content)
@@ -436,10 +445,10 @@ public class Game1 : Game // create a child class
             foreach (WorldStruct w in engine.get_world_list().worlds)
             {
                 // create an array of mapdata to save
-                //MapData[] tiles_save = new MapData[w.world.length * w.world.height];
+                //MapData[] tiles_save = new MapData[w.world.width * w.world.height];
                 ArrayList tiles_save = new ArrayList();
                 // save map data (new optimized version creates only as much space as needed)
-                for (int i = 0; i < w.world.length; i++)
+                for (int i = 0; i < w.world.width; i++)
                 {
                     for (int j = 0; j < w.world.height; j++)
                     {
@@ -468,11 +477,11 @@ public class Game1 : Game // create a child class
             }
         }
 // create a circle texture (intensity sphere of point lights)
-        public static Texture2D createCircle(int radius, Color color, float intensity)
+        public static Texture2D createSmoothCircle(int radius, Color color, float intensity)
         {
             Texture2D texture = new Texture2D(graphics.GraphicsDevice, radius, radius); // creates an empty_texture square texture in memory
             Color[] colorData = new Color[radius * radius];                             // creates an array of colors corresponding to texture above
-            float diam = radius / 2.000f;   // diam = real radius
+            float diam = radius / 2.0000000000f;   // diam = real radius
             float diamsq = diam * diam; // real radius squared
 
             for (int x = 0; x < radius; x++) // iterate through coordinates
@@ -482,15 +491,62 @@ public class Game1 : Game // create a child class
                     int index = x * radius + y;
                     Vector2 pos = new Vector2(x - diam, y - diam); // adjust the origin to be in the center of the texture by subtracting half of x and y
 
-                    if (pos.LengthSquared() <= diamsq) // calculate length of vector with a (0,0) origin
+                    if (pos.LengthSquared() <= diamsq) // calculate width of vector with a (0,0) origin
                     {
                         // calculating light power
-                        float light_power = ((diamsq - pos.LengthSquared()) / diamsq) * intensity;/*- 0.375f;*/
-                        colorData[index] = color * light_power; // variable strenght 
+                        float light_power = ((diamsq - pos.LengthSquared()) / diamsq) * intensity;
+                        colorData[index] = color * light_power; // variable strength 
                     }
                     else
                     {
                         colorData[index] = Color.Transparent; // outside the circle
+                    }
+                }
+            }
+            // assign pixels
+            texture.SetData(colorData);
+            return texture;
+        }
+        // same as above but with no smoothing that would exist for lights
+        public static Texture2D createOpaqueCircle(int radius, Color color, float intensity, bool outline_only = false)
+        {
+            Texture2D texture = new Texture2D(graphics.GraphicsDevice, radius, radius); // creates an empty_texture square texture in memory
+            Color[] colorData = new Color[radius * radius];                             // creates an array of colors corresponding to texture above
+            float diam = radius / 2.0000000000f;   // diam = real radius
+            float diamsq = diam * diam; // real radius squared
+
+            for (int x = 0; x < radius; x++) // iterate through coordinates
+            {
+                for (int y = 0; y < radius; y++)
+                {
+                    int index = x * radius + y;
+                    Vector2 pos = new Vector2(x - diam, y - diam); // adjust the origin to be in the center of the texture by subtracting half of x and y
+
+                    if (outline_only)
+                    {
+                        if (pos.LengthSquared() <= diamsq && pos.LengthSquared() >= ((diam - 1) * (diam - 1))) // calculate width of vector with a (0,0) origin
+                        {
+                            // calculating light power
+                            float light_power = 0.9f;
+                            colorData[index] = color * light_power; // variable strength 
+                        }
+                        else
+                        {
+                            colorData[index] = Color.Transparent; // outside the circle
+                        }
+                    }
+                    else
+                    {
+                        if (pos.LengthSquared() <= diamsq) // calculate width of vector with a (0,0) origin
+                        {
+                            // calculating light power
+                            float light_power = 0.9f;
+                            colorData[index] = color * light_power; // variable strength 
+                        }
+                        else
+                        {
+                            colorData[index] = Color.Transparent; // outside the circle
+                        }
                     }
                 }
             }
@@ -513,7 +569,7 @@ public class Game1 : Game // create a child class
                     int index = x * radius + y;
                     Vector2 pos = new Vector2(x - diam, y - diam); // adjust the origin to be in the center of the texture by subtracting half of x and y
 
-                    if (pos.LengthSquared() <= diamsq && y <= radius/2) // calculate length of vector with a (0,0) origin
+                    if (pos.LengthSquared() <= diamsq && y <= radius/2) // calculate width of vector with a (0,0) origin
                     {
                         // calculating light power
                         float light_power = ((diamsq - pos.LengthSquared()) / diamsq) * intensity;/*- 0.375f;*/
@@ -676,6 +732,11 @@ public class Game1 : Game // create a child class
                     else
                         engine.get_world_list().change_current(engine, "test world");
                 }
+                //F3 - show or hide all light pulses circles in edit mode
+                if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F3) && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F3)) // prevents sticking
+                {
+                    engine.toggle_light_pulses_flag();
+                }
 
                 if (!engine.get_editor().accepting_input() && engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.P) && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.P))
                 {
@@ -695,6 +756,11 @@ public class Game1 : Game // create a child class
                         // down
                         engine.get_world_list().get_current().execute_command(command.mouse_scroll_up, engine, this);
                     }
+                }
+                if(engine.get_current_mouse_state().MiddleButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed)
+                {
+                    //engine.get_world_list().get_current().execute_command(command.middle_hold, engine, this);
+                    engine.move_camera(true);
                 }
                 // left mouse click
                 if
@@ -781,24 +847,24 @@ public class Game1 : Game // create a child class
                 if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftAlt) || engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.RightAlt))
                 {
                     // send command to Editor based on other keys held, world edit state
-                    if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Q)
+                    /*if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Q)
                     && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Q))
                     {
                         if (engine.get_world_list().get_current().in_edit_mode())
                             engine.get_editor().editor_command(engine, command.alt_q);
-                    }
-                    else if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.C)
+                    }*/
+                    if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.C)
                     && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.C))
                     {
                         if (engine.get_world_list().get_current().in_edit_mode())
                             engine.get_editor().editor_command(engine, command.alt_c);
                     }
-                    else if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.E)
+                    /*else if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.E)
                     && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.E))
                     {
                         if (engine.get_world_list().get_current().in_edit_mode())
                             engine.get_editor().editor_command(engine, command.alt_e);
-                    }
+                    }*/
                     else if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Z)
                     && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Z))
                     {
@@ -811,7 +877,7 @@ public class Game1 : Game // create a child class
                         if (engine.get_world_list().get_current().in_edit_mode())
                             engine.get_editor().editor_command(engine, command.destroy_lights);
                     }
-                    else if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.D1)
+                    /*else if (engine.get_current_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.D1)
                     && !engine.get_previous_keyboard_state().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.D1))
                     {
                         if (engine.get_world_list().get_current().in_edit_mode())
@@ -834,7 +900,7 @@ public class Game1 : Game // create a child class
                     {
                         if (engine.get_world_list().get_current().in_edit_mode())
                             engine.get_editor().editor_command(engine, command.alt_4);
-                    }
+                    }*/
                 }
 
                 KeyboardState ks = engine.get_current_keyboard_state();

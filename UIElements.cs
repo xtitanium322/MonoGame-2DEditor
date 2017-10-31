@@ -378,9 +378,9 @@ namespace EditorEngine
     {
         protected bool tracked_id; // true = unlocked, false = locked
         [NonSerialized]
-        Color COLOR_LOCKED = Color.OrangeRed;
+        Color COLOR_LOCKED = Color.Black;
         [NonSerialized]
-        Color COLOR_UNLOCKED = Color.LawnGreen;
+        Color COLOR_UNLOCKED = Color.Black;
         [NonSerialized]
         Texture2D icon_locked;
         [NonSerialized]
@@ -933,7 +933,7 @@ namespace EditorEngine
         {
             // one-time texture generation based on sector size 
             // add customization options later if needed, e.g. buffer empty zone above and below texture , so it doesn't fill the entire region.
-            mask_mid_circle = Game1.createCircle(graphic_quality_precision, Color.Black, 20f); // smaller inner circle
+            mask_mid_circle = Game1.createSmoothCircle(graphic_quality_precision, Color.Black, 20f); // smaller inner circle
             mask_blocker = Game1.createHalfCircle(bounds.Width + 4, Color.Black, 1f); // blocks left half of circle
         }
 
@@ -944,7 +944,7 @@ namespace EditorEngine
             half_circle = Game1.createHalfCircle(graphic_quality_precision, Color.White, 30f);
 
             // also create  full circular backing plate (draw in a slightly exaggerated scale)
-            background_circle = Game1.createCircle(graphic_quality_precision, Color.White, 10f);
+            background_circle = Game1.createSmoothCircle(graphic_quality_precision, Color.White, 10f);
         }
         public override void draw_masking_sprite(Engine engine)
         {
@@ -1182,7 +1182,7 @@ namespace EditorEngine
                                         engine.xna_draw_text(PLACEHOLDER, draw_origin, Vector2.Zero, Color.DarkGray, engine.get_UI_font());
                                     }
                                 }
-                                else if (text.X > max_length) // text too long - crop from the right edge to max length
+                                else if (text.X > max_length) // text too long - crop from the right edge to max width
                                 {
                                     Rectangle crop = new Rectangle(draw_zone.X, draw_zone.Y, v.get_width() - OFFSET * 2, h.get_height());
                                     Vector2 draw_origin = engine.vector_centered(draw_zone, text, orientation.vertical_left) + new Vector2(OFFSET, 0);
@@ -1334,18 +1334,20 @@ namespace EditorEngine
     class TextArea : UIElementBase
     {
         private List<string> tnp = new List<string>(); // temporary list
-        
+        [NonSerialized] Texture2D border;
+
         public TextArea(string id, Container parent, type f, actions? c, confirm safety, Rectangle dimension, Texture2D icon, String label, String tooltip)
             : base(id, parent, f, c, safety, dimension, icon, label, tooltip)
         {
             create_sectors();
+            set_border_texture();
         }
 
         public new void create_sectors()
         {
             horizontal_sector temp_cb = new horizontal_sector(0, bounds.Height);     // create default
 
-            temp_cb.add_vertical(new vertical_sector(0, bounds.Width, sector_content.text_area)); // circular progress chart will be fully contained in 1 sector
+            temp_cb.add_vertical(new vertical_sector(0, bounds.Width, sector_content.text_area)); // textarea is just one sector
 
             zones.Add(temp_cb);
         }
@@ -1426,8 +1428,12 @@ namespace EditorEngine
 
                     switch (v.get_content_type()) // switch sector selection
                     {
-                        case sector_content.text_area:
+                        case sector_content.text_area: // set proper sector content
                             {
+                                // draw "border" texture at a standard origin vector
+                                Vector2 draw_origin = engine.vector_centered(draw_zone, border.Bounds, orientation.both);
+                                // draw slider line
+                                engine.xna_draw(border, draw_origin, null, Color.DimGray, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f); // draws border in current interface color
                             }
                             break;
                         default:
@@ -1443,6 +1449,12 @@ namespace EditorEngine
         public void accept_text_output(string val)
         {
             tnp.Add(val);
+        }
+        // create border around text area based on bounds values
+        public void set_border_texture()
+        {
+            // use create_colored_hollow_rectangle function 
+            border = Game1.create_colored_hollow_rectangle(bounds, Color.White, 1f, 1); // 2 pixel border in White, later assigned actual color through tint color that is added to the white
         }
     }
 }// end namespace

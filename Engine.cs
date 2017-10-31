@@ -64,6 +64,9 @@ namespace EditorEngine
         public int gridcolor_b;
         private Color grid_color;                  // used to draw editor grid
 
+        private bool light_pulses_flag = false;
+        private int deferred_light_generation_order = 0; // number of lights that must be generated
+
         private long last_input_time = 0; // for keyboard input repeating rate
         public bool input_repeated = false; // flag set to initiate a repeat
 
@@ -171,6 +174,12 @@ namespace EditorEngine
             all_textures.Add(new texture_element(content.Load<Texture2D>("progress200x20border"), "progress_border"));
             all_textures.Add(new texture_element(content.Load<Texture2D>("lock_icon"), "editor_icon_locked"));
             all_textures.Add(new texture_element(content.Load<Texture2D>("lock_open_icon"), "editor_icon_unlocked"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("light_source"), "light_source_indicator"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("light_source_outer"), "light_source_outer"));
+            all_textures.Add((new texture_element(Game1.createOpaqueCircle(1001, Color.White, 0.05f),"light_circle"))); // create a reach model (outline of the reach circle
+            all_textures.Add((new texture_element(Game1.createSmoothCircle(1001, Color.White, 1f), "light_sphere_base"))); // scaled to fit the light reach, color multiplied by light intensity to fit the radiance value
+            all_textures.Add(new texture_element(content.Load<Texture2D>("tree_base1"), "tree_base1")); // first version of the tree base - testing sprite - will convert to sprite-sheet
+            all_textures.Add(new texture_element(content.Load<Texture2D>("trunk1"), "trunk1")); 
 
             world_list.add_world("world1.xml", new World(this, content, "test world", 600, 120));
             world_list.add_world("world2.xml", new World(this, content, "test world2", 250, 50));
@@ -217,6 +226,38 @@ namespace EditorEngine
             editor.Update(this);
             engine_text_engine.set_target(((TextArea)editor.GUI.find_element("TEXTAREA_STATISTICS")).get_rectangle(), ((TextArea)editor.GUI.find_element("TEXTAREA_STATISTICS")).get_origin());
             engine_text_engine.update(); // need to update to create message lines 
+            
+            // generate enqueued lights that were ordered 
+            // limit to a few per frame so that there is no huge slowdown in rendering
+            int limit = 1;
+            int pos_x = 0;
+            int pos_y = 0;
+
+            while(deferred_light_generation_order > 0)
+            {
+                // find an unoccupied cell, while there is space in the world
+                while (this.get_world_list().get_current().get_number_of_lights() < get_current_world().get_world_size())
+                {
+                    // generate random coordinates
+                    pos_x = generate_int_range(1, get_current_world().width);
+                    pos_y = generate_int_range(1, get_current_world().height);
+                    // check if light exists
+                    if(!get_current_world().is_light_object_in_cell(new Vector2(pos_x,pos_y)))
+                    {
+                        break;
+                    }
+                }
+
+                get_current_world().generate_light_source(new Vector2(pos_x, pos_y), new Color(generate_int_range(0, 255), generate_int_range(0, 255), generate_int_range(0, 255)), get_current_mouse_state(), this, generate_int_range(300, 800), generate_float_range(0.15f, 1.35f));
+                
+                deferred_light_generation_order--;
+                limit--;
+
+                this.get_editor().GUI.get_text_engine().add_message_element(this, "system[0,75,220] ( ~time ): " + deferred_light_generation_order + " lights remaining");
+                // stop generating for now
+                if (limit == 0)
+                    break;
+            }
         }
         // update viewport
         public void refresh_viewport(ref Viewport v)
@@ -377,15 +418,15 @@ namespace EditorEngine
             // reset with standard values
             sb.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend); // calls spritebatch back in with the static ui values
         }
-        public void xna_draw_outlined_text(String target_string, Vector2 font_position, Vector2 font_rotation_point, Color text_color, Color outline, SpriteFont font)
+        public void xna_draw_outlined_text(String target_string, Vector2 font_position, Vector2 font_rotation_point, Color text_color, Color outline, SpriteFont font,float scale = 1f)
         {
-            sb.DrawString(font, target_string, font_position + new Vector2(1, 0), outline, 0.0f, font_rotation_point, 1.00f, SpriteEffects.None, 1.0f);
-            sb.DrawString(font, target_string, font_position - new Vector2(1, 0), outline, 0.0f, font_rotation_point, 1.00f, SpriteEffects.None, 1.0f);
-            sb.DrawString(font, target_string, font_position + new Vector2(0, 1), outline, 0.0f, font_rotation_point, 1.00f, SpriteEffects.None, 1.0f);
-            sb.DrawString(font, target_string, font_position - new Vector2(0, 1), outline, 0.0f, font_rotation_point, 1.00f, SpriteEffects.None, 1.0f);
-            sb.DrawString(font, target_string, font_position, text_color, 0.0f, font_rotation_point, 1.00f, SpriteEffects.None, 1.0f); // text itself
+            sb.DrawString(font, target_string, font_position + new Vector2(1f, 0), outline, 0.0f, font_rotation_point, scale, SpriteEffects.None, 1.0f);
+            sb.DrawString(font, target_string, font_position - new Vector2(1f, 0), outline, 0.0f, font_rotation_point, scale, SpriteEffects.None, 1.0f);
+            sb.DrawString(font, target_string, font_position + new Vector2(0, 1f), outline, 0.0f, font_rotation_point, scale, SpriteEffects.None, 1.0f);
+            sb.DrawString(font, target_string, font_position - new Vector2(0, 1f), outline, 0.0f, font_rotation_point, scale, SpriteEffects.None, 1.0f);
+            sb.DrawString(font, target_string, font_position, text_color, 0.0f, font_rotation_point, scale, SpriteEffects.None, 1.0f); // text itself
 
-            draw_calls += 4;
+            draw_calls += 5;
         }
 
         public void xna_draw_outlined_text_crop_ui(String target_string, Vector2 font_position, Vector2 font_rotation_point, Color text_color, Color outline, SpriteFont font, Rectangle crop)
@@ -412,7 +453,18 @@ namespace EditorEngine
             // reset with standard values
             sb.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend); // calls spritebatch back in with the static ui values
         }
-
+        /// <summary>
+        /// Main xna/monogame rendering function - draws a texture
+        /// </summary>
+        /// <param name="texture">sprite</param>
+        /// <param name="position">where to draw on screen</param>
+        /// <param name="crop">crop rectangle - masking</param>
+        /// <param name="tint_color">what color to add over the texture</param>
+        /// <param name="rotation_angle">rotation angle</param>
+        /// <param name="sprite_origin">what part of the sprite is place over origin position</param>
+        /// <param name="scale">zoom in/out</param>
+        /// <param name="effects">flip effect</param>
+        /// <param name="layerDepth">sorting against other sprites in the batch</param>
         public void xna_draw(Texture2D texture, Vector2 position, Nullable<Rectangle> crop, Color tint_color, float rotation_angle, Vector2 sprite_origin, float scale, SpriteEffects effects, float layerDepth)
         {
             sb.Draw(texture, position, crop, tint_color, rotation_angle, sprite_origin, scale, effects, layerDepth);
@@ -462,11 +514,26 @@ namespace EditorEngine
         {
             camera_offset = position;
         }
-
+        public void toggle_light_pulses_flag()
+        {
+            light_pulses_flag = !light_pulses_flag;
+        }
+        public bool show_light_pulses()
+        {
+            return light_pulses_flag;
+        }
+        public void move_camera(bool drag_status)
+        {
+            if(drag_status)
+            {
+                camera_offset.X -= (mouseState.X - OldMouseState.X);
+                camera_offset.Y -= (mouseState.Y - OldMouseState.Y);
+            }
+        }
         public void move_camera(Microsoft.Xna.Framework.Input.Keys[] input)
         {
-            if (editor.accepting_input()) // skip if text input is being received
-                return;
+            //if (editor.accepting_input()) // skip if text input is being received
+                //return;
 
             if (!camera_moving)
             {
@@ -478,13 +545,13 @@ namespace EditorEngine
             {
                 for (int j = 0; j < input.Length; j++)
                 {
-                    if (input[j] == Microsoft.Xna.Framework.Input.Keys.W)
+                    if (input[j] == Microsoft.Xna.Framework.Input.Keys.Up)
                         camera_offset.Y -= camera_speed;
-                    if (input[j] == Microsoft.Xna.Framework.Input.Keys.S)
+                    if (input[j] == Microsoft.Xna.Framework.Input.Keys.Down)
                         camera_offset.Y += camera_speed;
-                    if (input[j] == Microsoft.Xna.Framework.Input.Keys.A)
+                    if (input[j] == Microsoft.Xna.Framework.Input.Keys.Left)
                         camera_offset.X -= camera_speed;
-                    if (input[j] == Microsoft.Xna.Framework.Input.Keys.D)
+                    if (input[j] == Microsoft.Xna.Framework.Input.Keys.Right)
                         camera_offset.X += camera_speed;
                 }
 
@@ -514,6 +581,15 @@ namespace EditorEngine
         public long get_last_input_time()
         {
             return last_input_time;
+        }
+        // enqueue creation of this many lights
+        public void order_light_generation(int n)
+        {
+            deferred_light_generation_order += n;
+        }
+        public int get_deferred_lights_num()
+        { 
+            return deferred_light_generation_order;
         }
         /// <summary>
         /// Sets the last input timestamp
@@ -919,7 +995,7 @@ namespace EditorEngine
         public float fade_sine_wave_smooth(float duration, float min, float max, sinewave point = sinewave.zero)
         {
             // assign adjustment to start at 0 or 1
-            float adjustment = (float)Math.PI / 4f;
+            float adjustment = (float)Math.PI / 4f; // 90 degrees
             if (point == sinewave.zero)
                 adjustment = -adjustment;
 
@@ -935,6 +1011,21 @@ namespace EditorEngine
         private float sine_wave(double angle)
         {
             return (float)Math.Sin(angle);
+        }
+        /// <summary>
+        /// Simulates a cyclic movement for sprite rotation
+        /// </summary>
+        /// <param name="duration"></param>
+        /// <param name="min"></param>
+        /// <param name="max"></param>
+        /// <returns></returns>
+        public float cyclical_fade(float duration, float min, float max)
+        {
+            if (duration == 0)
+                duration = 0.01f; // prevent division by zero
+
+            float x = (float)((int)current_game_millisecond % (int)duration) / (float)duration;
+            return min + (x * (max - min));
         }
         /// <summary>
         /// Simple Color negative
@@ -1507,7 +1598,11 @@ namespace EditorEngine
             //1 line solution
             return ((original == null || original.Length == 1) ? original : reverse(original.Substring(1, original.Length - 1)) + original[0]);
         }
-
+        /// <summary>
+        /// A one-line implementation of reverse number in C#
+        /// </summary>
+        /// <param name="num"></param>
+        /// <returns></returns>
         public static int reverse(int num)
         {
             return num < 10 ? num : (num % 10) * (int)Math.Pow(10, (int)Math.Log10(num)) + reverse(num / 10); // (int)log10 of 12345 is 4, 10 to power of 4 = 10000, 10000*5(last dig) = 50000, + reverse of remainder 1234

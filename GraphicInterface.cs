@@ -25,7 +25,7 @@ namespace EditorEngine
         private bool visible;                                       // is GUI currently visible or hidden
         private bool locked;                                        // a GUI function is being executed - other actions locked
         private bool outline_containers;
-        private const short OUTLINE_THICKNESS = 3;                  // outline for containers when in move mode
+        private const short OUTLINE_THICKNESS = 2;                  // outline for containers when in move mode
         private TextEngine textengine;
 
         private Engine _engine;
@@ -157,8 +157,8 @@ namespace EditorEngine
                 // test Container for being outside the viewport
                 c.isOutsideBounds(engine.get_viewport());
 
-                bool window_collision_h = false; // refresh this only once per container tested
-                bool window_collision_v = false;
+                // bool window_collision_h = false; // refresh this only once per container tested
+                //bool window_collision_v = false;
                 // test Container for collision with other containers
                 if (c.get_bounds().X != 0)
                 {
@@ -172,7 +172,7 @@ namespace EditorEngine
                         }
                         else
                         {
-                            while (cc.get_bounds().Intersects(c.get_bounds()))
+                            /*while (cc.get_bounds().Intersects(c.get_bounds()))
                             {
                                 // special case - if at any point container container intersects window borders - change direction of the movement
                                 if (c.get_bounds().X <= 0 || c.get_bounds().X >= engine.getGame1().viewport.Width)                                 
@@ -211,7 +211,7 @@ namespace EditorEngine
                                         c.de_intersect(new Vector2(1, 1), window_collision_h,window_collision_v);
                                     }
                                 }
-                            }
+                            }*/
                         }
                     }
                 }//if
@@ -301,7 +301,10 @@ namespace EditorEngine
                 c.draw(engine, color); // also draws all of it'engine elements based on internal container rules
                 // draw outline on context containers if in move mode
                 if (outline_containers)
-                    engine.xna_draw_rectangle_outline(c.get_rectangle(), Color.HotPink, OUTLINE_THICKNESS);
+                {
+                    if (!c.get_id().Equals("CONTAINER_GUI_MOVE_LOCKER"))
+                        engine.xna_draw_rectangle_outline(c.get_rectangle(), Color.LightSkyBlue, OUTLINE_THICKNESS);
+                }
             }
             // draw scrollbars separately
             // only pick those containers that are defined as non-context elements 
@@ -357,7 +360,10 @@ namespace EditorEngine
                     e.draw_post_processing(ee, interface_color, interface_transparency);
                     // post processing - draws outline for all containers in move mode (flag updated by editor class hosting a GUI object for that GUI object only
                     if (outline_containers)
-                        engine.xna_draw_rectangle_outline(c.get_rectangle(), Color.HotPink, OUTLINE_THICKNESS);
+                    {
+                        if (!c.get_id().Equals("CONTAINER_GUI_MOVE_LOCKER"))
+                            engine.xna_draw_rectangle_outline(c.get_rectangle(), Color.LightSkyBlue, OUTLINE_THICKNESS);
+                    }
 
                     // draw tooltips
                     e.draw_tooltip(engine);
@@ -544,8 +550,46 @@ namespace EditorEngine
                         find_unit(actions.editor_mode_switch_lights).activate();
                     }
                     break;
+                case modes.water:
+                    if (find_unit(actions.editor_mode_switch_water) != null)
+                    {
+                        find_unit(actions.editor_mode_switch_water).activate();
+                    }
+                    break;
+                case modes.prop_trees:
+                    if (find_unit(actions.editor_mode_switch_tree) != null)
+                    {
+                        find_unit(actions.editor_mode_switch_tree).activate();
+                    }
+                    break;
                 default:
                     break;
+            }
+        }
+
+        public void activate(tools t)
+        {   // reset
+            find_unit(actions.editor_submode_switch_radius).inactivate();
+            find_unit(actions.editor_submode_switch_line).inactivate();
+            find_unit(actions.editor_submode_switch_square).inactivate();
+            find_unit(actions.editor_submode_switch_hollow_square).inactivate();
+
+            // calculate current active
+            if(t == tools.radius)
+            {
+                find_unit(actions.editor_submode_switch_radius).activate();
+            }
+            else if (t == tools.line)
+            {
+                find_unit(actions.editor_submode_switch_line).activate();
+            }
+            else if (t == tools.square)
+            {
+                find_unit(actions.editor_submode_switch_square).activate();
+            }
+            else if (t == tools.hollow_square)
+            {
+                find_unit(actions.editor_submode_switch_hollow_square).activate();
             }
         }
         /*public List<UIElementBase> get_all_elements()
