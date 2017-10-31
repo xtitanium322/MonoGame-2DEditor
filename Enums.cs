@@ -32,7 +32,12 @@ namespace EditorEngine
         editor_mode_switch_delete,
         editor_mode_switch_select,
         editor_mode_switch_lights,
-        //editor_submode_switch, 
+        editor_mode_switch_water,
+        editor_mode_switch_tree,
+        editor_submode_switch_radius,
+        editor_submode_switch_line,
+        editor_submode_switch_square,
+        editor_submode_switch_hollow_square,
         game_exit,
         overall_context,
         toggle_subcontext,
@@ -69,7 +74,12 @@ namespace EditorEngine
         resolution_1280_800,
         resolution_1024_576,
         go_to_world_origin,
-        toggle_system_chat
+        toggle_system_chat,
+        update_slider_light_color_red, // update lights color red component
+        update_slider_light_color_green,
+        update_slider_light_color_blue,
+        update_slider_light_intensity,
+        update_slider_light_range
     };
     // command passed by keyboard/mouse
     public enum command
@@ -77,6 +87,7 @@ namespace EditorEngine
         left_click,
         left_hold,
         left_release,
+        middle_hold,
         right_click,
         right_hold,
         right_release,
@@ -115,6 +126,7 @@ namespace EditorEngine
         delete,
         select,
         prop_lights,
+        water,
         prop_trees
     };
     // submode = shape of added or deleted cells 
@@ -124,7 +136,7 @@ namespace EditorEngine
         line, // line tool - special case of square tool
         square,
         hollow_square,
-        water // adds water ui_elements with full volume
+        //water // adds water ui_elements with full volume
     };
     // contexttype = what contexttype of GUI unit this is - might be redundant with creation of sector_content functionality
     public enum type

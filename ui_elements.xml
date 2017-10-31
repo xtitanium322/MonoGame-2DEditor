@@ -62,6 +62,36 @@
 			<label>mode:lights</label>
 			<tooltip>change editor mode to lights</tooltip>
 		</Item>	
+		<Item>
+			<id>MODE_BUTTON_WATERMODE</id>
+			<parent_id>CONTAINER_EDITOR_MODE_BUTTONS</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>editor_mode_switch_water</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>200</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>icon-lightsmode</icon_name>
+			<label>mode: water</label>
+			<tooltip>change editor mode to water generation</tooltip>
+		</Item>	
+		<Item>
+			<id>MODE_BUTTON_TREEMODE</id>
+			<parent_id>CONTAINER_EDITOR_MODE_BUTTONS</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>editor_mode_switch_tree</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>200</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>icon-lightsmode</icon_name>
+			<label>mode: trees</label>
+			<tooltip>change editor mode to tree generation</tooltip>
+		</Item>	
 		<!-- RIGHT CLICK CONTEXT menu options -->
 		<Item>
 			<id>CURRENT_EDITOR_CELL_CHANGER_SUBCONTEXT</id>
@@ -669,37 +699,6 @@
 			<label>world fill</label>
 			<tooltip>world fill level percentage</tooltip>
 		</Item>
-		<!-- x and y circular percentage graphs FOR MOUSE POSITION -->		
-		<Item> 
-			<id>CIRCLE_MOUSE_X</id>
-			<parent_id>CONTAINER_GAUGE_MOUSE_X</parent_id>
-			<subcontext_id>nosubcontext</subcontext_id>
-			<ui_type>progress_circle</ui_type>
-			<action>none</action>
-			<confirmation>no</confirmation>
-			<dimension_x>0</dimension_x>
-			<dimension_y>0</dimension_y>
-			<dimension_w>75</dimension_w>
-			<dimension_h>75</dimension_h>
-			<icon_name>null</icon_name>
-			<label>world fill</label>
-			<tooltip>x mouse position</tooltip>
-		</Item>
-		<Item> 
-			<id>CIRCLE_MOUSE_Y</id>
-			<parent_id>CONTAINER_GAUGE_MOUSE_Y</parent_id>
-			<subcontext_id>nosubcontext</subcontext_id>
-			<ui_type>progress_circle</ui_type>
-			<action>none</action>
-			<confirmation>no</confirmation>
-			<dimension_x>0</dimension_x>
-			<dimension_y>0</dimension_y>
-			<dimension_w>75</dimension_w>
-			<dimension_h>75</dimension_h>
-			<icon_name>null</icon_name>
-			<label>world fill</label>
-			<tooltip>y mouse position</tooltip>
-		</Item>
 		<!-- text field-->			
 		<Item> 
 			<id>TEXTINPUT_SYSTEM</id>
@@ -855,5 +854,172 @@
 			<label>toggle system chat</label>
 			<tooltip>hide or show system chat</tooltip>
 		</Item>	
+		<!-- lights context container elements -->
+		<Item>
+			<id>LIGHT_CONTEXT_LABEL_TOP</id>
+			<parent_id>CONTAINER_LIGHTS_CONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>info_label</ui_type>
+			<action>none</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>300</dimension_w>
+			<dimension_h>20</dimension_h>
+			<icon_name>null</icon_name>
+			<label>color</label>
+			<tooltip/>
+		</Item>
+		<Item>
+			<id>SLIDER_UPDATE_LIGHT_R</id>
+			<parent_id>CONTAINER_LIGHTS_CONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>slider</ui_type>
+			<action>update_slider_light_color_red</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>300</dimension_w>
+			<dimension_h>40</dimension_h>
+			<icon_name>null</icon_name>
+			<label>red</label>
+			<tooltip/>
+		</Item>
+		<Item>
+			<id>SLIDER_UPDATE_LIGHT_G</id>
+			<parent_id>CONTAINER_LIGHTS_CONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>slider</ui_type>
+			<action>update_slider_light_color_green</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>300</dimension_w>
+			<dimension_h>40</dimension_h>
+			<icon_name>null</icon_name>
+			<label>green</label>
+			<tooltip/>
+		</Item>
+		<Item>
+			<id>SLIDER_UPDATE_LIGHT_B</id>
+			<parent_id>CONTAINER_LIGHTS_CONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>slider</ui_type>
+			<action>update_slider_light_color_blue</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>300</dimension_w>
+			<dimension_h>40</dimension_h>
+			<icon_name>null</icon_name>
+			<label>blue</label>
+			<tooltip/>
+		</Item>
+		<Item>
+			<id>LIGHT_CONTEXT_LABEL_BOTTOM</id>
+			<parent_id>CONTAINER_LIGHTS_CONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>info_label</ui_type>
+			<action>none</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>300</dimension_w>
+			<dimension_h>20</dimension_h>
+			<icon_name>null</icon_name>
+			<label>other parameters</label>
+			<tooltip/>
+		</Item>
+		<Item>
+			<id>SLIDER_UPDATE_LIGHT_INTENSITY</id>
+			<parent_id>CONTAINER_LIGHTS_CONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>slider</ui_type>
+			<action>update_slider_light_intensity</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>300</dimension_w>
+			<dimension_h>40</dimension_h>
+			<icon_name>null</icon_name>
+			<label>intensity</label>
+			<tooltip/>
+		</Item>
+		<Item>
+			<id>SLIDER_UPDATE_LIGHT_RANGE</id>
+			<parent_id>CONTAINER_LIGHTS_CONTEXT</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>slider</ui_type>
+			<action>update_slider_light_range</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>300</dimension_w>
+			<dimension_h>40</dimension_h>
+			<icon_name>null</icon_name>
+			<label>range/reach</label>
+			<tooltip/>
+		</Item>
+		<!-- submode change buttons -->
+		<Item>
+			<id>SUBMODE_BUTTON_RADIUS</id>
+			<parent_id>CONTAINER_SUBMODES</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>editor_submode_switch_radius</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>200</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>null</icon_name>
+			<label>brush tool</label>
+			<tooltip>change tool to radius brush</tooltip>
+		</Item>
+		<Item>
+			<id>SUBMODE_BUTTON_LINE</id>
+			<parent_id>CONTAINER_SUBMODES</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>editor_submode_switch_line</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>200</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>null</icon_name>
+			<label>line tool</label>
+			<tooltip>change tool to line</tooltip>
+		</Item>	
+		<Item>
+			<id>SUBMODE_BUTTON_SQUARE</id>
+			<parent_id>CONTAINER_SUBMODES</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>editor_submode_switch_square</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>200</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>null</icon_name>
+			<label>square tool</label>
+			<tooltip>change tool to square</tooltip>
+		</Item>
+		<Item>
+			<id>SUBMODE_BUTTON_HOLLOW_SQUARE</id>
+			<parent_id>CONTAINER_SUBMODES</parent_id>
+			<subcontext_id>nosubcontext</subcontext_id>
+			<ui_type>button</ui_type>
+			<action>editor_submode_switch_hollow_square</action>
+			<confirmation>no</confirmation>
+			<dimension_x>0</dimension_x>
+			<dimension_y>-1</dimension_y>
+			<dimension_w>200</dimension_w>
+			<dimension_h>30</dimension_h>
+			<icon_name>null</icon_name>
+			<label>hollow square tool</label>
+			<tooltip>change tool to hollow square</tooltip>
+		</Item>			
 	</Asset> 
 </XnaContent>

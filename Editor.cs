@@ -74,7 +74,7 @@ namespace EditorEngine
         [NonSerialized]
         private List<WaterGenerator> selection_watergen;                // list of all water generators inside selection matrix
         [NonSerialized]
-        private List<Vector2> line_matrix;                              // list of all line cells
+        private List<Vector2> line_matrix;                              // list of all line cells - used to create new cells with line tool
         [NonSerialized]
         public GraphicInterface GUI;                                    // create a User Interface object in this host class  
         [NonSerialized]
@@ -144,19 +144,19 @@ namespace EditorEngine
             selection_color = new Color(0, 175, 250);
             selection_color_surrogate = TextEngine.color_to_delimited_string(selection_color);
             // loading themes (contains alist of system defined colors)
-            themes.Add(new color_theme("Dark", Color.Black, Color.White, 1f));
-            themes.Add(new color_theme("White", Color.White, Color.Black, 1f));
-            themes.Add(new color_theme("Deep Sky Blue", Color.DeepSkyBlue, Color.White, 1f));
+            themes.Add(new color_theme("Black", Color.Black, Color.White, 1f));
             themes.Add(new color_theme("Orange Red", Color.OrangeRed, Color.White, 1f));
-            themes.Add(new color_theme("Dark Red", Color.DarkRed, Color.White, 1f));
-            themes.Add(new color_theme("Yellow Green", Color.YellowGreen, Color.Black, 1f));
-            themes.Add(new color_theme("Golden", Color.Gold, Color.White, 1f));
-            themes.Add(new color_theme("Gray", Color.DimGray, Color.White, 1f));
-            themes.Add(new color_theme("Antique White", Color.AntiqueWhite, Color.Black, 1f));
             themes.Add(new color_theme("Crimson", Color.Crimson, Color.White, 1f));
-            themes.Add(new color_theme("Acid Lime", Color.Lime, Color.White, 1f));
+            themes.Add(new color_theme("Dark Red", Color.DarkRed, Color.White, 1f));
+            themes.Add(new color_theme("Brown", new Color(204, 153, 26), Color.Black, 1f));
+
             themes.Add(new color_theme("Vibrant Blue", new Color(0, 128, 255), Color.White, 1f));
+            themes.Add(new color_theme("Bright Purple", new Color(131, 17, 193), Color.White, 1f));
             themes.Add(new color_theme("Dark Blue", new Color(0, 30, 200), Color.White, 1f));
+
+            themes.Add(new color_theme("Ultra Dark Red", new Color(94, 0, 0), Color.White, 1f));
+            themes.Add(new color_theme("Ultra Dark Green", new Color(62, 94, 0), Color.White, 1f));
+            themes.Add(new color_theme("Ultra Dark Purple", new Color(61, 0, 94), Color.White, 1f));
             current_theme = themes[0];
         }
         // functions  
@@ -208,25 +208,33 @@ namespace EditorEngine
             GUI.load_custom_element_background("MODE_BUTTON_DELETEMODE", engine.get_texture("200x30_background1"));
             GUI.load_custom_element_background("MODE_BUTTON_SELECTMODE", engine.get_texture("200x30_background1"));
             GUI.load_custom_element_background("MODE_BUTTON_LIGHTSMODE", engine.get_texture("200x30_background1"));
+            GUI.load_custom_element_background("MODE_BUTTON_WATERMODE", engine.get_texture("200x30_background1"));
+            GUI.load_custom_element_background("MODE_BUTTON_TREEMODE", engine.get_texture("200x30_background1"));
+
+            GUI.load_custom_element_background("SUBMODE_BUTTON_RADIUS", engine.get_texture("200x30_background1"));
+            GUI.load_custom_element_background("SUBMODE_BUTTON_LINE", engine.get_texture("200x30_background1"));
+            GUI.load_custom_element_background("SUBMODE_BUTTON_SQUARE", engine.get_texture("200x30_background1"));
+            GUI.load_custom_element_background("SUBMODE_BUTTON_HOLLOW_SQUARE", engine.get_texture("200x30_background1"));
+
             GUI.load_custom_container_background("CONTAINER_BRUSH_SIZE_OPTIONS", engine.get_texture("240x30_background1")); GUI.set_element_label_positioning("INFOLABEL_BRUSH_RADIUS", orientation.vertical_right);
             GUI.load_custom_container_background("CONTAINER_CURRENT_EDIT_CELL_PREVIEW", engine.get_texture("240x30_background1"));
             ((UIlocker)GUI.find_element("LOCKER_UI_MOVEMENT")).enable_button(false, engine.get_texture("editor_icon_locked"), engine.get_texture("editor_icon_unlocked"));
             GUI.find_element("CURRENT_EDITOR_CELL_CHANGER_BUTTON").set_icon(Tile.get_tile_struct(edit_tile_id).get_tile_icon_clip()); // 1042 - id of tile preview element
             // enable scrollbars if needed
-            GUI.find_container("CONTAINER_EDITOR_TILE_CHANGER").enable_scrollbar(16, 4);
+            GUI.find_container("CONTAINER_EDITOR_TILE_CHANGER").enable_scrollbar(16, 6);
 
             // set world fill progress bar mask
             ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_mask(engine);
             ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_border(engine);
-            ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_progress_color(Color.CornflowerBlue);
+            ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_progress_color(Color.OrangeRed);
 
-            ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_X")).set_progress_color(Color.OrangeRed); // changing progress color
-            ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_Y")).set_progress_color(Color.MediumVioletRed); // changing progress color
-            ((TextInput)GUI.find_element("TEXTINPUT_SYSTEM")).set_input_target("TEXTAREA_SYSTEM"); // sets source for text area
+            // ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_X")).set_progress_color(Color.SkyBlue);   // changing progress color
+            //((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_Y")).set_progress_color(Color.LimeGreen); // changing progress color
+            ((TextInput)GUI.find_element("TEXTINPUT_SYSTEM")).set_input_target("TEXTAREA_SYSTEM");    // sets source for text area
 
             // set boundaries for system text area
             GUI.get_text_engine().set_target(((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_rectangle(), ((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_origin());
-
+            ((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).set_border_texture(); // create border texture now that there is a bounds rectangle
         }
         /// testing slider value seeding
         public void load_initial_slider_values(Engine e)
@@ -243,16 +251,21 @@ namespace EditorEngine
             ((Slider)GUI.find_unit(actions.update_slider_grid_color_blue)).set_slider_values(e.gridcolor_b, 0, 255);
 
             ((Slider)GUI.find_unit(actions.update_brush_size)).set_slider_values(submode_brush_radius, 0, 10);
-
+            // light context sliders
+            ((Slider)GUI.find_unit(actions.update_slider_light_color_red)).set_slider_values(127, 0, 255);
+            ((Slider)GUI.find_unit(actions.update_slider_light_color_green)).set_slider_values(127, 0, 255);
+            ((Slider)GUI.find_unit(actions.update_slider_light_color_blue)).set_slider_values(127, 0, 255);
+            ((Slider)GUI.find_unit(actions.update_slider_light_intensity)).set_slider_values(0.75f, 0.25f, 1.25f, 2);
+            ((Slider)GUI.find_unit(actions.update_slider_light_range)).set_slider_values(1550, 100, 3000); // max range at 3000 pixels
             // SET SWITCH BUTTON VALUES
             ((SwitchButton<bool>)GUI.find_element("SWITCH_CLOCK_PAUSE_RESTART")).set_value(true); // clock is inactive by default
             ((SwitchButton<bool>)GUI.find_element("SWITCH_ENABLE_WORLD_LIGHTING")).set_value(true); // lighting is active by default
-            //((UIlocker)GUI.find_element("LOCKER_UI_MOVEMENT")).enable_button(false, e.get_texture("editor_icon_locked"), e.get_texture("editor_icon_unlocked")); // locks ui movement by default
+            ((UIlocker)GUI.find_element("LOCKER_UI_MOVEMENT")).enable_button(false, e.get_texture("editor_icon_locked"), e.get_texture("editor_icon_unlocked")); // locks ui movement by default
             // SET progress bars
-            ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_element_values(0, 100, (int)e.get_current_world().get_percent_filled() * 100);
+            ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_element_values(0, 100, 0);
             ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).update((int)(e.get_current_world().get_percent_filled() * 100.0f));
-            ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_X")).set_element_values(0, 100, (int)((e.get_mouse_vector().X / e.get_viewport().Bounds.Width) * 100f));
-            ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_Y")).set_element_values(0, 100, (int)((e.get_mouse_vector().Y / e.get_viewport().Bounds.Height) * 100f));
+            //((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_X")).set_element_values(0, 100, (int)((e.get_mouse_vector().X / e.get_viewport().Bounds.Width) * 100f));
+            //((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_Y")).set_element_values(0, 100, (int)((e.get_mouse_vector().Y / e.get_viewport().Bounds.Height) * 100f));
 
         }
 
@@ -264,6 +277,24 @@ namespace EditorEngine
         /// <param name="w">World for this editor object</param>
         public void draw_static_containers(SpriteBatch spb, Engine engine, World w)
         {
+            // draw coordinate numbers
+            for (int i = 0; i <= engine.get_current_world().width; i = i + 10)
+            {
+                int x_coor = engine.get_current_world().tilesize * (i - 1);
+                int y_coor = -20;
+
+                engine.xna_draw_outlined_text(i.ToString(),
+                    new Vector2(x_coor, y_coor) - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
+            }
+
+            for (int i = 0; i <= engine.get_current_world().height; i = i + 10)
+            {
+                int x_coor = -20;
+                int y_coor = engine.get_current_world().tilesize * (i - 1);
+
+                engine.xna_draw_outlined_text(i.ToString(),
+                    new Vector2(x_coor, y_coor) - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
+            }
             // draw GUI 
             GUI.draw_static_containers(spb, current_theme.interface_color, current_theme.interface_transparency);
         }
@@ -289,6 +320,7 @@ namespace EditorEngine
         /// <param name="w">World for this editor object</param>
         public void Draw(SpriteBatch spb, Engine engine, World w)
         {
+            // draw selection
             if (selection_matrix_size() > 0 && selection_start_cell != null && selection_end_cell != null && !gui_move_mode)
             {// in order to remove GPU stress - draw only what's visible on screen 
                 Vector2 real_start_cell = Vector2.Zero;
@@ -312,8 +344,8 @@ namespace EditorEngine
                     new Rectangle(0, 0, ((int)real_end_cell.X - (int)real_start_cell.X + 1) * engine.get_current_world().tilesize, ((int)real_end_cell.Y - (int)real_start_cell.Y + 1) * engine.get_current_world().tilesize),
                     selection_color * sel_transparency, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f);
                     // draw borders
-                    int thickness = 2;
-                    float color_factor = 0.75f;
+                    int thickness = 1;
+                    float color_factor = 0.55f; // darker borders
                     Vector2 st = engine.get_current_world().get_tile_origin(real_start_cell);
                     Vector2 en = engine.get_current_world().get_tile_origin(real_end_cell);
                     // top
@@ -352,19 +384,30 @@ namespace EditorEngine
                             engine.adjusted_color(selection_color, color_factor), 0, Vector2.Zero, 1, SpriteEffects.None, 0);
                 }
             }
+            // draw message for gui move mode
+            if(gui_move_mode)
+            {
+                engine.xna_draw_outlined_text("UI Move Mode", new Vector2(engine.get_viewport().Width - Game1.large_font.MeasureString("UI Move Mode").X, 300), Vector2.Zero, Color.LightSkyBlue, Color.Black, Game1.large_font);
+            }
             // Preview added/deleted cells if GUI is not hovered
             if ((editor_mode == modes.add || editor_mode == modes.delete) && !GUI.hover_detect() && !editor_actions_locked && !gui_move_mode)
             {
-                if (editor_tools == tools.radius)
+                if (editor_mode != modes.prop_trees)
                 {
-                    preview_tile((int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).X, (int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).Y, engine, submode_brush_radius, editor_mode);
-                }
-                else if (editor_tools == tools.line)
-                {
-                    preview_cell_matrix(engine, line_matrix);
+                    if (editor_tools == tools.radius)
+                    {
+                        preview_tile((int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).X, (int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).Y, engine, submode_brush_radius, editor_mode);
+                    }
+                    else if (editor_tools == tools.line)
+                    {
+                        preview_cell_matrix(engine, line_matrix);
+                    }
                 }
             }
-            // draw current hovered cell coordinates at mouse
+            if (editor_mode == modes.prop_trees)
+                preview_tree(((int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).X), (int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).Y, engine);
+                
+// draw current hovered cell coordinates at mouse
             if (!gui_move_mode && GUI.hover_detect() == false && engine.get_current_world().valid_cell(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)))
             {
                 if (line_start_cell.X == -1) // no line tool 
@@ -380,10 +423,10 @@ namespace EditorEngine
                     update_offset(0, -20);
                     string line_coordinates = line_start_cell.ToString();
                     string line_coordinates2 = line_end_cell.ToString();
-                    string line_length = "line length: " + line_matrix.Count.ToString();
+                    string line_length = "line width: " + line_matrix.Count.ToString();
                     engine.xna_draw_outlined_text(line_coordinates, engine.get_current_world().get_tile_origin(line_start_cell) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
                     engine.xna_draw_outlined_text(line_coordinates2, engine.get_current_world().get_tile_origin(line_end_cell) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
-                    update_offset(0, 20); // draw line length below end cell
+                    update_offset(0, 20); // draw line width below end cell
                     engine.xna_draw_outlined_text(line_length, engine.get_current_world().get_tile_origin(line_end_cell) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
                 }
 
@@ -448,25 +491,6 @@ namespace EditorEngine
                     update_offset(0, -40);
                     engine.xna_draw_outlined_text(tool_text, engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
                 }
-                else if (editor_tools == tools.water)
-                {
-                    string tool_text = "{water tool}";
-                    update_offset(0, -40);
-                    engine.xna_draw_outlined_text(tool_text, engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
-                    update_offset(0, -60);
-                    tool_text = "tile id: " + engine.get_current_world().get_tile_id(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine));
-                    engine.xna_draw_outlined_text(tool_text, engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
-                    update_offset(0, -80);
-                    tool_text = "water content: " + engine.get_current_world().get_tile_water(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine));
-                    engine.xna_draw_outlined_text(tool_text, engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
-                    update_offset(0, -100);
-                    tool_text = "pressure: " + engine.get_current_world().get_tile_pressure(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine));
-                    engine.xna_draw_outlined_text(tool_text, engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
-                    update_offset(0, -120);
-                    tool_text = "source ( " + engine.get_current_world().get_tile_psource(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + " )";
-                    engine.xna_draw_outlined_text(tool_text, engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
-
-                }
 
                 if (editor_mode == modes.select)
                 {
@@ -476,26 +500,32 @@ namespace EditorEngine
                 else if (editor_mode == modes.prop_lights)
                 {
                     update_offset(0, -40);
-                    engine.xna_draw_outlined_text("[lights mode]", engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
+                    engine.xna_draw_outlined_text("[lights mode] add point light", engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
                 }
-                // draw line selection_start_cell coordinate at line start and draw line length
-                // draw selection start cell coordinate, selection height, selection length and selection area
+                else if(editor_mode == modes.water)
+                {
+                    update_offset(0, -40);
+                    engine.xna_draw_outlined_text("[water mode] add water generator", engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.DeepSkyBlue, Color.DarkSlateGray, engine.get_UI_font());
+                }
+                else if (editor_mode == modes.prop_trees)
+                {
+                    update_offset(0, -40);
+                    engine.xna_draw_outlined_text("[tree mode] create a tree base", engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.LawnGreen, Color.DarkSlateGray, engine.get_UI_font());
+                }
+                // draw line selection_start_cell coordinate at line start and draw line width
+                // draw selection start cell coordinate, selection height, selection width and selection area
             }
 
             // draw text instructions
-            engine.xna_draw_outlined_text("alt + Q = decrease tool, alt + E = increase tool", new Vector2(40, 20), Vector2.Zero, Color.White,
+            engine.xna_draw_outlined_text("alt + Z = destroy all water, alt + X = destroy all lights", new Vector2(40, 20), Vector2.Zero, Color.White,
                 Color.DarkSlateGray, Game1.small_font);
-            engine.xna_draw_outlined_text("alt + 1 2 3 or 4 = quick mode change", new Vector2(40, 40), Vector2.Zero, Color.White,
+            engine.xna_draw_outlined_text("TAB = toggle editor mode, F1 = toggle statistics display, F2 = change active world", new Vector2(40, 40), Vector2.Zero, Color.White,
                 Color.DarkSlateGray, Game1.small_font);
-            engine.xna_draw_outlined_text("alt + Z = destroy all water gen, alt + X = destroy all lights", new Vector2(40, 60), Vector2.Zero, Color.White,
-                Color.DarkSlateGray, Game1.small_font);
-            engine.xna_draw_outlined_text("TAB = toggle editor mode, F1 = toggle statistics display, F2 = change active world", new Vector2(40, 80), Vector2.Zero, Color.White,
-                Color.DarkSlateGray, Game1.small_font);
-            engine.xna_draw_outlined_text("in selection mode: insert/delete to add/remove tiles, alt+c - to change the tile type to currently active", new Vector2(40, 100), Vector2.Zero, Color.White,
+            engine.xna_draw_outlined_text("in selection mode: insert/delete to add/remove tiles, alt+c - to change the tile type to currently active", new Vector2(40, 60), Vector2.Zero, Color.White,
                Color.DarkSlateGray, Game1.small_font);
-            engine.xna_draw_outlined_text("~h = list of commands, ~a = list of actions", new Vector2(40, 120), Vector2.Zero, Color.White,
+            engine.xna_draw_outlined_text("~h = list of commands, ~a = list of actions", new Vector2(40, 100), Vector2.Zero, Color.White,
                Color.DarkSlateGray, Game1.small_font);
-            engine.xna_draw_outlined_text("shift + escape - exit the program/close editor", new Vector2(40, 140), Vector2.Zero, Color.OrangeRed,
+            engine.xna_draw_outlined_text("shift + escape - exit the program/close editor", new Vector2(40, 0), Vector2.Zero, Color.OrangeRed,
                Color.DarkSlateGray, Game1.small_font);
         }
 
@@ -506,9 +536,10 @@ namespace EditorEngine
 
         public void draw_post_processing(Engine e, SpriteBatch sb)
         {
-            GUI.draw_post_processing(e, current_theme.interface_color, current_theme.interface_transparency);
-            if(e.get_editor().GUI.find_container("CONTAINER_EDITOR_TEXT_AREA").is_visible())
+            if (e.get_editor().GUI.find_container("CONTAINER_EDITOR_TEXT_AREA").is_visible())
                 GUI.get_text_engine().textengine_draw(e); // draw text stored inside text engine
+
+            GUI.draw_post_processing(e, current_theme.interface_color, current_theme.interface_transparency);
         }
 
         public void preview_tile(int x, int y, Engine engine, int radius, modes current)
@@ -530,7 +561,7 @@ namespace EditorEngine
 
         public bool preview(int x, int y, Engine engine, modes current)
         {
-            if (engine.get_current_world().not_tile_exists(x, y) || cell_overwrite_mode() || current == modes.delete)
+            if (engine.get_current_world().tile_doesnt_exist(x, y) || cell_overwrite_mode() || current == modes.delete)
             {
                 if (engine.get_current_world().valid_cell(x, y))
                 {
@@ -553,6 +584,37 @@ namespace EditorEngine
             }
 
             return true;
+        }
+
+        public bool preview_tree(int x, int y, Engine engine, bool nodraw = false)
+        {
+            if 
+            ( 
+                engine.get_current_world().tile_doesnt_exist(x, y) 
+                && y >= 5 // at least 5 tile away from the top edge
+                && engine.get_current_world().tile_doesnt_exist(x, y - 1) // air
+                && engine.get_current_world().tile_doesnt_exist(x, y - 2) // air
+                && engine.get_current_world().tile_doesnt_exist(x, y - 3) // air
+                && engine.get_current_world().tile_exists(x, y + 1 )     // not air
+            )
+            {
+                if (engine.get_current_world().valid_cell(x, y))
+                {
+                    Rectangle current_cell_dimensions = engine.get_current_world().get_cell_rectangle_on_screen(engine, new Vector2(x, y));
+                    Color mode_color = new Color();
+                    mode_color = Color.LightGreen;
+
+                    if(!nodraw)
+                    engine.xna_draw(Engine.pixel,
+                    engine.get_current_world().get_tile_origin(new Vector2(x, y)) - engine.get_camera_offset(),
+                    Engine.standard20, // rectangle crop
+                    mode_color * engine.fade_sine_wave_smooth(3000, 0.65f, 0.75f, sinewave.one), 0, Vector2.Zero, 1f, SpriteEffects.None, 0);
+
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public void preview_cell_matrix(Engine engine, List<Vector2> matrix)
@@ -617,19 +679,20 @@ namespace EditorEngine
             if (engine.get_frame_count() % 30 == 0) // limit update timing of this function
                 ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).update((int)(engine.get_current_world().get_percent_filled() * 100f));
 
-            ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_X")).update((int)((engine.get_mouse_vector().X / (float)engine.get_viewport().Bounds.Width) * 100f)); // get mouse position X relative to Screen Width
-            ((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_Y")).update((int)((engine.get_mouse_vector().Y / (float)engine.get_viewport().Bounds.Height) * 100f)); // get mouse position Y relative to Screen Height
+            //((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_X")).update((int)((engine.get_mouse_vector().X / (float)engine.get_viewport().Bounds.Width) * 100f)); // get mouse position X relative to Screen Width
+            //((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_Y")).update((int)((engine.get_mouse_vector().Y / (float)engine.get_viewport().Bounds.Height) * 100f)); // get mouse position Y relative to Screen Height
 
             // set boundaries for text area
             GUI.get_text_engine().set_target(((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_rectangle(), ((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_origin());
 
+            // activate the button - visual
             if (editor_mode == modes.select
-                ||
-                (
-                    (editor_mode == modes.add || editor_mode == modes.delete)
-                    &&
-                    (editor_tools == tools.square || editor_tools == tools.hollow_square)
-                ))
+            ||
+            (
+                (editor_mode == modes.add || editor_mode == modes.delete)
+                &&
+                (editor_tools == tools.square || editor_tools == tools.hollow_square)
+            ))
             {
                 // selection matrix is used when:
                 // 1. selection mode is active
@@ -655,6 +718,16 @@ namespace EditorEngine
             {
                 GUI.activate(modes.prop_lights);
             }
+            else if (editor_mode == modes.water)
+            {
+                GUI.activate(modes.water);
+            }
+            else if (editor_mode == modes.prop_trees)
+            {
+                GUI.activate(modes.prop_trees);
+            }
+            // activate buttons for submode visual
+            GUI.activate(editor_tools);
             // editor tool dependencies
             if (editor_tools != tools.radius) // hide brush size option from view
             {
@@ -755,6 +828,7 @@ namespace EditorEngine
                     break;
                 case command.destroy_water_gen: // remove all point lights
                     engine.get_current_world().destroy_water_generators();
+                    engine.get_current_world().reset_water();
                     hide_expandable_containers_only();
                     break;
                 case command.alt_1:
@@ -913,184 +987,193 @@ namespace EditorEngine
                             {
                                 // DEPENDENT ON ADD MODE
                                 case modes.add:
+                                {
+                                    if (c == command.left_click || c == command.left_hold)
                                     {
-                                        if (c == command.left_click || c == command.left_hold)
+                                        if (editor_tools == tools.radius && !editor_actions_locked)
                                         {
-                                            if (editor_tools == tools.radius && !editor_actions_locked)
+                                            clear_selection();
+                                            engine.get_current_world().generate_tile(edit_tile_id, (int)active_cell.X, (int)active_cell.Y, engine, submode_brush_radius, 0);
+                                        }
+                                        else if (editor_tools == tools.line && !editor_actions_locked && c == command.left_click)
+                                        {
+                                            clear_selection();
+                                            if (line_start_cell.X == -1) // no start cell defined - create one
                                             {
-                                                clear_selection();
-                                                engine.get_current_world().generate_tile(edit_tile_id, (int)active_cell.X, (int)active_cell.Y, engine, submode_brush_radius, 0);
+                                                line_start_cell.X = active_cell.X;
+                                                line_start_cell.Y = active_cell.Y;
                                             }
-                                            else if (editor_tools == tools.line && !editor_actions_locked && c == command.left_click)
+                                            else //generate ui_elements, then remove end cell and reassign start cell to previous end cell. Moving mouse will automatically assign end cell each time
                                             {
-                                                clear_selection();
-                                                if (line_start_cell.X == -1) // no start cell defined - create one
-                                                {
-                                                    line_start_cell.X = active_cell.X;
-                                                    line_start_cell.Y = active_cell.Y;
-                                                }
-                                                else //generate ui_elements, then remove end cell and reassign start cell to previous end cell. Moving mouse will automatically assign end cell each time
-                                                {
-                                                    engine.get_current_world().generate_matrix(line_matrix, engine, edit_tile_id);
-                                                    line_start_cell.X = line_end_cell.X;
-                                                    line_start_cell.Y = line_end_cell.Y;
-                                                    line_end_cell.X = -1;
-                                                    line_end_cell.Y = -1;
-                                                }
-                                            }
-                                            else if ((editor_tools == tools.square || editor_tools == tools.hollow_square) && !editor_actions_locked)
-                                            {
-                                                if (c == command.left_click)
-                                                {
-                                                    if (selection_start_cell == null) // assign start point
-                                                    {
-                                                        selection_start_cell = active_cell;
-                                                        selection_end_cell = null;
-                                                    }
-                                                }
-                                                else if (c == command.right_click || c == command.right_hold)
-                                                {
-                                                    clear_selection();
-                                                }
-                                                else
-                                                {
-                                                    selection_end_cell = active_cell;
-                                                }
-                                            }
-                                            else if (editor_tools == tools.water) // NOTE: testing WATER generation
-                                            {
-                                                clear_selection();
-                                                //engine.get_current_world().generate_tile(-1, (int)active_cell.X, (int)active_cell.Y, engine, submode_brush_radius, engine.generate_int_range(50, 100));
-                                                if (c == command.left_click && !editor_actions_locked)
-                                                {
-                                                    engine.get_current_world().generate_water_generator(engine.get_current_mouse_state(), engine);
-                                                }
+                                                engine.get_current_world().generate_matrix(line_matrix, engine, edit_tile_id);
+                                                line_start_cell.X = line_end_cell.X;
+                                                line_start_cell.Y = line_end_cell.Y;
+                                                line_end_cell.X = -1;
+                                                line_end_cell.Y = -1;
                                             }
                                         }
-                                        else if (c == command.right_click || c == command.right_hold)
-                                        {
-                                            if (editor_tools == tools.line && !editor_actions_locked)
-                                            {
-                                                line_start_cell.X = -1; // -1 will be treated as null by the driver function
-                                                line_start_cell.Y = -1;
-                                                line_matrix.Clear();
-                                            }
-                                        }
-                                        else if (c == command.left_release)
-                                        {
-                                            if (selection_start_cell != null && selection_end_cell != null) // assign end point and create ui_elements, then clear selection
-                                            {
-                                                selection_end_cell = active_cell;
-
-                                                if (editor_tools == tools.square)
-                                                    engine.get_current_world().generate_matrix(selection_matrix, engine, edit_tile_id);
-                                                else if (editor_tools == tools.hollow_square)
-                                                    engine.get_current_world().generate_hollow_matrix(selection_matrix, engine, edit_tile_id);
-
-                                                clear_selection();
-                                            }
-                                        }
-                                    }
-                                    break;
-                                // DEPENDENT ON DELETE MODE
-                                case modes.delete:
-                                    {
-                                        if (c == command.left_click || c == command.left_hold)
-                                        {
-                                            if (editor_tools == tools.radius && !editor_actions_locked)
-                                            {
-                                                engine.get_current_world().erase_tile((int)active_cell.X, (int)active_cell.Y, engine, submode_brush_radius);
-                                            }
-                                            else if (editor_tools == tools.line && !editor_actions_locked && c == command.left_click)
-                                            {
-                                                if (line_start_cell.X == -1) // no start cell defined - create one
-                                                {
-                                                    line_start_cell.X = active_cell.X;
-                                                    line_start_cell.Y = active_cell.Y;
-                                                }
-                                                else //generate ui_elements, then remove end cell and reassign start cell to previous end cell. Moving mouse will automatically assign end cell each time
-                                                {
-                                                    engine.get_current_world().erase_matrix(line_matrix, engine);
-                                                    line_start_cell.X = line_end_cell.X;
-                                                    line_start_cell.Y = line_end_cell.Y;
-                                                    line_end_cell.X = -1;
-                                                    line_end_cell.Y = -1;
-                                                }
-                                            }
-                                            else if ((editor_tools == tools.square || editor_tools == tools.hollow_square) && !editor_actions_locked)
-                                            {
-                                                if (c == command.left_click)
-                                                {
-                                                    if (selection_start_cell == null) // assign start point
-                                                    {
-                                                        selection_start_cell = active_cell;
-                                                        selection_end_cell = null;
-                                                    }
-                                                }
-                                                else if (c == command.right_click || c == command.right_hold)
-                                                {
-                                                    clear_selection();
-                                                }
-                                                else
-                                                {
-                                                    selection_end_cell = active_cell;
-                                                }
-                                            }
-                                        }
-                                        else if (c == command.right_click || c == command.right_hold)
-                                        {
-                                            if (editor_tools == tools.line && !editor_actions_locked)
-                                            {
-                                                line_start_cell.X = -1; // -1 will be treated as null by the driver function
-                                                line_start_cell.Y = -1;
-                                                line_matrix.Clear();
-                                            }
-                                        }
-                                        else if (c == command.left_release)
-                                        {
-                                            if (selection_start_cell != null && selection_end_cell != null) // assign end point and create ui_elements, then clear selection
-                                            {
-                                                selection_end_cell = active_cell;
-
-                                                if (editor_tools == tools.square)
-                                                    engine.get_current_world().erase_matrix(selection_matrix, engine);
-                                                else if (editor_tools == tools.hollow_square)
-                                                    engine.get_current_world().erase_hollow_matrix(selection_matrix, engine);
-
-                                                clear_selection();
-                                            }
-                                        }
-                                    }
-                                    break;
-                                // DEPENDENT ON SELECT MODE
-                                case modes.select:
-                                    {
-                                        if (!editor_actions_locked)
+                                        else if ((editor_tools == tools.square || editor_tools == tools.hollow_square) && !editor_actions_locked)
                                         {
                                             if (c == command.left_click)
                                             {
-                                                selection_start_cell = active_cell;
-                                                selection_end_cell = null;
+                                                if (selection_start_cell == null) // assign start point
+                                                {
+                                                    selection_start_cell = active_cell;
+                                                    selection_end_cell = null;
+                                                }
                                             }
-                                            else if (c == command.left_release || c == command.left_hold)
+                                            else if (c == command.right_click || c == command.right_hold)
+                                            {
+                                                clear_selection();
+                                            }
+                                            else
+                                            {
                                                 selection_end_cell = active_cell;
+                                            }
                                         }
                                     }
+                                    else if (c == command.right_click || c == command.right_hold)
+                                    {
+                                        if (editor_tools == tools.line && !editor_actions_locked)
+                                        {
+                                            line_matrix.Clear();
+                                            line_start_cell.X = -1; // -1 will be treated as null by the driver function
+                                            line_start_cell.Y = -1;                                                
+                                        }
+                                    }
+                                    else if (c == command.left_release)
+                                    {
+                                        if (selection_start_cell != null && selection_end_cell != null) // assign end point and create ui_elements, then clear selection
+                                        {
+                                            selection_end_cell = active_cell;
+
+                                            if (editor_tools == tools.square)
+                                                engine.get_current_world().generate_matrix(selection_matrix, engine, edit_tile_id);
+                                            else if (editor_tools == tools.hollow_square)
+                                                engine.get_current_world().generate_hollow_matrix(selection_matrix, engine, edit_tile_id);
+
+                                            clear_selection();
+                                        }
+                                    }
+                                }
+                                    break;
+                                // DEPENDENT ON DELETE MODE
+                                case modes.delete:
+                                {
+                                    if (c == command.left_click || c == command.left_hold)
+                                    {
+                                        if (editor_tools == tools.radius && !editor_actions_locked)
+                                        {
+                                            engine.get_current_world().erase_tile((int)active_cell.X, (int)active_cell.Y, engine, submode_brush_radius);
+                                        }
+                                        else if (editor_tools == tools.line && !editor_actions_locked && c == command.left_click)
+                                        {
+                                            if (line_start_cell.X == -1) // no start cell defined - create one
+                                            {
+                                                line_start_cell.X = active_cell.X;
+                                                line_start_cell.Y = active_cell.Y;
+                                            }
+                                            else //generate ui_elements, then remove end cell and reassign start cell to previous end cell. Moving mouse will automatically assign end cell each time
+                                            {
+                                                engine.get_current_world().erase_matrix(line_matrix, engine);
+                                                line_start_cell.X = line_end_cell.X;
+                                                line_start_cell.Y = line_end_cell.Y;
+                                                line_end_cell.X = -1;
+                                                line_end_cell.Y = -1;
+                                            }
+                                        }
+                                        else if ((editor_tools == tools.square || editor_tools == tools.hollow_square) && !editor_actions_locked)
+                                        {
+                                            if (c == command.left_click)
+                                            {
+                                                if (selection_start_cell == null) // assign start point
+                                                {
+                                                    selection_start_cell = active_cell;
+                                                    selection_end_cell = null;
+                                                }
+                                            }
+                                            else if (c == command.right_click || c == command.right_hold)
+                                            {
+                                                clear_selection();
+                                            }
+                                            else
+                                            {
+                                                selection_end_cell = active_cell;
+                                            }
+                                        }
+                                    }
+                                    else if (c == command.right_click || c == command.right_hold)
+                                    {
+                                        if (editor_tools == tools.line && !editor_actions_locked)
+                                        {
+                                            line_start_cell.X = -1; // -1 will be treated as null by the driver function
+                                            line_start_cell.Y = -1;
+                                            line_matrix.Clear();
+                                        }
+                                    }
+                                    else if (c == command.left_release)
+                                    {
+                                        if (selection_start_cell != null && selection_end_cell != null) // assign end point and create ui_elements, then clear selection
+                                        {
+                                            selection_end_cell = active_cell;
+
+                                            if (editor_tools == tools.square)
+                                                engine.get_current_world().erase_matrix(selection_matrix, engine);
+                                            else if (editor_tools == tools.hollow_square)
+                                                engine.get_current_world().erase_hollow_matrix(selection_matrix, engine);
+
+                                            clear_selection();
+                                        }
+                                    }
+                                }
+                                    break;
+                                // DEPENDENT ON SELECT MODE
+                                case modes.select:
+                                {
+                                    if (!editor_actions_locked)
+                                    {
+                                        if (c == command.left_click)
+                                        {
+                                            selection_start_cell = active_cell;
+                                            selection_end_cell = null;
+                                        }
+                                        else if (c == command.left_release || c == command.left_hold)
+                                            selection_end_cell = (engine.are_vectors_equal(active_cell,new Vector2(-1,-1)))? Vector2.One : active_cell;
+                                    }
+                                }
                                     break;
                                 case modes.prop_lights:
+                                {
+                                    clear_selection();
+                                    if (c == command.left_click && !editor_actions_locked)
                                     {
-                                        clear_selection();
-                                        if (c == command.left_click && !editor_actions_locked)
-                                        {
-                                            engine.get_current_world().generate_light_source(new Color(engine.generate_int_range(0, 255), engine.generate_int_range(0, 255), engine.generate_int_range(0, 255)), engine.get_current_mouse_state(), engine, engine.generate_int_range(600, 1200), engine.generate_float_range(0.65f, 1.0f));
-                                        }
+                                        engine.get_current_world().generate_light_source(new Color(engine.generate_int_range(0, 255), engine.generate_int_range(0, 255), engine.generate_int_range(0, 255)), engine.get_current_mouse_state(), engine, engine.generate_int_range(300, 800), engine.generate_float_range(0.15f, 1.35f));
                                     }
+                                }
                                     break;
-                                default:
+                                case modes.water: 
+                                {
+                                    clear_selection();
+                                    if (c == command.left_click && !editor_actions_locked)
                                     {
-                                        hide_expandable_containers_only();
-                                        clear_selection();
+                                        engine.get_current_world().generate_water_generator(engine.get_current_mouse_state(), engine);
                                     }
+                                }
+                                break;
+                                case modes.prop_trees:
+                                {
+                                    clear_selection();
+                                    if (c == command.left_click && !editor_actions_locked)
+                                    {
+                                        engine.get_current_world().generate_tree_base(engine.get_current_mouse_state(), engine);
+                                    }
+                                }
+                                break;
+                                default:
+                                {
+                                    hide_expandable_containers_only();
+                                    clear_selection();
+                                }
                                     break;
                             }
                             //--------------------------------------------------------- NO HOVER - MODE INDEPENDENT
@@ -1198,6 +1281,46 @@ namespace EditorEngine
                             clear_line_mode();
 
                             switch_mode("select");
+                        }
+                        break;
+                    case actions.editor_mode_switch_water:
+                        {
+                            hide_all_contexts();
+                            hide_expandable_containers_only();
+                            clear_selection();
+                            clear_line_mode();
+
+                            switch_mode("water");
+                        }
+                        break;
+                    case actions.editor_mode_switch_tree:
+                        {
+                            hide_all_contexts();
+                            hide_expandable_containers_only();
+                            clear_selection();
+                            clear_line_mode();
+
+                            switch_mode("tree");
+                        }
+                        break;
+                    case actions.editor_submode_switch_radius:
+                        {
+                            editor_tools = tools.radius;
+                        }
+                        break;
+                    case actions.editor_submode_switch_line:
+                        {
+                            editor_tools = tools.line;
+                        }
+                        break;
+                    case actions.editor_submode_switch_square:
+                        {
+                            editor_tools = tools.square;
+                        }
+                        break;
+                    case actions.editor_submode_switch_hollow_square:
+                        {
+                            editor_tools = tools.hollow_square;
                         }
                         break;
                     case actions.editor_mode_switch_lights:
@@ -1396,6 +1519,140 @@ namespace EditorEngine
                             }
                         }
                         break;
+                    case actions.update_slider_light_color_red: // new
+                        {
+                            set_hostUI_lock(true);
+                            if (GUI.get_hovered_element_action_enum() == actions.update_slider_light_color_red)
+                            {
+                                // change the slider value
+                                if (c == command.left_hold)
+                                {
+                                    GUI.update_slider_values(GUI.find_unit(actions.update_slider_light_color_red), engine.get_mouse_vector());
+                                    // also update the currently hovered light(s)
+                                    if(get_selection_lights().Count > 0)
+                                    {
+                                        foreach(PointLight p in get_selection_lights())
+                                        {
+                                            int r = ((Slider)GUI.find_unit(actions.update_slider_light_color_red)).get_slider_value_int();
+                                            int g = p.get_color().G;
+                                            int b = p.get_color().B;
+
+                                            // find the light in the same position as the one in selection matrix. then change it's color
+                                            engine.get_current_world().world_lights.Find(x => x.position == p.position).change_light_color(new Color(r, g, b)); 
+                                        }
+                                    }
+                                }
+                                else
+                                    set_hostUI_lock(false);
+                            }
+                        }
+                        break;
+                    case actions.update_slider_light_color_green: // new
+                        {
+                            set_hostUI_lock(true);
+                            if (GUI.get_hovered_element_action_enum() == actions.update_slider_light_color_green)
+                            {
+                                // change the slider value
+                                if (c == command.left_hold)
+                                {
+                                    GUI.update_slider_values(GUI.find_unit(actions.update_slider_light_color_green), engine.get_mouse_vector());
+                                    // also update the currently hovered light(s)
+                                    if (get_selection_lights().Count > 0)
+                                    {
+                                        foreach (PointLight p in get_selection_lights())
+                                        {
+                                            int r = p.get_color().R;
+                                            int g = ((Slider)GUI.find_unit(actions.update_slider_light_color_green)).get_slider_value_int();
+                                            int b = p.get_color().B;
+
+                                            // find the light in the same position as the one in selection matrix. then change it's color
+                                            engine.get_current_world().world_lights.Find(x => x.position == p.position).change_light_color(new Color(r, g, b)); 
+                                        }
+                                    }
+                                }
+                                else
+                                    set_hostUI_lock(false);
+                            }
+                        }
+                        break;
+                    case actions.update_slider_light_color_blue: // new
+                        {
+                            set_hostUI_lock(true);
+                            if (GUI.get_hovered_element_action_enum() == actions.update_slider_light_color_blue)
+                            {
+                                // change the slider value
+                                if (c == command.left_hold)
+                                {
+                                    GUI.update_slider_values(GUI.find_unit(actions.update_slider_light_color_blue), engine.get_mouse_vector());
+                                    // also update the currently hovered light(s)
+                                    if (get_selection_lights().Count > 0)
+                                    {
+                                        foreach (PointLight p in get_selection_lights())
+                                        {
+                                            int r = p.get_color().R;
+                                            int g = p.get_color().G;
+                                            int b = ((Slider)GUI.find_unit(actions.update_slider_light_color_blue)).get_slider_value_int();
+
+                                            // find the light in the same position as the one in selection matrix. then change it's color
+                                            engine.get_current_world().world_lights.Find(x => x.position == p.position).change_light_color(new Color(r, g, b)); 
+                                        }
+                                    }
+                                }
+                                else
+                                    set_hostUI_lock(false);
+                            }
+                        }
+                        break;
+                    case actions.update_slider_light_intensity: // new
+                        {
+                            set_hostUI_lock(true);
+                            if (GUI.get_hovered_element_action_enum() == actions.update_slider_light_intensity)
+                            {
+                                // change the slider value
+                                if (c == command.left_hold)
+                                {
+                                    GUI.update_slider_values(GUI.find_unit(actions.update_slider_light_intensity), engine.get_mouse_vector());
+                                    // also update the currently hovered light(s)
+                                    if (get_selection_lights().Count > 0)
+                                    {
+                                        foreach (PointLight p in get_selection_lights())
+                                        {
+                                            float i = ((Slider)GUI.find_unit(actions.update_slider_light_intensity)).get_slider_value();
+                                            // find the light in the same position as the one in selection matrix. then change it's color
+                                            engine.get_current_world().world_lights.Find(x => x.position == p.position).change_intensity(i);
+                                        }
+                                    }
+                                }
+                                else
+                                    set_hostUI_lock(false);
+                            }
+                        }
+                        break;
+                    case actions.update_slider_light_range: // new
+                        {
+                            set_hostUI_lock(true);
+                            if (GUI.get_hovered_element_action_enum() == actions.update_slider_light_range)
+                            {
+                                // change the slider value
+                                if (c == command.left_hold)
+                                {
+                                    GUI.update_slider_values(GUI.find_unit(actions.update_slider_light_range), engine.get_mouse_vector());
+                                    // also update the currently hovered light(s)
+                                    if (get_selection_lights().Count > 0)
+                                    {
+                                        foreach (PointLight p in get_selection_lights())
+                                        {
+                                            int i = ((Slider)GUI.find_unit(actions.update_slider_light_range)).get_slider_value_int();
+                                            // find the light in the same position as the one in selection matrix. then change it's color
+                                            engine.get_current_world().world_lights.Find(x => x.position == p.position).change_range(i);
+                                        }
+                                    }
+                                }
+                                else
+                                    set_hostUI_lock(false);
+                            }
+                        }
+                        break;
                     case actions.switch_theme:
                         {// assign current theme
                             try
@@ -1433,14 +1690,41 @@ namespace EditorEngine
                         break;
                     case actions.overall_context:
                         {
-                            if (line_start_cell.X == -1)
+                            if (line_start_cell.X == -1) // if line exists - right click should cancel it instead of context
                             {
                                 hide_all_contexts(); // close all other menus before opening this one again
-                                GUI.change_container_origin(engine.get_viewport(), "context menu", engine.get_mouse_vector() + Vector2.One); // create almost at mouse, to avoid inital hover
 
-                                if (c == command.right_click) // ignore if something is in line tool start cell
-                                    GUI.set_container_visibility("context menu", true);
+                                // show light context if light is hovered or if there are lights in selection
+                                if (
+                                    engine.get_current_world().is_light_object_in_cell(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine))
+                                    || get_selection_lights().Count > 0 
+                                    )
+                                {
+                                    // new context menu will be here
+                                    GUI.change_container_origin(engine.get_viewport(), "lights context menu", engine.get_mouse_vector() + Vector2.One);
 
+                                    if (c == command.right_click)
+                                    {
+                                        GUI.set_container_visibility("lights context menu", true);
+                                        //if light is hovered - add the matching light from all lights (by position)
+                                        if(engine.get_current_world().is_light_object_in_cell(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)))
+                                        {
+                                            editor_mode = modes.select; // switch mode
+                                            selection_start_cell = engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine);
+                                            selection_end_cell = selection_start_cell;
+                                        }
+
+                                        //selection_lights.Add(engine.get_current_world().world_lights.Find(x => engine.are_vectors_equal(x.position, engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine))       ));
+                                        //selection_matrix.Add(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine));
+                                    }
+                                }
+                                else // show main context if no light is hovered
+                                {
+                                    GUI.change_container_origin(engine.get_viewport(), "context menu", engine.get_mouse_vector() + Vector2.One); // create almost at mouse, to avoid inital hover
+
+                                    if (c == command.right_click) // ignore if something is in line tool start cell
+                                        GUI.set_container_visibility("context menu", true);
+                                }
                                 // lock editor tools
                                 editor_actions_locked = true;
                             }
@@ -1492,6 +1776,13 @@ namespace EditorEngine
                             {
                                 GUI.find_container("CONTAINER_EDITOR_TEXT_AREA").set_visibility("toggle");
                                 GUI.find_container("CONTAINER_MAIN_TEXT_INPUT").set_visibility("toggle");
+
+                                if(current_focused != null)
+                                {
+                                    current_focused.set_focus(false);
+                                    current_focused.clear_text();
+                                    current_focused = null;
+                                }
                             }
                         }
                         break;
@@ -1501,12 +1792,12 @@ namespace EditorEngine
             }//end of move mode independent section
         }//end of function
 
+// support functions 
 
-        // support functions 
         /// <summary>
         /// Editor will accept a keyboard input as characters if there is an active text input target 
         /// </summary>
-        /// <param name="value"></param>
+        /// <param name="value">string input</param>
         public void accept_input(Engine engine, string value)
         {
             if (current_focused == null)
@@ -1523,7 +1814,7 @@ namespace EditorEngine
                     last_input_timestamp = current; // assign new value to most recent input
                 }
             }
-            else
+            else // same input
             {
                 if (last_input_timestamp + input_delay <= current)
                 {
@@ -1598,7 +1889,7 @@ namespace EditorEngine
         // functions executed by "editor_command"
         public void delete_all_cells(Engine engine)
         {
-            for (int i = 1; i <= engine.get_current_world().length; i++)
+            for (int i = 1; i <= engine.get_current_world().width; i++)
             {
                 for (int j = 1; j <= engine.get_current_world().height; j++)
                 {
@@ -1608,7 +1899,7 @@ namespace EditorEngine
         }
         public void fill_all_cells(Engine engine)
         {
-            for (int i = 1; i <= engine.get_current_world().length; i++)
+            for (int i = 1; i <= engine.get_current_world().width; i++)
             {
                 for (int j = 1; j <= engine.get_current_world().height; j++)
                 {
@@ -1753,18 +2044,32 @@ namespace EditorEngine
             if (mode == "add")
             {
                 editor_mode = modes.add;
+                GUI.find_container("CONTAINER_SUBMODES").set_visibility(true);
             }
             else if (mode == "delete")
             {
                 editor_mode = modes.delete;
+                GUI.find_container("CONTAINER_SUBMODES").set_visibility(true);
             }
             else if (mode == "select")
             {
                 editor_mode = modes.select;
+                GUI.find_container("CONTAINER_SUBMODES").set_visibility(false);
             }
             else if (mode == "lights")
             {
                 editor_mode = modes.prop_lights;
+                GUI.find_container("CONTAINER_SUBMODES").set_visibility(false);
+            }
+            else if (mode == "water")
+            {
+                editor_mode = modes.water;
+                GUI.find_container("CONTAINER_SUBMODES").set_visibility(false);
+            }
+            else if (mode == "tree")
+            {
+                editor_mode = modes.prop_trees;
+                GUI.find_container("CONTAINER_SUBMODES").set_visibility(false);
             }
         }
         // hide context
@@ -1893,6 +2198,8 @@ namespace EditorEngine
             selection_start_cell = null;
             selection_end_cell = null;
             selection_matrix.Clear();
+            selection_lights.Clear();
+            selection_watergen.Clear();
         }
 
         // remove focus from inputs
@@ -2033,7 +2340,7 @@ namespace EditorEngine
                     GUI.find_container(c.get_id()).set_origin(c.get_origin()); // assign exact origin of serialized containers from previous run
                 }
             }
-            catch (NullReferenceException e)
+            catch (NullReferenceException)
             {
                 // no user interface info saved - use defaults
             }
@@ -2053,7 +2360,7 @@ namespace EditorEngine
             {
                 selection_color = TextEngine.delimited_string_to_color(deserialized_editor.get_selection_color_surrogate());
             }
-            catch (NullReferenceException e)
+            catch (NullReferenceException)
             {
                 selection_color = current_theme.get_color(); // if it doesn't exist in the serialized copy - assign default value
             }
