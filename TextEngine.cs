@@ -163,13 +163,12 @@ namespace EditorEngine
     public class TextEngine
     {
         Queue<message_element> messages; // list of all active messages that have to be drawn by this object, e.g. a chat textengine, a quest window textengine
-        int starting_line; 			     // if chat area is scrolled this will change. default is 1. The newest message will get pushed down out of the rectangle. max value for this = total lines - text area lines. Offset will be calculated as follows: new Vector2(0, (starting_line-1) * line height);
+        //int starting_line; 			     // if chat area is scrolled this will change. default is 1. The newest message will get pushed down out of the rectangle. max value for this = total lines - text area lines. Offset will be calculated as follows: new Vector2(0, (starting_line-1) * line height);
         const int MAX_MESSAGES = 20;	  // number of messages to keep. If max is reached - dequeue the oldest message before adding a new one
         Rectangle target_bounds; // values specifying target text area
         Vector2 target_origin;
         Color standard_color; // this color will be used for all words that dont have specific color encoding.  This value gets assigned to any text_element generated here
         SpriteFont engine_font; // font used to display all messages by this engine. This value gets assigned to any text_element generated here
-        Texture2D space;
         List<List<text_element>> line_list;
         List<List<text_element>> small_line_list; // a copy for display
         int padding = 5;
@@ -182,15 +181,8 @@ namespace EditorEngine
             small_line_list = new List<List<text_element>>();
             target_bounds = text_area;
             target_origin = text_area_origin;
-            starting_line = 1;
             standard_color = std_color;
             engine_font = Game1.small_font;
-            generate_space_texture();
-        }
-
-        public void generate_space_texture()
-        {
-            space = null;
         }
 
         public void scroll(bool up)

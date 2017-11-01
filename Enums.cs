@@ -61,7 +61,7 @@ namespace EditorEngine
         update_brush_size,
         current_container_random_sliders, // sets ALL sliders in current context randomly
         option_value_switch, // for value trackers - switch value
-        change_cell_design, // switch current active editor cell
+        change_cell_design, // switch current active editor get_cell_address
         color_preview, // action that doesn't change anything - simply identifies element
         focus_input, // for text input - will make current hovered text_input element receive input until cancellation
         switch_theme,

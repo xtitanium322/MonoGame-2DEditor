@@ -81,8 +81,8 @@ namespace EditorEngine
         private Vector2? selection_start_cell, selection_end_cell;      // start/end cells in selection
         [NonSerialized]
         public Vector2 engine_offset = new Vector2(0, 0);                // placeholder vector for offsetting
-        // line tool start/end points. If start cell exists - moving mouse makes program update current line status. 
-        // Right click cancels start cell. Turn off context clicking while line start cell exists
+        // line tool start/end points. If start get_cell_address exists - moving mouse makes program update current line status. 
+        // Right click cancels start get_cell_address. Turn off context clicking while line start get_cell_address exists
         [NonSerialized]
         public Vector2 line_start_cell, line_end_cell;
 
@@ -102,7 +102,7 @@ namespace EditorEngine
         [NonSerialized]
         public bool locked;                                             // locked?
         [NonSerialized]
-        private bool overwrite_cells;                                   // true = generate tile even if one exists in the cell, false = ignore existing ui_elements
+        private bool overwrite_cells;                                   // true = generate tile even if one exists in the get_cell_address, false = ignore existing ui_elements
         [NonSerialized]
         private bool editor_actions_locked;                             // true - clicking on world map won't change anything, false - tools are unlocked
         // current text input functionality
@@ -127,7 +127,7 @@ namespace EditorEngine
             editor_mode = modes.add;
             editor_tools = tools.radius;
             edit_tile_id = 2;
-            submode_brush_radius = 0; // default = 0 cell radius - 1 cell currently pointed 
+            submode_brush_radius = 0; // default = 0 get_cell_address radius - 1 get_cell_address currently pointed 
             selection_start_cell = selection_end_cell = null;      // no cells selected by default
             line_start_cell = new Vector2(-1, -1);
             line_end_cell = new Vector2();
@@ -168,8 +168,8 @@ namespace EditorEngine
         /// <param name="w">World object in which the editor object was created</param>
         public void LoadContent(ContentManager content, Engine engine/*, World w*/)
         {
-            // Dynamically create a list of cell designs to select from in editor and assign this subcontext to expandable button (1039)
-            Container temp = new Container("CONTAINER_EDITOR_TILE_CHANGER", context_type.expansion, "cell selection", Vector2.Zero, false);
+            // Dynamically create a list of get_cell_address designs to select from in editor and assign this subcontext to expandable button (1039)
+            Container temp = new Container("CONTAINER_EDITOR_TILE_CHANGER", context_type.expansion, "get_cell_address selection", Vector2.Zero, false);
             string temp_id = "BUILDING_CELLS_"; // base of the id given to these buttons
             int counter = 0;
 
@@ -407,7 +407,7 @@ namespace EditorEngine
             if (editor_mode == modes.prop_trees)
                 preview_tree(((int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).X), (int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).Y, engine);
                 
-// draw current hovered cell coordinates at mouse
+// draw current hovered get_cell_address coordinates at mouse
             if (!gui_move_mode && GUI.hover_detect() == false && engine.get_current_world().valid_cell(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)))
             {
                 if (line_start_cell.X == -1) // no line tool 
@@ -426,7 +426,7 @@ namespace EditorEngine
                     string line_length = "line width: " + line_matrix.Count.ToString();
                     engine.xna_draw_outlined_text(line_coordinates, engine.get_current_world().get_tile_origin(line_start_cell) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
                     engine.xna_draw_outlined_text(line_coordinates2, engine.get_current_world().get_tile_origin(line_end_cell) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
-                    update_offset(0, 20); // draw line width below end cell
+                    update_offset(0, 20); // draw line width below end get_cell_address
                     engine.xna_draw_outlined_text(line_length, engine.get_current_world().get_tile_origin(line_end_cell) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
                 }
 
@@ -509,11 +509,13 @@ namespace EditorEngine
                 }
                 else if (editor_mode == modes.prop_trees)
                 {
+                    Vector2 cell = engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine);
+                    Color indicator = preview_tree((int)cell.X, (int)cell.Y, engine, true) == true ? Color.LawnGreen : Color.Red;
                     update_offset(0, -40);
-                    engine.xna_draw_outlined_text("[tree mode] create a tree base", engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.LawnGreen, Color.DarkSlateGray, engine.get_UI_font());
+                    engine.xna_draw_outlined_text("[tree mode] create a tree base", engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, indicator, Color.DarkSlateGray, engine.get_UI_font());
                 }
                 // draw line selection_start_cell coordinate at line start and draw line width
-                // draw selection start cell coordinate, selection height, selection width and selection area
+                // draw selection start get_cell_address coordinate, selection height, selection width and selection area
             }
 
             // draw text instructions
@@ -595,7 +597,7 @@ namespace EditorEngine
                 && engine.get_current_world().tile_doesnt_exist(x, y - 1) // air
                 && engine.get_current_world().tile_doesnt_exist(x, y - 2) // air
                 && engine.get_current_world().tile_doesnt_exist(x, y - 3) // air
-                && engine.get_current_world().tile_exists(x, y + 1 )     // not air
+                && engine.get_current_world().get_tile_id(new Vector2(x,y + 1)) == 2  // base = dirt
             )
             {
                 if (engine.get_current_world().valid_cell(x, y))
@@ -775,7 +777,7 @@ namespace EditorEngine
                     editor_actions_locked = false;
                 }
             }
-            // calculate current hovered cell
+            // calculate current hovered get_cell_address
             Vector2 active_cell = engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine);
 
             // hover independent section or command driven events
@@ -998,12 +1000,12 @@ namespace EditorEngine
                                         else if (editor_tools == tools.line && !editor_actions_locked && c == command.left_click)
                                         {
                                             clear_selection();
-                                            if (line_start_cell.X == -1) // no start cell defined - create one
+                                            if (line_start_cell.X == -1) // no start get_cell_address defined - create one
                                             {
                                                 line_start_cell.X = active_cell.X;
                                                 line_start_cell.Y = active_cell.Y;
                                             }
-                                            else //generate ui_elements, then remove end cell and reassign start cell to previous end cell. Moving mouse will automatically assign end cell each time
+                                            else //generate ui_elements, then remove end get_cell_address and reassign start get_cell_address to previous end get_cell_address. Moving mouse will automatically assign end get_cell_address each time
                                             {
                                                 engine.get_current_world().generate_matrix(line_matrix, engine, edit_tile_id);
                                                 line_start_cell.X = line_end_cell.X;
@@ -1068,12 +1070,12 @@ namespace EditorEngine
                                         }
                                         else if (editor_tools == tools.line && !editor_actions_locked && c == command.left_click)
                                         {
-                                            if (line_start_cell.X == -1) // no start cell defined - create one
+                                            if (line_start_cell.X == -1) // no start get_cell_address defined - create one
                                             {
                                                 line_start_cell.X = active_cell.X;
                                                 line_start_cell.Y = active_cell.Y;
                                             }
-                                            else //generate ui_elements, then remove end cell and reassign start cell to previous end cell. Moving mouse will automatically assign end cell each time
+                                            else //generate ui_elements, then remove end get_cell_address and reassign start get_cell_address to previous end get_cell_address. Moving mouse will automatically assign end get_cell_address each time
                                             {
                                                 engine.get_current_world().erase_matrix(line_matrix, engine);
                                                 line_start_cell.X = line_end_cell.X;
@@ -1191,7 +1193,7 @@ namespace EditorEngine
                                     break;
                                 case command.ctrl_plus_click:
                                     {
-                                        // build selection matrix by clicking once and then ctrl+clicking the end cell instead of dragging
+                                        // build selection matrix by clicking once and then ctrl+clicking the end get_cell_address instead of dragging
                                         selection_matrix.Add(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(),engine));
                                     }
                                     break;
@@ -1722,7 +1724,7 @@ namespace EditorEngine
                                 {
                                     GUI.change_container_origin(engine.get_viewport(), "context menu", engine.get_mouse_vector() + Vector2.One); // create almost at mouse, to avoid inital hover
 
-                                    if (c == command.right_click) // ignore if something is in line tool start cell
+                                    if (c == command.right_click) // ignore if something is in line tool start get_cell_address
                                         GUI.set_container_visibility("context menu", true);
                                 }
                                 // lock editor tools
@@ -2124,8 +2126,8 @@ namespace EditorEngine
             if (line_start_cell.X == -1)
                 return;
 
-            Vector2 cell = engine.get_world_list().get_current().get_current_hovered_cell(engine.get_current_mouse_state(), engine); // checks which cell is being hovered in the current world
-            //line_end_cell = cell;
+            Vector2 cell = engine.get_world_list().get_current().get_current_hovered_cell(engine.get_current_mouse_state(), engine); // checks which get_cell_address is being hovered in the current world
+            //line_end_cell = get_cell_address;
             line_matrix.Clear();
 
             int x_difference = Math.Abs((int)cell.X - (int)line_start_cell.X);
@@ -2149,7 +2151,7 @@ namespace EditorEngine
                         line_matrix.Add(new Vector2(i, line_start_cell.Y));
                     }
                 }
-                // assign last hovered cell as new start point
+                // assign last hovered get_cell_address as new start point
                 line_end_cell.X = cell.X;
                 line_end_cell.Y = line_start_cell.Y;
             }
@@ -2169,7 +2171,7 @@ namespace EditorEngine
                         line_matrix.Add(new Vector2(line_start_cell.X, i));
                     }
                 }
-                // assign last hovered cell as new start point
+                // assign last hovered get_cell_address as new start point
                 line_end_cell.X = line_start_cell.X;
                 line_end_cell.Y = cell.Y;
             }
@@ -2243,7 +2245,7 @@ namespace EditorEngine
                     {
                         for (int j = (int)end.Y; j <= (int)beginning.Y; j++)
                         {
-                            selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
+                            selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
                         }
                     }
                 }
@@ -2253,7 +2255,7 @@ namespace EditorEngine
                     {
                         for (int j = (int)beginning.Y; j <= (int)end.Y; j++)
                         {
-                            selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
+                            selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
                         }
                     }
                 }
@@ -2266,7 +2268,7 @@ namespace EditorEngine
                     {
                         for (int j = (int)end.Y; j <= (int)beginning.Y; j++)
                         {
-                            selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
+                            selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
                         }
                     }
                 }
@@ -2276,7 +2278,7 @@ namespace EditorEngine
                     {
                         for (int j = (int)beginning.Y; j <= (int)end.Y; j++)
                         {
-                            selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
+                            selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
                         }
                     }
                 }
@@ -2289,7 +2291,7 @@ namespace EditorEngine
 
                     for (int j = (int)end.Y; j <= (int)beginning.Y; j++)
                     {
-                        selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
+                        selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
                     }
                 }
                 else if (beginning.Y <= end.Y) // start vector Y first
@@ -2298,7 +2300,7 @@ namespace EditorEngine
 
                     for (int j = (int)beginning.Y; j <= (int)end.Y; j++)
                     {
-                        selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
+                        selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
                     }
                 }
             }

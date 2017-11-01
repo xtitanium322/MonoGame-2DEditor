@@ -14,28 +14,52 @@ using Microsoft.Xna.Framework.Media;
  */
 namespace EditorEngine
 {
+    public class Grass
+    {
+        Vector2 cell_address;    // get_cell_address position
+        long creation_time;      // millisecond of creation 
+
+        public Grass(Engine e,Vector2 cell)
+        {
+            cell_address = cell;
+            creation_time = e.get_current_game_millisecond();
+        }
+
+        public Vector2 get_cell_address()
+        {
+            return cell_address;
+        }
+
+        public long get_creation_time()
+        {
+            return creation_time;
+        }
+    }
+
     public class World //map generator
     {
         private int w;                             // width/width
         private int h;                             // height 
         // water simulation variables
         private const int water_zone_width = 240;  // number of horizontal cells in a single simulation zone multiplied by all vertical cells
-        private int water_zone_edge = 0;           // left most cell + water_zone_width = boundary for sim calculations
-        private int water_zone_stopper = 0;        // right most cell = boundary
+        private int water_zone_edge = 0;           // left most get_cell_address + water_zone_width = boundary for sim calculations
+        private int water_zone_stopper = 0;        // right most get_cell_address = boundary
         private const int surface_smoothness = 16; // straightens water surface this many cells away from the currently checked source
 
         private const int tile_size = 20;          // size of square in pixels
+        private const int GRASS_GROWTH_DELAY = 4500;
         private String world_name;                 // name of this playable world
         private bool edit_mode;                    // is the world in edit mode?
         private Vector2 map_origin;                // map origin (top left corner)
         public tile_map[,] world_map;              // contains all Tile definitions for this world
-        private Stack<Vector2> updated_cells;      // contains every cell that has been updated during current frame, cells deleted after calculations
+        private Stack<Vector2> updated_cells;      // contains every get_cell_address that has been updated during current frame, cells deleted after calculations
         private Color[] sky_color;                 // an array of values for world background color in relation to world time
         private Color sky;                         // current color of the sky
         public List<PointLight> world_lights;      // a list of all highlighted lights   
         public List<WaterGenerator> wsources;      // a list of all highlighted lights 
         Rectangle[] corner_src;
-        public List<Tree> trees;                   // a list of trees in this world
+        public List<GreenTree> trees;              // a list of trees in this world
+        public List<Grass> grass_tiles;            // list of grass objects
 
         // constructors
         public World(Engine engine, ContentManager content, String name, int length, int height)
@@ -59,7 +83,8 @@ namespace EditorEngine
             // create World Light list
             world_lights = new List<PointLight>();
             wsources = new List<WaterGenerator>();
-            trees = new List<Tree>();
+            grass_tiles = new List<Grass>();
+            trees = new List<GreenTree>();
             sky = new Color(135, 206, 235);          // default sky color
             // sky colors (effects to be added for sun and moon transitions
             sky_color = new Color[3];
@@ -84,38 +109,122 @@ namespace EditorEngine
             Vector2 max_limit = max_visible_tile(engine);
             Rectangle src = new Rectangle();
             Vector2 position = Vector2.Zero;
-
             // tree loop
-            foreach (Tree t in trees)
+            foreach (GreenTree t in trees)
             {
-                //draw base
-                Vector2 object_offset = new Vector2(-10, -20);
-                Texture2D s = engine.get_texture("tree_base1");
+                Vector2 base_position = t.get_position() * tilesize - engine.get_camera_offset();
+               
+                
+                // draw trunks and branches
+                Texture2D trunk_sprite  = engine.get_texture("trunk1");
+                Texture2D branch_sprite = engine.get_texture("branch1");
+                Texture2D branch_sprite_right = engine.get_texture("branch1");
 
-                engine.xna_draw(
-                    s, t.get_position() * tilesize - engine.get_camera_offset() + object_offset,
-                    null,
-                    Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f);
+                int growth_adjustment = 40-(int)(40 * engine.get_percentage_of_range(0, t.get_growth_rate(), engine.get_current_game_millisecond() - t.get_last_growth()));// if the tree is still growing - animate height differential
 
-                // draw trunks
-                int count = 1;                                                  // begin at first trunk level
-                Texture2D trunk_sprite = engine.get_texture("trunk1");          // texture var
-                foreach(int x in t.get_trunks())
+                List<Trunk> tr = t.get_trunks();
+  
+                for (int i = t.get_trunks().Count - 1; i >= 0; i--)
                 {
-                    if(x == 1)
+                    //draw trunk                  
+                    Vector2 offset = new Vector2(0, -((i + 1) * trunk_sprite.Height));
+                    trunk_sprite = engine.get_texture("trunk" + tr[i].get_variant());
+                    // trunk origin will be the middle of its base, so an offset is needed
+                    // an offset above puts every trunk segment at correct height based on its order
+                    if (i == (t.get_trunks().Count - 1))
+                    {                        
+                        float trunk_scale = 0.5f+0.5f*(float)(engine.get_percentage_of_range(-1, t.get_growth_rate(), engine.get_current_game_millisecond() - t.get_last_growth()));
+
+                        engine.xna_draw(
+                            trunk_sprite, 
+                            base_position + new Vector2(10, 20) + offset + new Vector2(0, growth_adjustment),
+                            null,
+                            t.get_tint_color(engine),
+                            0f, 
+                            new Vector2(trunk_sprite.Width / 2, trunk_sprite.Height), 
+                            trunk_scale, 
+                            SpriteEffects.None, 
+                            0.1f);
+                    }
+                    else
                     {
-                        trunk_sprite = engine.get_texture("trunk1");
+                        engine.xna_draw(
+                            trunk_sprite, base_position + new Vector2(10, 20) + offset,
+                            null,
+                            t.get_tint_color(engine), 0f, new Vector2(trunk_sprite.Width / 2, trunk_sprite.Height), 1f, SpriteEffects.None, 1f);
+                    }
+              //-----------------------draw its branches
+                    Branch left = tr[i].get_left();
+                    Branch right = tr[i].get_right();
+                    long since_last_trunk_growth = engine.get_current_game_millisecond() - t.get_last_growth();
+
+                    float scale = 1f; // simulate popping up
+                    float opacity = 1f;
+
+                    if (left != null)
+                    {
+                        if (i >= t.get_trunks().Count - 2) // if last 2 trunks (growth of the branches is post-poned by a full growth cycle
+                        {   // scale up with a delay after branch creation
+                            scale = (float)(engine.get_percentage_of_range(0, t.get_growth_rate(), engine.get_current_game_millisecond() - t.get_growth_rate() - left.get_creation()));
+                            scale = scale < 0 ? 0 : scale; // adjust for delay
+                        } 
+
+                        branch_sprite = engine.get_texture((left.has_leaves() ? "l" : "") + "branch" + left.calculate_variant().ToString());
+                        // calculate branch offset by: taking the branches vertical -offset value and horizontal - half of trunk width for left facing
+                        // set sprite origin bottom right corner
+                        engine.xna_draw(
+                        branch_sprite, base_position + new Vector2(15, 20) + offset - new Vector2(trunk_sprite.Width / 2, left.get_offset()),
+                        null,
+                        t.get_tint_color(engine) * opacity, 
+                        0f, new Vector2(branch_sprite.Width, branch_sprite.Height), scale, SpriteEffects.None, 1f);
                     }
 
-                    engine.xna_draw(
-                        trunk_sprite, t.get_position() * tilesize - engine.get_camera_offset() + object_offset - new Vector2(-10,40*count), // compensate 
-                        null,
-                        Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f);
+                    if (right != null)
+                    {
+                        if (i >= t.get_trunks().Count - 2) // if last 2 trunks
+                        {
+                            scale = (float)(engine.get_percentage_of_range(0, t.get_growth_rate(), engine.get_current_game_millisecond() - t.get_growth_rate() - right.get_creation()));
+                            scale = scale < 0 ? 0 : scale;
+                        }
 
-                    count++;
+                        branch_sprite_right = engine.get_texture((right.has_leaves() ? "l" : "") + "branch" + right.calculate_variant().ToString());
+                        // calculate branch offset by: taking the branches vertical -offset value and horizontal + half of trunk width for right facing
+                        // set sprite origin bottom left corner and flip horizontally
+                        engine.xna_draw(
+                        branch_sprite_right, base_position + new Vector2(5, 20) + offset + new Vector2(trunk_sprite.Width / 2, - right.get_offset()),
+                        null,
+                        t.get_tint_color(engine) * opacity, 
+                        0f, new Vector2(0, branch_sprite_right.Height), scale, SpriteEffects.FlipHorizontally, 1f);
+                    }
                 }
+
+                // draw tree crown
+                Texture2D crown = engine.get_texture("leaves"+t.get_crown_variant());
+                Vector2 crown_position_offset = new Vector2(10, -((t.get_trunks().Count + 1) * trunk_sprite.Height));
+
+                float crown_scale = 1f; // simulate popping up
+
+                if(t.get_trunks().Count == t.get_max_trunks())
+                {   // delay the crown by a full growth cycle for better animation
+                    crown_scale = (float)(engine.get_percentage_of_range(0, t.get_growth_rate(), engine.get_current_game_millisecond() - t.get_growth_rate() - t.get_last_growth()));
+                    crown_scale = crown_scale < 0 ? 0 : crown_scale;
+
+                    engine.xna_draw(
+                    crown, base_position + new Vector2(0, 20) + crown_position_offset,
+                    null,
+                    t.get_tint_color(engine), 0f, new Vector2(crown.Width / 2, crown.Height / 2), crown_scale, SpriteEffects.None, 1f);
+                }
+
+                // draw base last - to cover initital growth sprite
+                // base sprite origin is 10 pixels from the bottom and in the middle horizontally
+                Texture2D base_sprite = engine.get_texture("tree_base" + t.get_base_variant().ToString());
+
+                engine.xna_draw(
+                    base_sprite, base_position + new Vector2(10, 20), // 10,20 to compensate for get_cell_address top corner being the origin
+                    null,
+                    t.get_tint_color(engine), 0f, new Vector2(base_sprite.Width / 2, (base_sprite.Height - (base_sprite.Height - 40))), 1f, SpriteEffects.None, 1f);
             }
-            // tile loop - go through all ui_elements
+         // tile loop - go through all ui_elements
             foreach (tile_struct t in Tile.tile_list)
             {
                 Texture2D current_tile = t.tile_texture; // assign current texture
@@ -147,7 +256,7 @@ namespace EditorEngine
                             // draw corners
                             for (int k = 0; k < 4; k++)
                             {
-                                if (corner_src[k].X != 60) // 60 represents 4th cell - empty_texture corner
+                                if (corner_src[k].X != 60) // 60 represents 4th get_cell_address - empty_texture corner
                                 {
                                     engine.xna_draw(
                                     Tile.find_tile(world_map[i, j].tile_id), // find a texture specified by Tile_id in tile_map -> Tile_id_Listing -> Tile_id
@@ -159,7 +268,78 @@ namespace EditorEngine
                     }// end height loop
                 }// end width loop  
             }// end foreach loop
-            
+
+            // grass loop
+            // draw grass
+            foreach (Grass g in grass_tiles)
+            {
+                Vector2 grassposition = (g.get_cell_address() * tile_size) - new Vector2(20, 20);
+                Texture2D grass = engine.get_texture("grass_single");
+                Texture2D grass_corner = engine.get_texture("grass2");
+
+                float scale = 0.25f + (float)(0.75 * (engine.get_percentage_of_range(0, GRASS_GROWTH_DELAY, engine.get_current_game_millisecond() - g.get_creation_time())));
+                int height_difference = 5 - (int)(5 * (float)(engine.get_percentage_of_range(0, GRASS_GROWTH_DELAY, engine.get_current_game_millisecond() - GRASS_GROWTH_DELAY - g.get_creation_time()))); // adjust 1 growth period for creeping down of the corner (because grass does not cover full ground cell)
+                // corners
+                try
+                {
+                    Vector2 checking_this = engine.neighbor_cell(g.get_cell_address(),"left",1,1);
+
+                    if (grass_tiles.Find(x => x.get_cell_address() == checking_this) != null) // left and 1 down
+                    {
+                        grass_corner = engine.get_texture("grass2"); // corner of left and top, should be drawn below current
+                        // draw left corner
+                        engine.xna_draw(
+                        grass_corner,
+                        grassposition - engine.get_camera_offset() + new Vector2(0, 25 - height_difference), // where + compensation for centered sprite origin
+                        null, Color.White*scale, 0f, Vector2.Zero, scale, SpriteEffects.None, 1f);
+                    }
+
+                    checking_this = engine.neighbor_cell(g.get_cell_address(), "right", 1, 1);
+
+                    if (grass_tiles.Find(x => x.get_cell_address() == checking_this) != null) // left and 1 down
+                    {
+                        grass_corner = engine.get_texture("grass2"); // corner of left and top, should be drawn below current
+                        // draw left corner
+                        engine.xna_draw(
+                        grass_corner,
+                        grassposition - engine.get_camera_offset() + new Vector2(20, 25 - height_difference), // where + compensation for centered sprite origin
+                        null, Color.White * scale, 0f, new Vector2(20,0), scale, SpriteEffects.FlipHorizontally, 1f);
+                    }
+                }
+                catch(IndexOutOfRangeException e)
+                {
+                    Debug.WriteLine("out of range: "+e.ToString());
+                }
+
+                // draw grass sprites
+                SpriteEffects flip = SpriteEffects.None;
+                // check if it's the left or - right most cell
+                if (grass_tiles.Find(x => x.get_cell_address() == engine.neighbor_cell(g.get_cell_address(), "left", 1)) == null
+                    && grass_tiles.Find(x => x.get_cell_address() == engine.neighbor_cell(g.get_cell_address(), "right", 1)) == null
+                    )
+                {// no grass tiles on either side
+                    grass = engine.get_texture("grass_single"); // change grass sprite design
+                }
+                else if (grass_tiles.Find(x => x.get_cell_address() == engine.neighbor_cell(g.get_cell_address(), "left", 1)) == null)
+                {// no grass on the left
+                    grass = engine.get_texture("grass_corner_top"); // change grass sprite design
+                }
+                else if (grass_tiles.Find(x => x.get_cell_address() == engine.neighbor_cell(g.get_cell_address(), "right", 1)) == null)
+                {// no grass on the left
+                    grass = engine.get_texture("grass_corner_top"); // change grass sprite design
+                    flip = SpriteEffects.FlipHorizontally;
+                }
+                else
+                {
+                    grass = engine.get_texture("grass1");
+                }
+
+                engine.xna_draw(
+                        grass,
+                        grassposition - engine.get_camera_offset() + new Vector2(10, 20), // where + compensation for centered sprite origin
+                        null, Color.White*scale, 0f, new Vector2(10, 20), 1f, flip, 1f);
+            }
+
             // water tile loop
             for (int i = (int)min_limit.X - 1; i < (int)max_limit.X; i++)
             {
@@ -178,7 +358,7 @@ namespace EditorEngine
                     src.X = 0; src.Y = air_pixels; src.Width = tile_size; src.Height = tile_size - air_pixels;
                     position.X = i * tile_size;
                     position.Y = map_origin.Y + j * tile_size + air_pixels;
-                    // draw this cell
+                    // draw this get_cell_address
                     if (valid_array(i, j - 1) && valid_array(i, j + 1) && valid_array(i, j) /*&& valid_array(i - 1 , j - 1)*/ /*&& valid_array(i + 1, j - 1)*/)
                     {
                         current = world_map[i, j];
@@ -248,18 +428,13 @@ namespace EditorEngine
                     for (int j = -1; j < 2; j++)
                     {
                         if (tile_exists(cell + new Vector2(i, j)))
-                            tile_connections(cell + new Vector2(i, j));    // Update 9 cell region
+                            tile_connections(cell + new Vector2(i, j));    // Update 9 get_cell_address region
                     }
                 }
             }
-            // clear update cell matrix
+            // clear update get_cell_address matrix
             if (updated_cells.Count > 0)
                 updated_cells.Clear(); // delete cells from stack
-            // tree growth
-            foreach(Tree t in trees)
-            {
-                t.generate_trunk();
-            }
             // water generation 
             foreach (WaterGenerator w in wsources)
             {
@@ -281,6 +456,45 @@ namespace EditorEngine
             }
             // water update  
             water_simulation(engine);
+
+
+            // grass spreading
+            
+            List<Grass> temp = new List<Grass>();
+            foreach(Grass g in grass_tiles)
+            {
+                if (engine.get_current_game_millisecond() - g.get_creation_time() > GRASS_GROWTH_DELAY)
+                {
+                    // spread to the right
+                    if (valid_cell(engine.neighbor_cell(g.get_cell_address(), "right", 1)))
+                    {
+                        Vector2 checking_this = engine.neighbor_cell(g.get_cell_address(), "right", 1);
+                        if (
+                            grass_tiles.Find(x => x.get_cell_address() == checking_this) == null
+                            && get_tile_id(checking_this + new Vector2(0, 1)) == 2     // right cell ground is dirt
+                            && get_tile_id(checking_this) == 0                         // future grass cell is air
+                            )
+                        {
+                            temp.Add(new Grass(engine, engine.neighbor_cell(g.get_cell_address(), "right", 1)));
+                        }
+                    }
+                    // spread to the left
+                    if (valid_cell(engine.neighbor_cell(g.get_cell_address(), "left", 1)))
+                    {
+                        Vector2 checking_this = engine.neighbor_cell(g.get_cell_address(), "left", 1);
+                        if (
+                            grass_tiles.Find(x => x.get_cell_address() == checking_this) == null
+                            && get_tile_id(checking_this + new Vector2(0, 1)) == 2     // left cell ground is dirt
+                            && get_tile_id(checking_this) == 0                         // future grass cell is air
+                            )
+                        {
+                            temp.Add(new Grass(engine, engine.neighbor_cell(g.get_cell_address(), "left", 1)));
+                        }
+                    }
+                }
+            }
+            // combine lists
+            grass_tiles.AddRange(temp);
         }
 
         /// <summary>
@@ -292,13 +506,13 @@ namespace EditorEngine
             // zone adjustment (to save CPU processing power)
             water_zone_edge += water_zone_width;
 
-            // reset to 1st cell if edge is beyond last cell in the world
+            // reset to 1st get_cell_address if edge is beyond last get_cell_address in the world
             if (water_zone_edge >= w)
                 water_zone_edge = 0;
 
             // adkust right edge
-            water_zone_stopper = water_zone_edge + water_zone_width; // where the last cell is
-            //adjust final horizontal cell
+            water_zone_stopper = water_zone_edge + water_zone_width; // where the last get_cell_address is
+            //adjust final horizontal get_cell_address
             if (water_zone_stopper > w)
                 water_zone_stopper = w;
             // simulation
@@ -372,12 +586,12 @@ namespace EditorEngine
                     if (valid_array(x, y) && valid_array(x + 1, y)) // check initial current and right cells to be within borders
                     {
                         //      for RIGHT transfers - set of rules:
-                        // 0. if right cell has the same or smaller number of water units and it's not 100 - break the loop without transfer
+                        // 0. if right get_cell_address has the same or smaller number of water units and it's not 100 - break the loop without transfer
                         // 1. calculate actual rate - if within 1-preferred rate = ok, if more - set to preferred rate, if 0 - check rule 1A
-                        // 1A. check cell above current source - if it's water make it new source but add 100 to water_units for calculation purposes. then recalculate actual rate and transfer
+                        // 1A. check get_cell_address above current source - if it's water make it new source but add 100 to water_units for calculation purposes. then recalculate actual rate and transfer
                         //      if rule 1A was used - break out of the for loop after transfer
-                        // 2. if there is no cell above - continue offset loop until good target cell is found or termination condition met (solid cell)
-                        //      note: if air cell is found - it counts as target with 0 units only if it has 100unit cell or solid below it.
+                        // 2. if there is no get_cell_address above - continue offset loop until good target get_cell_address is found or termination condition met (solid get_cell_address)
+                        //      note: if air get_cell_address is found - it counts as target with 0 units only if it has 100unit get_cell_address or solid below it.
                         for (int offset = 1; offset < surface_smoothness; offset++)
                         {
                             // variables setup
@@ -386,7 +600,7 @@ namespace EditorEngine
                             // check valid array condition
                             if (!valid_array(tx, ty))
                                 break;
-                            // check for solid cell termination condition
+                            // check for solid get_cell_address termination condition
                             if (world_map[tx, ty].tile_id > 0)
                                 break;
                             // check if source is air or solid
@@ -425,11 +639,11 @@ namespace EditorEngine
                                     // adjust new rate: if more than preferred - set to preferred
                                     if (actual_rate > preferred_rate)
                                         actual_rate = preferred_rate;
-                                    // complete transfer by rule 1A (this can leave new source cell empty, check at the end and assign air if needed)
-                                    // target cell can overflow, if it does, create new water cell above and fill it with remaining water units
+                                    // complete transfer by rule 1A (this can leave new source get_cell_address empty, check at the end and assign air if needed)
+                                    // target get_cell_address can overflow, if it does, create new water get_cell_address above and fill it with remaining water units
                                     if (world_map[tx, ty].water_units + actual_rate <= 100) // target doesn't overflow
                                     {
-                                        if (world_map[sx, sy].water_units - actual_rate < 0) // if there is not enough in current source cell for transfer to be successful
+                                        if (world_map[sx, sy].water_units - actual_rate < 0) // if there is not enough in current source get_cell_address for transfer to be successful
                                         {
                                             int remainder = actual_rate - world_map[sx, sy].water_units;
 
@@ -441,11 +655,11 @@ namespace EditorEngine
 
                                             break;
                                         }
-                                        else // enough in cell above original source
+                                        else // enough in get_cell_address above original source
                                         {
                                             world_map[sx, sy].water_units -= actual_rate;
                                             world_map[tx, ty].water_units += actual_rate;
-                                            // check new source cell: assign air if needed
+                                            // check new source get_cell_address: assign air if needed
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
@@ -456,16 +670,16 @@ namespace EditorEngine
                                     }
                                     else // target overflows
                                     {
-                                        if (valid_array(tx, ty - 1) && world_map[tx, ty - 1].tile_id <= 0) // make sure new cell can be created above current target
+                                        if (valid_array(tx, ty - 1) && world_map[tx, ty - 1].tile_id <= 0) // make sure new get_cell_address can be created above current target
                                         {
                                             int remainder = actual_rate - (100 - world_map[tx, ty].water_units); // tx and ty have been confirmed valid earlier in the code
-                                            // transfer + create new water cell
+                                            // transfer + create new water get_cell_address
                                             world_map[sx, sy].water_units -= actual_rate;
 
                                             world_map[tx, ty].water_units = 100; // set initial target to full capacity
                                             world_map[tx, ty - 1].tile_id = -1;
                                             world_map[tx, ty - 1].water_units = remainder;
-                                            // check new source cell: assign air if needed
+                                            // check new source get_cell_address: assign air if needed
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
@@ -474,7 +688,7 @@ namespace EditorEngine
                                             if (world_map[sx, sy].water_units < 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
-                                                world_map[sx, sy + 1].water_units += world_map[sx, sy].water_units; // add negative units to cell below
+                                                world_map[sx, sy + 1].water_units += world_map[sx, sy].water_units; // add negative units to get_cell_address below
                                                 world_map[sx, sy].water_units = 0; // reset
                                             }
 
@@ -487,7 +701,7 @@ namespace EditorEngine
 
                                             world_map[tx, ty].water_units += actual_rate;
                                             world_map[sx, sy].water_units -= actual_rate;
-                                            // check new source cell: assign air if needed
+                                            // check new source get_cell_address: assign air if needed
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
@@ -538,12 +752,12 @@ namespace EditorEngine
                                         rule1 = true;
                                     else if (world_map[tx, ty].tile_id == 0 && valid_array(tx, ty + 1))
                                     {
-                                        if (world_map[tx, ty + 1].tile_id > 0) //bottom cell is solid
+                                        if (world_map[tx, ty + 1].tile_id > 0) //bottom get_cell_address is solid
                                             rule2 = true;
                                         else if (world_map[tx, ty + 1].tile_id == -1 && world_map[tx, ty + 1].water_units > 90) // overflow for almost filled cells
                                             rule3 = true;
                                     }
-                                    //ledge (rule4 changed to properly account for 1 cell before target - ledge.
+                                    //ledge (rule4 changed to properly account for 1 get_cell_address before target - ledge.
                                     if (valid_array(tx - 1, ty + 1) // one before ledge
                                         && world_map[tx - 1, ty + 1].tile_id > 0 // one before ledgte must be a solid
 
@@ -564,7 +778,7 @@ namespace EditorEngine
                                             if (world_map[tx, ty].tile_id == 0)
                                                 world_map[tx, ty].tile_id = -1;               // if target is air it will become water, solids are filtered out before this point
 
-                                            // check new source cell: assign air if needed
+                                            // check new source get_cell_address: assign air if needed
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
@@ -581,12 +795,12 @@ namespace EditorEngine
                     if (valid_array(x, y) && valid_array(x - 1, y)) // check initial current and right cells to be within borders
                     {
                         //      for RIGHT transfers - set of rules:
-                        // 0. if right cell has the same or smaller number of water units and it's not 100 - break the loop without transfer
+                        // 0. if right get_cell_address has the same or smaller number of water units and it's not 100 - break the loop without transfer
                         // 1. calculate actual rate - if within 1-preferred rate = ok, if more - set to preferred rate, if 0 - check rule 1A
-                        // 1A. check cell above current source - if it's water make it new source but add 100 to water_units for calculation purposes. then recalculate actual rate and transfer
+                        // 1A. check get_cell_address above current source - if it's water make it new source but add 100 to water_units for calculation purposes. then recalculate actual rate and transfer
                         //      if rule 1A was used - break out of the for loop after transfer
-                        // 2. if there is no cell above - continue offset loop until good target cell is found or termination condition met (solid cell)
-                        //      note: if air cell is found - it counts as target with 0 units only if it has 100unit cell or solid below it.
+                        // 2. if there is no get_cell_address above - continue offset loop until good target get_cell_address is found or termination condition met (solid get_cell_address)
+                        //      note: if air get_cell_address is found - it counts as target with 0 units only if it has 100unit get_cell_address or solid below it.
                         for (int offset = 1; offset < surface_smoothness; offset++)
                         {
                             // variables setup
@@ -595,7 +809,7 @@ namespace EditorEngine
                             // check valid array condition
                             if (!valid_array(tx, ty))
                                 break;
-                            // check for solid cell termination condition
+                            // check for solid get_cell_address termination condition
                             if (world_map[tx, ty].tile_id > 0)
                                 break;
                             // check if source is air or solid
@@ -634,11 +848,11 @@ namespace EditorEngine
                                     // adjust new rate: if more than preferred - set to preferred
                                     if (actual_rate > preferred_rate)
                                         actual_rate = preferred_rate;
-                                    // complete transfer by rule 1A (this can leave new source cell empty, check at the end and assign air if needed)
-                                    // target cell can overflow, if it does, create new water cell above and fill it with remaining water units
+                                    // complete transfer by rule 1A (this can leave new source get_cell_address empty, check at the end and assign air if needed)
+                                    // target get_cell_address can overflow, if it does, create new water get_cell_address above and fill it with remaining water units
                                     if (world_map[tx, ty].water_units + actual_rate <= 100) // target doesn't overflow
                                     {
-                                        if (world_map[sx, sy].water_units - actual_rate < 0) // if there is not enough in current source cell for transfer to be successful
+                                        if (world_map[sx, sy].water_units - actual_rate < 0) // if there is not enough in current source get_cell_address for transfer to be successful
                                         {
                                             int remainder = actual_rate - world_map[sx, sy].water_units;
 
@@ -650,11 +864,11 @@ namespace EditorEngine
 
                                             break;
                                         }
-                                        else // enough in cell above original source
+                                        else // enough in get_cell_address above original source
                                         {
                                             world_map[sx, sy].water_units -= actual_rate;
                                             world_map[tx, ty].water_units += actual_rate;
-                                            // check new source cell: assign air if needed
+                                            // check new source get_cell_address: assign air if needed
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
@@ -665,16 +879,16 @@ namespace EditorEngine
                                     }
                                     else // target overflows
                                     {
-                                        if (valid_array(tx, ty - 1) && world_map[tx, ty - 1].tile_id <= 0) // make sure new cell can be created above current target
+                                        if (valid_array(tx, ty - 1) && world_map[tx, ty - 1].tile_id <= 0) // make sure new get_cell_address can be created above current target
                                         {
                                             int remainder = actual_rate - (100 - world_map[tx, ty].water_units); // tx and ty have been confirmed valid earlier in the code
-                                            // transfer + create new water cell
+                                            // transfer + create new water get_cell_address
                                             world_map[sx, sy].water_units -= actual_rate;
 
                                             world_map[tx, ty].water_units = 100; // set initial target to full capacity
                                             world_map[tx, ty - 1].tile_id = -1;
                                             world_map[tx, ty - 1].water_units = remainder;
-                                            // check new source cell: assign air if needed
+                                            // check new source get_cell_address: assign air if needed
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
@@ -683,7 +897,7 @@ namespace EditorEngine
                                             if (world_map[sx, sy].water_units < 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
-                                                world_map[sx, sy + 1].water_units += world_map[sx, sy].water_units; // add negative units to cell below
+                                                world_map[sx, sy + 1].water_units += world_map[sx, sy].water_units; // add negative units to get_cell_address below
                                                 world_map[sx, sy].water_units = 0; // reset
                                             }
 
@@ -696,7 +910,7 @@ namespace EditorEngine
 
                                             world_map[tx, ty].water_units += actual_rate;
                                             world_map[sx, sy].water_units -= actual_rate;
-                                            // check new source cell: assign air if needed
+                                            // check new source get_cell_address: assign air if needed
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
@@ -748,12 +962,12 @@ namespace EditorEngine
                                         rule1 = true;
                                     else if (world_map[tx, ty].tile_id == 0 && valid_array(tx, ty + 1))
                                     {
-                                        if (world_map[tx, ty + 1].tile_id > 0) //bottom cell is solid
+                                        if (world_map[tx, ty + 1].tile_id > 0) //bottom get_cell_address is solid
                                             rule2 = true;
                                         else if (world_map[tx, ty + 1].tile_id == -1 && world_map[tx, ty + 1].water_units > 90) // overflow for almost filled cells
                                             rule3 = true;
                                     }
-                                    //ledge (rule4 changed to properly account for 1 cell before target - ledge.
+                                    //ledge (rule4 changed to properly account for 1 get_cell_address before target - ledge.
                                     if (valid_array(tx + 1, ty + 1) // one before ledge
                                         && world_map[tx + 1, ty + 1].tile_id > 0 // one before ledgte must be a solid
 
@@ -774,7 +988,7 @@ namespace EditorEngine
                                             if (world_map[tx, ty].tile_id == 0)
                                                 world_map[tx, ty].tile_id = -1;               // if target is air it will become water, solids are filtered out before this point
 
-                                            // check new source cell: assign air if needed
+                                            // check new source get_cell_address: assign air if needed
                                             if (world_map[sx, sy].water_units == 0)
                                             {
                                                 world_map[sx, sy].tile_id = 0;
@@ -795,8 +1009,8 @@ namespace EditorEngine
         /// <summary>
         /// Determines if there is a ground block between cells on the same height level
         /// </summary>
-        /// <param name="x1">x coordinate of leftmost cell</param>
-        /// <param name="x2">x coordinate of rightmost cell</param>
+        /// <param name="x1">x coordinate of leftmost get_cell_address</param>
+        /// <param name="x2">x coordinate of rightmost get_cell_address</param>
         /// <param name="y">y coordinate for both cells</param>
         /// <returns></returns>
         public bool is_blocked(int x1, int x2, int y)
@@ -809,7 +1023,7 @@ namespace EditorEngine
             return false;
         }
         /// <summary>
-        /// Flow independent function - determines if this cell is real top of the column for pressure calculations
+        /// Flow independent function - determines if this get_cell_address is real top of the column for pressure calculations
         /// </summary>
         /// <param name="x">horizontal coordinate</param>
         /// <param name="y">vertical coordinate</param>
@@ -850,7 +1064,7 @@ namespace EditorEngine
             int offset = 0;
             for (offset = 0; offset >= 0; offset++)
             {
-                if (valid_array(x, y + offset + 1) && world_map[x, y + offset + 1].tile_id == -1) // next cell is valid and water
+                if (valid_array(x, y + offset + 1) && world_map[x, y + offset + 1].tile_id == -1) // next get_cell_address is valid and water
                 {
                     continue;
                 }
@@ -867,7 +1081,7 @@ namespace EditorEngine
             int offset = 0;
             for (offset = 0; offset >= 0; offset++)
             {
-                if (valid_array(x, y - offset - 1) && world_map[x, y - offset - 1].tile_id == -1 && world_map[x, y - offset].water_units == 100) // next cell is valid and water and current is full
+                if (valid_array(x, y - offset - 1) && world_map[x, y - offset - 1].tile_id == -1 && world_map[x, y - offset].water_units == 100) // next get_cell_address is valid and water and current is full
                 {
                     continue;
                 }
@@ -913,27 +1127,65 @@ namespace EditorEngine
         {
             wsources.Clear();
         }
+        /// <summary>
+        /// Create a tree
+        /// </summary>
+        /// <param name="m">mouse</param>
+        /// <param name="engine">engine</param>
         public void generate_tree_base(MouseState m, Engine engine)
         {
             Vector2 cell = get_current_hovered_cell(m, engine);
 
-            if(engine.get_editor().preview_tree((int)cell.X,(int)cell.Y,engine,true))
-                trees.Add(new Tree(cell - Vector2.One,engine.generate_int_range(3,10), 5000, 5000));
+            if (engine.get_editor().preview_tree((int)cell.X, (int)cell.Y, engine, true))
+            {
+                trees.Add(new GreenTree(engine, cell - Vector2.One, engine.generate_int_range(1250, 6500))); // create trees with variable growthrates
+                grass_tiles.Add(new Grass(engine, cell));
+
+                Vector2 ground_cell = cell + new Vector2(0, 1);
+
+                // check for extra grass possibilities
+                // check for dirt and air above it
+                for (int i = 1; i <= 2; i++)
+                {
+                    if (get_tile_id(engine.neighbor_cell(ground_cell, "right", i)) == 2 && get_tile_id(engine.neighbor_cell(ground_cell, "right", i, -1)) == 0)
+                    {
+
+                        if (!grass_tiles.Contains(new Grass(engine, engine.neighbor_cell(cell, "right", 1))))
+                            grass_tiles.Add(new Grass(engine,engine.neighbor_cell(cell, "right", i)));
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                for (int i = 1; i <= 2; i++)
+                {
+                    if (get_tile_id(engine.neighbor_cell(ground_cell, "left", i)) == 2 && get_tile_id(engine.neighbor_cell(ground_cell, "left", i, -1)) == 0)
+                    {
+                        if (!grass_tiles.Contains(new Grass(engine, engine.neighbor_cell( cell, "left", 1))))
+                            grass_tiles.Add(new Grass(engine, engine.neighbor_cell(cell, "left", i)));
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
         }
-        // generate a water source (cell that produces water)
+        // generate a water source (get_cell_address that produces water)
         public void generate_water_generator(MouseState m, Engine engine)
         {
             Vector2 cell = get_current_hovered_cell(m, engine);
 
-            // add a water generator if there isn't one already and if cell is air
+            // add a water generator if there isn't one already and if get_cell_address is air
             if (!is_watergen_object_in_cell(cell) 
-                /*&& valid_cell((int)cell.X - 1, (int)cell.Y - 1) */
+                /*&& valid_cell((int)get_cell_address.X - 1, (int)get_cell_address.Y - 1) */
                 && world_map[(int)cell.X - 1, (int)cell.Y - 1].tile_id == 0)
             {
                 wsources.Add(new WaterGenerator(cell - Vector2.One, get_tile_center(cell), engine.generate_int_range(20, 80)));
             }
         }
-        // generate a light, in player-specified cell. (unless it is a default light)
+        // generate a light, in player-specified get_cell_address. (unless it is a default light)
         // player/map editor input
         public void generate_light_source(Color color, MouseState m, Engine engine, int radius, float intensity)
         {
@@ -961,7 +1213,7 @@ namespace EditorEngine
             // create a light sphere
             //world_lights.Last().create_light_sphere(radius, color, intensity);
         }
-        // detect a light in the cell
+        // detect a light in the get_cell_address
         public bool is_light_object_in_cell(Vector2 cell)
         {
             foreach (PointLight pl in world_lights)
@@ -975,7 +1227,7 @@ namespace EditorEngine
             return false;
         }
 
-        // detect a wwater generator in the cell
+        // detect a wwater generator in the get_cell_address
         public bool is_watergen_object_in_cell(Vector2 cell)
         {
             foreach (WaterGenerator w in wsources)
@@ -1013,8 +1265,8 @@ namespace EditorEngine
         {
             get { return world_name; }
         }
-        // does the Tile exist in the cell
-        public bool tile_exists(int x, int y) // cell coordinates
+        // does the Tile exist in the get_cell_address
+        public bool tile_exists(int x, int y) // get_cell_address coordinates
         {
             // contain in boundaries
             if (x <= 0 || y <= 0 || x > w || y > h) //coordinates can't be 0 or equal width/height of map due to arrays starting at 0
@@ -1025,7 +1277,7 @@ namespace EditorEngine
             else
                 return false;
         }
-        public bool tile_doesnt_exist(int x, int y) // cell coordinates
+        public bool tile_doesnt_exist(int x, int y) // get_cell_address coordinates
         {
             // contain in boundaries
             if (x <= 0 || y <= 0 || x > w || y > h) //coordinates can't be 0 or equal width/height of map due to arrays starting at 0
@@ -1037,7 +1289,7 @@ namespace EditorEngine
                 return false;
         }
         // vector variant
-        public bool tile_exists(Vector2 cell) // cell coordinates
+        public bool tile_exists(Vector2 cell) // get_cell_address coordinates
         {
             // contain in boundaries
             if (cell.X <= 0 || cell.Y <= 0 || cell.X > w || cell.Y > h) //coordinates can't be 0 or equal width/height of map due to arrays starting at 0
@@ -1068,7 +1320,7 @@ namespace EditorEngine
                 {
                     world_map[x - 1, y - 1].tile_id = id; // water = -1
                     world_map[x - 1, y - 1].water_units = vol; // 0-100
-                    updated_cells.Push(new Vector2(x, y)); // push new cell on to updates stack
+                    updated_cells.Push(new Vector2(x, y)); // push new get_cell_address on to updates stack
                 }
             }
 
@@ -1078,8 +1330,8 @@ namespace EditorEngine
         /// Generates a new ui_elements in a specific brush radius
         /// </summary>
         /// <param name="id">tile id</param>
-        /// <param name="x">cell position x </param>
-        /// <param name="y">cell position y</param>
+        /// <param name="x">get_cell_address position x </param>
+        /// <param name="y">get_cell_address position y</param>
         /// <param name="engine">engine helper</param>
         /// <param name="radius">brush size 1-N </param>
         public void generate_tile(short id, int x, int y, Engine engine, int radius, int vol = 0)
@@ -1094,7 +1346,7 @@ namespace EditorEngine
                     if (distance_index <= radius)
                     {
                         generate_tile(id, x + i, y + j, engine, vol);
-                        updated_cells.Push(new Vector2(x + i, y + j)); // push new cell on to updates stack
+                        updated_cells.Push(new Vector2(x + i, y + j)); // push new get_cell_address on to updates stack
                     }
                 }
             }
@@ -1206,7 +1458,7 @@ namespace EditorEngine
             {
                 world_map[x - 1, y - 1].tile_id = 0;
                 world_map[x - 1, y - 1].water_units = 0;
-                updated_cells.Push(new Vector2(x, y)); // push deleted cell on to updates stack
+                updated_cells.Push(new Vector2(x, y)); // push deleted get_cell_address on to updates stack
             }
             return true;
         }
@@ -1217,7 +1469,7 @@ namespace EditorEngine
             {
                 world_map[x - 1, y - 1].tile_id = get_current_edit_tile(engine); // update tile type here
                 world_map[x - 1, y - 1].water_units = 0;
-                updated_cells.Push(new Vector2(x, y)); // push updated cell on to updates stack
+                updated_cells.Push(new Vector2(x, y)); // push updated get_cell_address on to updates stack
             }
         }
         public void erase_tile(int x, int y, Engine engine, int radius)
@@ -1240,7 +1492,7 @@ namespace EditorEngine
                         {
                             world_map[index_x, index_y].tile_id = 0;
                             world_map[index_x, index_y].water_units = 0;
-                            updated_cells.Push(new Vector2(x + i, y + j)); // push deleted cell on to updates stack
+                            updated_cells.Push(new Vector2(x + i, y + j)); // push deleted get_cell_address on to updates stack
                         }
                     }
                 }
@@ -1336,10 +1588,10 @@ namespace EditorEngine
             if (edit_tile_number > 1)
                 edit_tile_number--;
         }*/
-        // determine if the cell exists on the map, in other words - falls withn world bounds (mouse hover)
+        // determine if the get_cell_address exists on the map, in other words - falls withn world bounds (mouse hover)
         public bool valid_cell(Engine engine)
         {
-            Vector2 hover_cell = this.get_current_hovered_cell(engine.get_current_mouse_state(), engine); // get_current_hovered_cell calculates cell numbers, not coordinates
+            Vector2 hover_cell = this.get_current_hovered_cell(engine.get_current_mouse_state(), engine); // get_current_hovered_cell calculates get_cell_address numbers, not coordinates
 
             if (hover_cell.X > 0 && hover_cell.X <= width && hover_cell.Y > 0 && hover_cell.Y <= height)
                 return true;
@@ -1386,7 +1638,7 @@ namespace EditorEngine
         /// <summary>
         /// Get rectangle adjusted for camera. Coordinates as seen on screen, not as they would be in memory without camera adjustments
         /// </summary>
-        /// <param name="cell"></param>
+        /// <param name="get_cell_address"></param>
         /// <returns></returns>
         public Rectangle get_cell_rectangle_on_screen(Engine engine, Vector2 cell)
         {
@@ -1560,7 +1812,7 @@ namespace EditorEngine
                 int min_cell_x = (int)min_visible_tile(engine).X - 1; int min_cell_y = (int)min_visible_tile(engine).Y - 1;
                 int max_cell_x = (int)max_visible_tile(engine).X; int max_cell_y = (int)max_visible_tile(engine).Y;
 
-                // Grid lines - update: only  draw grid for hovered cell
+                // Grid lines - update: only  draw grid for hovered get_cell_address
                 float line_transparency = engine.grid_transparency_value; // used to highlight every 10th line
                 float transparency_bg = 0.05f;
 
@@ -1610,7 +1862,7 @@ namespace EditorEngine
                 }
             }
         }
-        // detects which cell was clicked/hovered in (returns cell numbers)
+        // detects which get_cell_address was clicked/hovered in (returns get_cell_address numbers)
         public Vector2 get_current_hovered_cell(MouseState state, Engine engine)
         {
             int horizontal_cell = 0;
@@ -1651,7 +1903,7 @@ namespace EditorEngine
                         new Rectangle(180,0,tile_size,tile_size), Color.White, 0f, Vector2.Zero, 1.0f, SpriteEffects.None, 0.2f);
             engine.add_draw_calls(1);
         }*/
-        // identify the Tile in a provided cell
+        // identify the Tile in a provided get_cell_address
         public short find_tile_id_of_cell(int X, int Y)
         {
             if (valid_cell(X, Y))
@@ -1787,15 +2039,15 @@ namespace EditorEngine
             bool top, bottom, right, left; // connections
             bool top_right, top_left, bottom_right, bottom_left;
 
-            top = tile_exists(cell + new Vector2(0, -1)) /*&& (find_tile_id_of_cell(cell) == find_tile_id_of_cell(cell + new Vector2(0, -1)))*/;
-            bottom = tile_exists(cell + new Vector2(0, 1)) /*&& (find_tile_id_of_cell(cell) == find_tile_id_of_cell(cell + new Vector2(0, 1)))*/;
-            right = tile_exists(cell + new Vector2(1, 0)) /*&& (find_tile_id_of_cell(cell) == find_tile_id_of_cell(cell + new Vector2(1, 0)))*/;
-            left = tile_exists(cell + new Vector2(-1, 0)) /*&& (find_tile_id_of_cell(cell) == find_tile_id_of_cell(cell + new Vector2(-1, 0)))*/;
+            top = tile_exists(cell + new Vector2(0, -1)) /*&& (find_tile_id_of_cell(get_cell_address) == find_tile_id_of_cell(get_cell_address + new Vector2(0, -1)))*/;
+            bottom = tile_exists(cell + new Vector2(0, 1)) /*&& (find_tile_id_of_cell(get_cell_address) == find_tile_id_of_cell(get_cell_address + new Vector2(0, 1)))*/;
+            right = tile_exists(cell + new Vector2(1, 0)) /*&& (find_tile_id_of_cell(get_cell_address) == find_tile_id_of_cell(get_cell_address + new Vector2(1, 0)))*/;
+            left = tile_exists(cell + new Vector2(-1, 0)) /*&& (find_tile_id_of_cell(get_cell_address) == find_tile_id_of_cell(get_cell_address + new Vector2(-1, 0)))*/;
 
-            top_right = tile_exists(cell + new Vector2(1, -1)) /*&& (find_tile_id_of_cell(cell) == find_tile_id_of_cell(cell + new Vector2(1, -1)))*/;
-            top_left = tile_exists(cell + new Vector2(-1, -1)) /*&& (find_tile_id_of_cell(cell) == find_tile_id_of_cell(cell + new Vector2(-1, -1)))*/;
-            bottom_right = tile_exists(cell + new Vector2(1, 1)) /*&& (find_tile_id_of_cell(cell) == find_tile_id_of_cell(cell + new Vector2(1, 1)))*/;
-            bottom_left = tile_exists(cell + new Vector2(-1, 1)) /*&& (find_tile_id_of_cell(cell) == find_tile_id_of_cell(cell + new Vector2(-1, 1)))*/;
+            top_right = tile_exists(cell + new Vector2(1, -1)) /*&& (find_tile_id_of_cell(get_cell_address) == find_tile_id_of_cell(get_cell_address + new Vector2(1, -1)))*/;
+            top_left = tile_exists(cell + new Vector2(-1, -1)) /*&& (find_tile_id_of_cell(get_cell_address) == find_tile_id_of_cell(get_cell_address + new Vector2(-1, -1)))*/;
+            bottom_right = tile_exists(cell + new Vector2(1, 1)) /*&& (find_tile_id_of_cell(get_cell_address) == find_tile_id_of_cell(get_cell_address + new Vector2(1, 1)))*/;
+            bottom_left = tile_exists(cell + new Vector2(-1, 1)) /*&& (find_tile_id_of_cell(get_cell_address) == find_tile_id_of_cell(get_cell_address + new Vector2(-1, 1)))*/;
             // 0 connections
             if (!top && !bottom && !right && !left)
             {
@@ -1906,7 +2158,7 @@ namespace EditorEngine
 
         public void center_camera_on_world_origin(Engine engine)
         {
-            // calculate first cell
+            // calculate first get_cell_address
 
             //center camera
             engine.set_camera_offset(Vector2.Zero);
@@ -1919,7 +2171,7 @@ namespace EditorEngine
                 return world_map[(int)source.X - 1, (int)source.Y - 1].tile_id;
             }
             else
-                return -1;
+                return -999;
         }
         public float get_tile_water(Vector2 source)
         {
@@ -2123,7 +2375,7 @@ namespace EditorEngine
                     int tsx = sx; int tsy = sy;
                     int ttx = tx; int tty = ty;
                     // rule 1: == 100 source and target
-                    // rule 2: source has a water cell above and solid on the right of that, target has air/water above and solid to the left of that
+                    // rule 2: source has a water get_cell_address above and solid on the right of that, target has air/water above and solid to the left of that
                     bool rule_p1 = false;
                     bool rule_p2 = false;
 
@@ -2156,8 +2408,8 @@ namespace EditorEngine
                     if (rule_p1 && rule_p2)
                     {
                         // find top cells for both source and target
-                        // top source: any water cell with solid,air or out of bounds above it
-                        // top target: non-full water cell or 1st air cell found above full water cell
+                        // top source: any water get_cell_address with solid,air or out of bounds above it
+                        // top target: non-full water get_cell_address or 1st air get_cell_address found above full water get_cell_address
 
                     // after adjusted top column source and target have been found - either transfer or ignore
                         // find top source
@@ -2165,9 +2417,9 @@ namespace EditorEngine
                         {
                             if (valid_array(tsx, tsy - 1)
                                 && world_map[tsx, tsy - 1].tile_id == -1
-                                && world_map[tsx, tsy].water_units == 100) // next cell is still good to be top
+                                && world_map[tsx, tsy].water_units == 100) // next get_cell_address is still good to be top
                             {
-                                tsy--; // ascend top column cell source
+                                tsy--; // ascend top column get_cell_address source
                             }
                             else
                             {
@@ -2180,9 +2432,9 @@ namespace EditorEngine
                             if (valid_array(ttx, tty - 1)
                                 && world_map[ttx, tty].tile_id <= 0 
                                 && world_map[ttx, tty].water_units == 100
-                                && world_map[ttx, tty - 1].tile_id <= 0) // first non-full cell or first air cell
+                                && world_map[ttx, tty - 1].tile_id <= 0) // first non-full get_cell_address or first air get_cell_address
                             {
-                                tty--; // ascend top column cell target
+                                tty--; // ascend top column get_cell_address target
                             }
                             else
                             {
@@ -2198,7 +2450,7 @@ namespace EditorEngine
                         if (world_map[ttx, tty].water_units == 100 && valid_array(ttx, tty - 1) && world_map[ttx, tty - 1].tile_id > 0)
                         {
                             // find a new target by moving right until solid is found
-                            //  if right cell is water - go up to source height
+                            //  if right get_cell_address is water - go up to source height
                             //  if a good target is found make it a new target, otherwise break main loop 
                             int limit = tsy; // height of source
                             bool done = false;
@@ -2250,7 +2502,7 @@ namespace EditorEngine
 
                                 if (world_map[ttx, tty].water_units + actual_pressure_rate <= 100) // target doesn't overflow
                                 {
-                                    if (world_map[tsx, tsy].water_units - actual_pressure_rate < 0) // if there is not enough in current source cell for transfer to be successful
+                                    if (world_map[tsx, tsy].water_units - actual_pressure_rate < 0) // if there is not enough in current source get_cell_address for transfer to be successful
                                     {
                                         int remainder = actual_pressure_rate - world_map[tsx, tsy].water_units;
 
@@ -2259,21 +2511,21 @@ namespace EditorEngine
 
                                         world_map[tsx, tsy + 1].water_units -= remainder;
                                         world_map[ttx, tty].water_units += actual_pressure_rate;
-                                        // assign water cell to traget
+                                        // assign water get_cell_address to traget
                                         if (world_map[ttx, tty].tile_id == 0)
                                             world_map[ttx, tty].tile_id = -1;
 
                                         break;
                                     }
-                                    else // enough in cell above original source
+                                    else // enough in get_cell_address above original source
                                     {
                                         world_map[tsx, tsy].water_units -= actual_pressure_rate;
                                         world_map[ttx, tty].water_units += actual_pressure_rate;
-                                        // check new source cell: assign air if needed
+                                        // check new source get_cell_address: assign air if needed
                                         if (world_map[tsx, tsy].water_units == 0)
                                             world_map[tsx, tsy].tile_id = 0;
 
-                                        // assign water cell to traget
+                                        // assign water get_cell_address to traget
                                         if (world_map[ttx, tty].tile_id == 0)
                                             world_map[ttx, tty].tile_id = -1;
 
@@ -2282,22 +2534,22 @@ namespace EditorEngine
                                 }
                                 else // target overflows
                                 {
-                                    if (valid_array(ttx, tty - 1) && world_map[ttx, tty - 1].tile_id <= 0) // make sure new cell can be created above current target
+                                    if (valid_array(ttx, tty - 1) && world_map[ttx, tty - 1].tile_id <= 0) // make sure new get_cell_address can be created above current target
                                     {
                                         int remainder = actual_pressure_rate - (100 - world_map[ttx, tty].water_units); // tx and ty have been confirmed valid earlier in the code
-                                        // transfer + create new water cell
+                                        // transfer + create new water get_cell_address
                                         world_map[tsx, tsy].water_units -= actual_pressure_rate;
 
                                         world_map[ttx, tty].water_units = 100; // set initial target to full capacity
                                         world_map[ttx, tty - 1].tile_id = -1;
                                         world_map[ttx, tty - 1].water_units = remainder;
-                                        // check new source cell: assign air if needed
+                                        // check new source get_cell_address: assign air if needed
                                         if (world_map[tsx, tsy].water_units == 0)
                                             world_map[tsx, tsy].tile_id = 0;
                                         if (world_map[tsx, tsy].water_units < 0)
                                         {
                                             world_map[tsx, tsy].tile_id = 0;
-                                            world_map[tsx, tsy + 1].water_units += world_map[tsx, tsy].water_units; // add negative units to cell below
+                                            world_map[tsx, tsy + 1].water_units += world_map[tsx, tsy].water_units; // add negative units to get_cell_address below
                                             world_map[tsx, tsy].water_units = 0; // reset
                                         }
 
@@ -2310,7 +2562,7 @@ namespace EditorEngine
 
                                         world_map[ttx, tty].water_units += actual_pressure_rate; // target +
                                         world_map[tsx, tsy].water_units -= actual_pressure_rate; // source -
-                                        // check new source cell: assign air if needed
+                                        // check new source get_cell_address: assign air if needed
                                         if (world_map[tsx, tsy].water_units == 0)
                                             world_map[tsx, tsy].tile_id = 0;
 

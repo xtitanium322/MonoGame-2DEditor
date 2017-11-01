@@ -25,7 +25,7 @@ namespace EditorEngine
         public int water_units;        // based on tile_size - water volume should go from 1 to 100 % and 5% = 1 px
 
         public int source_x, source_y;
-        public int pressure; // record pressure value in this cell, if this cell's pressure - above cell's pressure > 1, move water up
+        public int pressure; // record pressure value in this get_cell_address, if this get_cell_address's pressure - above get_cell_address's pressure > 1, move water up
         public bool flow;    // only assigned when tile received water from above
         // flow rates
         const int down_rate = 16;
@@ -34,12 +34,12 @@ namespace EditorEngine
         {
             tile_id = id;
             tile_variant = variant;
-            tile_rec = new Rectangle(20, 0, 20, 20); // default rectangle is cell #2 - base Tile
+            tile_rec = new Rectangle(20, 0, 20, 20); // default rectangle is get_cell_address #2 - base Tile
             corners = new Rectangle[4];
-            corners[0] = new Rectangle(60, 0, 20, 20); // cell #4 - empty
-            corners[1] = new Rectangle(60, 0, 20, 20); // cell #4
-            corners[2] = new Rectangle(60, 0, 20, 20); // cell #4
-            corners[3] = new Rectangle(60, 0, 20, 20); // cell #4
+            corners[0] = new Rectangle(60, 0, 20, 20); // get_cell_address #4 - empty
+            corners[1] = new Rectangle(60, 0, 20, 20); // get_cell_address #4
+            corners[2] = new Rectangle(60, 0, 20, 20); // get_cell_address #4
+            corners[3] = new Rectangle(60, 0, 20, 20); // get_cell_address #4
             water_units = vol;
             flow = false;
 
@@ -48,7 +48,7 @@ namespace EditorEngine
             pressure = 0; // initial pressure is 0
         }
         /// <summary>
-        /// Water flowing algorithm.Called on destination cell.
+        /// Water flowing algorithm.Called on destination get_cell_address.
         /// </summary>
         /// <param name="source">Tile from which water is transferred </param>
         /// <param name="w"> direction of the flow </param>
@@ -92,7 +92,7 @@ namespace EditorEngine
             source.water_units -= 1;
         }
 
-        // called on source cell
+        // called on source get_cell_address
         /*public void transfer_water_horizontally(bool left, bool right, ref tile_map left_cell, ref tile_map right_cell)
         {
             int rate = side_rate; // 5

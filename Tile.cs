@@ -19,6 +19,7 @@ namespace EditorEngine
         public string name;            // lookup value, e.g. "ground"
         public short id;               // numeric value for this Tile (if Tile id is 0 - it'engine air) 65535 = max value
         public int water_volume;       // if this is a liquid tile - store water volume. 0 for solid ui_elements
+        //public bool grass;
 
         public tile_struct(Texture2D txtr, String nm, short id, int vol = 0)
         {
@@ -26,6 +27,7 @@ namespace EditorEngine
             name = nm;
             this.id = id;
             water_volume = vol;
+            //grass = false;
         }
 
         public short get_id()
