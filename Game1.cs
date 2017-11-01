@@ -35,7 +35,6 @@ public class Game1 : Game // create a child class
         RenderTarget2D world_ui_mask_temp;                               // temporary storage for UI elements that had shader masking applied
         Effect fx_lightmap_shader, fx_blur_shader, fx_ui_masking_shader; // shader effect objects
         public static Texture2D pixel_texture;                           // assigned to Engine as static object (a single pixel texture used to fill larger shapes, rectangles and circles)
-        Color fps_color;                                                 // draw fps statistics in a unique color based on current value
         public static SpriteFont small_font;
         public static SpriteFont large_font;
         public Engine engine;                                            // all the support functions 
@@ -132,7 +131,7 @@ public class Game1 : Game // create a child class
             fx_ui_masking_shader = Content.Load<Effect>("ui_mask_shader");
             // adding Tile definitions
             // to add a new tile sprite - just load and name a texture in here. Everything else is created automatically
-            Tile.add_tile(this.Content.Load<Texture2D>("testcell"), "test cell", 1);
+            Tile.add_tile(this.Content.Load<Texture2D>("testcell"), "test get_cell_address", 1);
             Tile.add_tile(this.Content.Load<Texture2D>("dirt"), "dirt", 2);
             Tile.add_tile(this.Content.Load<Texture2D>("stone_tile"), "stone", 3);
             Tile.add_tile(this.Content.Load<Texture2D>("asphalt"), "asphalt", 4);
@@ -370,71 +369,6 @@ public class Game1 : Game // create a child class
                 new Vector2(viewport.Width - (length.X + 5),5), Vector2.Zero, Color.White, Color.Black, small_font);
             spriteBatch.End();
         }
-// draw statistics
-       /* public void draw_statistics(GameTime gameTime)
-        {
-            // variables
-            int h_offset = 300;
-            int v_offset = 300;
-            Vector2 cell = engine.get_world_list().get_current().get_current_hovered_cell(engine.get_current_mouse_state(), engine);
-            fps_color = Color.Lerp(Color.Red, Color.LimeGreen, engine.get_fps() / 60f);
-
-            if (engine.get_fps() > 60)
-                fps_color = Color.DeepSkyBlue;
-
-            int cells_in_world = engine.get_world_list().get_current().get_total_tiles_filled();
-
-            render_time = ((double)render_stopwatch.Elapsed.Ticks / 10000.0f);
-            update_time = ((double)update_stopwatch.Elapsed.Ticks / 10000.0f);
-
-            float stats_transparency = 0.85f;
-
-            // begin drawing
-            //--------------
-            GraphicsDevice.SetRenderTarget(null);
-            spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
-
-            engine.xna_draw_rectangle(new Rectangle(h_offset - 10, v_offset - 10, 600, 250), Color.Black, 2, 0.3f);
-
-            engine.xna_draw_outlined_text("shift + esc to exit the app", new Vector2(10, 0), Vector2.Zero, Color.Orange, Color.Black, large_font);
-            engine.xna_draw_outlined_text( Convert.ToString("# of renders: " + engine.get_draw_calls()),
-                new Vector2(h_offset, v_offset), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
-            engine.xna_draw_outlined_text(Convert.ToString("Seconds elapsed: " + string.Format("{0:0.0}", (float)engine.get_current_game_millisecond() / 1000.0f)),
-                new Vector2(h_offset, v_offset + 25), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
-            engine.xna_draw_outlined_text(Convert.ToString("fps: " + string.Format("{0:0.0}", engine.get_fps()) + " | frame: " + engine.get_frame_count()),
-                new Vector2(h_offset, v_offset + 50), Vector2.Zero, fps_color, Color.Black, large_font);
-            engine.xna_draw_outlined_text(Convert.ToString("Mouse position: " + engine.get_current_mouse_state().X + " : " + engine.get_current_mouse_state().Y),
-                new Vector2(h_offset, v_offset + 75), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
-            engine.xna_draw_outlined_text(Convert.ToString("Game clock " + " (" + engine.get_clock().get_time_in_minutes() + ") " + " [" + engine.get_clock().get_time_in_seconds() + "] " + engine.get_clock().get_time().X.ToString("00") + " : " + engine.get_clock().get_time().Y.ToString("00") + " : " + engine.get_clock().get_time().Z.ToString("00") + " " + engine.get_clock().get_am_pm()),
-                new Vector2(h_offset, v_offset + 100), Vector2.Zero, Color.GhostWhite * stats_transparency, Color.Black, large_font);
-            
-            // this function requires expensive method that calculated percentage of world filled - limit execution of this section
-            if(engine.get_frame_count()%120 == 0)
-                world_percent_filled = engine.get_world_list().get_current().get_percent_filled() * 100; // update value twice a second
-
-            engine.xna_draw_outlined_text(Convert.ToString("World: " + engine.get_world_list().get_current().worldname + " / cells: " + cells_in_world + " [" + string.Format("{0:0.00}", world_percent_filled) + "%]"),
-                new Vector2(h_offset, v_offset + 125), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
-
-            // Processing stats
-            engine.xna_draw_outlined_text("render duration: " + string.Format("{0:000.00}", render_time) + " ms",
-                new Vector2(h_offset, v_offset + 150), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
-            engine.xna_draw_outlined_text("update duration: " + string.Format("{0:000.00}", update_time) + " ms",
-                new Vector2(h_offset, v_offset + 175), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
-            engine.xna_draw_outlined_text("total duration: " + string.Format("{0:000.00}", update_time + render_time) + " / 16.67 ms" + " [" + string.Format("{0:000.00}", ((update_time + render_time) / 16.67f) * 100f) + " % ]",
-                new Vector2(h_offset, v_offset + 200), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
-            // Only draws container hover statstics if in edit mode
-            if (engine.get_world_list().get_current().in_edit_mode())
-            {
-                // 1st line
-                engine.xna_draw_outlined_text("user interface: container:" + engine.get_editor().GUI.get_hovered_container_id(),
-                new Vector2(h_offset, viewport.Height - 45), Vector2.Zero, Color.White * stats_transparency, Color.Black, large_font);
-                // 2nd line
-                engine.xna_draw_outlined_text("element: " + engine.get_editor().GUI.get_hovered_element_id() + "( action: " + engine.get_editor().GUI.get_hovered_element_action_text() + " )",
-                new Vector2(h_offset, viewport.Height - 25), Vector2.Zero, Color.CadetBlue * stats_transparency, Color.Black, large_font);
-            }
-
-            spriteBatch.End();
-        }*/
 // save map data to the file
         // optimization
         public void serialize_map_data(ContentManager content)

@@ -58,7 +58,7 @@ namespace EditorEngine
         private MouseState OldMouseState;
         private WorldCollection world_list;
         private Editor editor;                      // Editor class - for adding/deleting/selecting/tweaking ui_elements,lights etc. (originally in Editor - now will exists as a universal engine feature - pass current world as a paramater)
-        public float grid_transparency_value;      // used to display cell placement grid
+        public float grid_transparency_value;      // used to display get_cell_address placement grid
         public int gridcolor_r;
         public int gridcolor_g;
         public int gridcolor_b;
@@ -179,7 +179,29 @@ namespace EditorEngine
             all_textures.Add((new texture_element(Game1.createOpaqueCircle(1001, Color.White, 0.05f),"light_circle"))); // create a reach model (outline of the reach circle
             all_textures.Add((new texture_element(Game1.createSmoothCircle(1001, Color.White, 1f), "light_sphere_base"))); // scaled to fit the light reach, color multiplied by light intensity to fit the radiance value
             all_textures.Add(new texture_element(content.Load<Texture2D>("tree_base1"), "tree_base1")); // first version of the tree base - testing sprite - will convert to sprite-sheet
-            all_textures.Add(new texture_element(content.Load<Texture2D>("trunk1"), "trunk1")); 
+            all_textures.Add(new texture_element(content.Load<Texture2D>("base2"), "tree_base2")); // first version of the tree base - testing sprite - will convert to sprite-sheet
+            all_textures.Add(new texture_element(content.Load<Texture2D>("base3"), "tree_base3")); // first version of the tree base - testing sprite - will convert to sprite-sheet
+            all_textures.Add(new texture_element(content.Load<Texture2D>("trunk1"), "trunk1"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("trunk2"), "trunk2"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("lbranch1"), "lbranch1"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("lbranch2"), "lbranch2"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("lbranch3"), "lbranch3"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("lbranch4"), "lbranch4"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("lbranch5"), "lbranch5"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("lbranch6"), "lbranch6"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("lbranch7"), "lbranch7"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("branch1"), "branch1"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("branch2"), "branch2"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("branch3"), "branch3"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("branch4"), "branch4"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("branch5"), "branch5"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("leaves1"), "leaves1"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("leaves2"), "leaves2"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("leaves3"), "leaves3"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("grass1"), "grass1"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("grass2"), "grass2"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("grass_corner_top"), "grass_corner_top"));
+            all_textures.Add(new texture_element(content.Load<Texture2D>("grass_single"), "grass_single"));
 
             world_list.add_world("world1.xml", new World(this, content, "test world", 600, 120));
             world_list.add_world("world2.xml", new World(this, content, "test world2", 250, 50));
@@ -235,7 +257,7 @@ namespace EditorEngine
 
             while(deferred_light_generation_order > 0)
             {
-                // find an unoccupied cell, while there is space in the world
+                // find an unoccupied get_cell_address, while there is space in the world
                 while (this.get_world_list().get_current().get_number_of_lights() < get_current_world().get_world_size())
                 {
                     // generate random coordinates
@@ -257,6 +279,12 @@ namespace EditorEngine
                 // stop generating for now
                 if (limit == 0)
                     break;
+            }
+
+            // tree growth
+            foreach(GreenTree t in world_list.get_current().trees)
+            {
+                t.generate_trunk(this);
             }
         }
         // update viewport
@@ -371,7 +399,7 @@ namespace EditorEngine
             }
             return null;
         }
-        // return current position of a mouse as a 1 cell collision rectangle
+        // return current position of a mouse as a 1 get_cell_address collision rectangle
         public Rectangle get_mouse_rectangle()
         {
             return new Rectangle(mouseState.X, mouseState.Y, 1, 1);
@@ -529,6 +557,46 @@ namespace EditorEngine
                 camera_offset.X -= (mouseState.X - OldMouseState.X);
                 camera_offset.Y -= (mouseState.Y - OldMouseState.Y);
             }
+        }
+        /// <summary>
+        /// Check neighbor cell by Vector2 address
+        /// </summary>
+        /// <param name="source">original cell</param>
+        /// <param name="direction">which way</param>
+        /// <param name="distance">number of cells to move</param>
+        /// <param name="elevation_difference">1 = down, -1 = up</param>
+        /// <returns></returns>
+        public Vector2 neighbor_cell(Vector2 source, string direction, int distance, int elevation_difference = 0)
+        {
+            int offx = 0;
+            int offy = 0;
+
+            if(direction == "left")
+            {
+                offx = -distance;
+                offy = elevation_difference;
+            }
+            else if(direction == "right")
+            {
+                offx = distance;
+                offy = elevation_difference;
+            }
+            else if (direction == "top")
+            {
+                offy = -distance;
+            }
+            else if (direction == "bottom")
+            {
+                offy = distance;
+            }
+            else
+            {
+                // nothing
+            }
+
+            Vector2 new_vec = source + new Vector2(offx,offy);
+
+            return new_vec;
         }
         public void move_camera(Microsoft.Xna.Framework.Input.Keys[] input)
         {
@@ -915,11 +983,15 @@ namespace EditorEngine
             if (high < low)
                 throw new ArgumentException("high less than low");
 
-            return rng.Next(low, high);
+            return rng.Next(low, high+1);
         }
         public float get_percentage_of_range(int min, int max, int current)
         {
             return ((float)current / ((float)max - (float)min));
+        }
+        public float get_percentage_of_range(int min, int max, long current)
+        {
+            return ((float)current / ((float)max - (float)min)) > 1f? 1f : ((float)current / ((float)max - (float)min));
         }
         public float generate_float_range(float low, float high)
         {

@@ -855,7 +855,7 @@ namespace EditorEngine
 
         public void load_custom_container_background(string container_id, Texture2D bg)
         {
-            find_container(container_id).add_custom_container_background(bg); // also sets all elements to 0.0f opacity
+            find_container(container_id).add_custom_container_background(bg); // also sets all elements to 0.0f scale
         }
 
         public void set_interface_transparency(float value)
