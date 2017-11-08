@@ -14,6 +14,9 @@ using Microsoft.Xna.Framework.Media;
 namespace EditorEngine
 {
     //-----------------------------------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Slider element
+    /// </summary>
     [Serializable()]
     class Slider : UIElementBase
     {
@@ -27,7 +30,18 @@ namespace EditorEngine
         public float min_slider_value;              //2 minimal value
         public float max_slider_value;              //2 maximum value of the slider
         private int slider_precision;               //2 0 = show as int, 1 or 2 = show as float in string labels
-
+        /// <summary>
+        /// Construct
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="safety">confirm or no</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="icon">does it have an icon? null if not</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
         public Slider(string id, Container parent, type f, actions? c, confirm safety, Rectangle dimension, Texture2D icon, String label, String tooltip)
             : base(id, parent, f, c, safety, dimension, icon, label, tooltip)
         {
@@ -35,14 +49,27 @@ namespace EditorEngine
             slider_precision = 0;
             create_sectors();
         }
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public new void draw_masking_sprite(Engine e)
         {
             base.draw_masking_sprite(e);
         }
+        /// <summary>
+        /// Draw the post processing graphcis
+        /// </summary>
+        /// <param name="e">engine instance</param>
+        /// <param name="interface_color">interface color value</param>
+        /// <param name="interface_transparency">transparency value 0-1</param>
         public new void draw_post_processing(Engine e, Color interface_color, float interface_transparency)
         {
             base.draw_post_processing(e, interface_color, interface_transparency);
         }
+        /// <summary>
+        /// Creates the content sectors
+        /// </summary>
         public new void create_sectors()
         {
             horizontal_sector temp1 = new horizontal_sector(0, (int)bounds.Height / 2);
@@ -50,13 +77,16 @@ namespace EditorEngine
             temp1.add_vertical(new vertical_sector((int)bounds.Width / 2, bounds.Width, sector_content.current_slider_value));
             horizontal_sector temp2 = new horizontal_sector((int)bounds.Height / 2, (int)bounds.Height);
             temp2.add_vertical(new vertical_sector(0, 30, sector_content.min_slider));
-            temp2.add_vertical(new vertical_sector(((int)bounds.Width / 2 - 75), ((int)bounds.Width / 2 + 75), sector_content.slider_area)); // slider area is always 150px 
-            slider_bounds = new Rectangle(((int)(bounds.Width / 2) - 75), temp2.get_ys() /*+ (int)this.get_origin().Y*/, 150, temp2.get_height()); // create slider bounds based on sector position inside this Unit ^. add Y value of the origin in case this is not the first unit in container
+            temp2.add_vertical(new vertical_sector(((int)bounds.Width / 2 - 50), ((int)bounds.Width / 2 + 50), sector_content.slider_area)); // slider area is always 100px 
+            slider_bounds = new Rectangle(((int)(bounds.Width / 2) - 50), temp2.get_ys() /*+ (int)this.get_origin().Y*/, 100, temp2.get_height()); // create slider bounds based on sector position inside this Unit ^. add Y value of the origin in case this is not the first unit in container
             temp2.add_vertical(new vertical_sector(bounds.Width - 30, bounds.Width, sector_content.max_slider));
             zones.Add(temp1);
             zones.Add(temp2);
         }
-
+        /// <summary>
+        /// Set pecision for float sliders
+        /// </summary>
+        /// <param name="value">number of digits after the point</param>
         public void set_slider_precision(int value)
         {
             if (value < 0 || value > 3)
@@ -101,11 +131,18 @@ namespace EditorEngine
         {
             return slider_value;
         }
+        /// <summary>
+        /// Set current slider value
+        /// </summary>
+        /// <param name="value">float value - current</param>
         public void set_slider_value(float value)
         {
             slider_value = value;
         }
-
+        /// <summary>
+        /// get current slider value
+        /// </summary>
+        /// <returns>representation of current value</returns>
         public int get_slider_value_int()
         {
             return (int)Math.Floor(slider_value);
@@ -113,15 +150,14 @@ namespace EditorEngine
         /// <summary>
         /// randomize slider value
         /// </summary>
-        /// <param name="engine">Engine helper contains "random" function</param>
+        /// <param name="engine">Engine instance contains "random" function</param>
         public void set_random_slider_value(Engine engine)
         {
             if (max_slider_value > 1f)
-                slider_value = engine.generate_float_range(min_slider_value, max_slider_value);
+                slider_value = Engine.generate_float_range(min_slider_value, max_slider_value);
             else // set transparency value at 1 to show the best color 
                 slider_value = max_slider_value;
         }
-
         /// <summary>
         /// Updates slider component of an element
         /// </summary>
@@ -162,7 +198,12 @@ namespace EditorEngine
         {
             return (slider_value - min_slider_value) / (max_slider_value - min_slider_value);
         }
-
+        /// <summary>
+        /// Draw the element on screen
+        /// </summary>
+        /// <param name="engine">engine instance</param>
+        /// <param name="color">element color</param>
+        /// <param name="transparency">transparency value - optional</param>
         public override void draw(Engine engine, Color color, float transparency = -1f)
         {
             // calculate precision for sliders
@@ -295,54 +336,114 @@ namespace EditorEngine
         }
     }
     //----------------------------------------------------------------------------------------
+    /// <summary>
+    /// The infolabel - a simple rectangle with some text in it - acts as a separator or a non-interactive label
+    /// </summary>
     [Serializable()]
     class InfoLabel : UIElementBase
     {
-
+        /// <summary>
+        /// Construct
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="safety">confirm or no</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="icon">does it have an icon? null if not</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
         public InfoLabel(string id, Container parent, type f, actions? c, confirm safety, Rectangle dimension, Texture2D icon, String label, String tooltip)
             : base(id, parent, f, c, safety, dimension, icon, label, tooltip)
         {
             create_sectors(); // MUST be in constructor of every derived class
         }
-
+        /// <summary>
+        /// Create the content sectors
+        /// </summary>
         public new void create_sectors()
         {
             horizontal_sector temp_cb = new horizontal_sector(0, bounds.Height); // create default
             temp_cb.add_vertical(new vertical_sector(0, bounds.Width, sector_content.label));
             zones.Add(temp_cb);
         }
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public new void draw_masking_sprite(Engine e)
         {
             base.draw_masking_sprite(e);
         }
+        /// <summary>
+        /// Draw the post processing graphcis
+        /// </summary>
+        /// <param name="e">engine instance</param>
+        /// <param name="interface_color">interface color value</param>
+        /// <param name="interface_transparency">transparency value 0-1</param>
         public new void draw_post_processing(Engine e, Color interface_color, float interface_transparency)
         {
             base.draw_post_processing(e, interface_color, interface_transparency);
         }
+        /// <summary>
+        /// Rendering function for the entire GUI unit. Draw()
+        /// </summary>
+        /// <param name="engine">Engine object</param>
+        /// <param name="color">intrerface color</param>
+        /// <param name="transparency">interface transparency</param>
         public override void draw(Engine engine, Color color, float transparency = -1f)
         {
-            base.draw(engine, color, transparency);
+            base.draw(engine, Color.SlateGray, transparency);
         }
     }
-    //========================================================================================   
+    //========================================================================================  
+    /// <summary>
+    /// A button that contains a value
+    /// </summary>
+    /// <typeparam name="T">Type of  the value tracked</typeparam>
     [Serializable()]
     class IDButton<T> : UIElementBase
     {
         protected T tracked_id; // hidden parameter:  whenever action of this element is called outcome will depend on the id stored
-
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="safety">confirm or no</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="icon">does it have an icon? null if not</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
         public IDButton(string id, Container parent, type f, actions? c, Rectangle dimension, String label, String tooltip)
             : base(id, parent, f, c, confirm.no, dimension, null, label, tooltip)
         {
             create_sectors(); // MUST be in constructor of every derived class
         }
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public new void draw_masking_sprite(Engine e)
         {
             base.draw_masking_sprite(e);
         }
+        /// <summary>
+        /// Draw the post processing graphcis
+        /// </summary>
+        /// <param name="e">engine instance</param>
+        /// <param name="interface_color">interface color value</param>
+        /// <param name="interface_transparency">transparency value 0-1</param>
         public new void draw_post_processing(Engine e, Color interface_color, float interface_transparency)
         {
             base.draw_post_processing(e, interface_color, interface_transparency);
         }
+        /// <summary>
+        /// Create content sectors
+        /// </summary>
         public new void create_sectors()
         {
             horizontal_sector temp_cb = new horizontal_sector(0, bounds.Height);     // create default
@@ -350,7 +451,12 @@ namespace EditorEngine
             temp_cb.add_vertical(new vertical_sector(30, bounds.Width, sector_content.label));
             zones.Add(temp_cb);
         }
-
+        /// <summary>
+        /// Rendering function for the entire GUI unit. Draw()
+        /// </summary>
+        /// <param name="engine">Engine object</param>
+        /// <param name="color">intrerface color</param>
+        /// <param name="transparency">interface transparency</param>
         public override void draw(Engine engine, Color color, float transparency = -1f)
         {
             base.draw(engine, color, transparency);
@@ -365,14 +471,20 @@ namespace EditorEngine
             tracked_id = value;
             base.icon = icon;
         }
+        /// <summary>
+        /// Get the tracked value
+        /// </summary>
+        /// <returns>tracked value in a value type</returns>
         public T get_tracked_value()
         {
             return tracked_id;
         }
     }
-    // this class creates a tracked button that acts like a lock/unlock. changes color and other features on true/false
-    // a specialized variant of switch button and IDButton
     //========================================================================================
+    /// <summary>
+    /// this class creates a tracked button that acts like a lock/unlock. changes color and other features on true/false
+    /// a specialized variant of switch button and IDButton
+    /// </summary>
     [Serializable()]
     class UIlocker : UIElementBase
     {
@@ -386,26 +498,54 @@ namespace EditorEngine
         [NonSerialized]
         Texture2D icon_unlocked;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
         public UIlocker(string id, Container parent, type f, actions? c, Rectangle dimension, String label, String tooltip)
             : base(id, parent, f, c, confirm.no, dimension, null, label, tooltip)
         {
             create_sectors(); // MUST be in constructor of every derived class
         }
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public new void draw_masking_sprite(Engine e)
         {
             base.draw_masking_sprite(e);
         }
+        /// <summary>
+        /// Draw the post processing graphcis
+        /// </summary>
+        /// <param name="e">engine instance</param>
+        /// <param name="interface_color">interface color value</param>
+        /// <param name="interface_transparency">transparency value 0-1</param>
         public new void draw_post_processing(Engine e, Color interface_color, float interface_transparency)
         {
             base.draw_post_processing(e, interface_color, interface_transparency);
         }
+        /// <summary>
+        /// Create content sectors
+        /// </summary>
         public new void create_sectors()
         {
             horizontal_sector temp_cb = new horizontal_sector(0, bounds.Height);     // create default
             temp_cb.add_vertical(new vertical_sector(0, bounds.Width, sector_content.locker_state)); // locker-state = specialized area that notifies user of locker state and changes color
             zones.Add(temp_cb);
         }
-
+        /// <summary>
+        /// Rendering function for the entire GUI unit. Draw()
+        /// </summary>
+        /// <param name="engine">Engine object</param>
+        /// <param name="color">intrerface color</param>
+        /// <param name="transparency">interface transparency</param>
         public override void draw(Engine engine, Color color, float transparency = -1f)
         {
             // call base background drawing function with a different color option
@@ -455,42 +595,78 @@ namespace EditorEngine
             this.icon_locked = icon_locked;
             this.icon_unlocked = icon_unlocked;
         }
+        /// <summary>
+        /// Get the tracked value
+        /// </summary>
+        /// <returns>bool true or false</returns>
         public bool get_tracked_value()
         {
             return tracked_id;
         }
+        /// <summary>
+        /// Lock or unlock the boolean button
+        /// </summary>
         public void toggle_lock()
         {
             tracked_id = !tracked_id;
         }
     }
     //========================================================================================
+    /// <summary>
+    /// A button that shows the color value only
+    /// </summary>
     [Serializable()]
     class ColorPreviewButton : UIElementBase
     {
         [NonSerialized]
         private Color preview;
-
+        /// Constructor
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
         public ColorPreviewButton(string id, Container parent, type f, actions? c, Rectangle dimension, String label, String tooltip)
             : base(id, parent, f, c, confirm.no, dimension, null, label, tooltip)
         {
             create_sectors(); // MUST be in constructor of every derived class
         }
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public new void draw_masking_sprite(Engine e)
         {
             base.draw_masking_sprite(e);
         }
+        /// <summary>
+        /// Draw the post processing graphcis
+        /// </summary>
+        /// <param name="e">engine instance</param>
+        /// <param name="interface_color">interface color value</param>
+        /// <param name="interface_transparency">transparency value 0-1</param>
         public new void draw_post_processing(Engine e, Color interface_color, float interface_transparency)
         {
             base.draw_post_processing(e, interface_color, interface_transparency);
         }
+        /// <summary>
+        /// Create content sectors
+        /// </summary>
         public new void create_sectors()
         {
             horizontal_sector temp_cb = new horizontal_sector(5, bounds.Height - 5);     // create default
             temp_cb.add_vertical(new vertical_sector(5, bounds.Width - 5, sector_content.color_preview));
             zones.Add(temp_cb);
         }
-
+        /// <summary>
+        /// Rendering function for the entire GUI unit. Draw()
+        /// </summary>
+        /// <param name="engine">Engine object</param>
+        /// <param name="color">intrerface color</param>
+        /// <param name="transparency">interface transparency</param>
         public override void draw(Engine engine, Color color, float transparency = -1f)
         {
             base.draw(engine, color, transparency);
@@ -518,32 +694,62 @@ namespace EditorEngine
                 }
             }
         }
-
+        /// <summary>
+        /// Update the color preview
+        /// </summary>
+        /// <param name="preview_value">color value</param>
         public void update(Color preview_value)
         {
             preview = preview_value;
         }
     }
     //---------------------------------------------------------------------------------------------------------
+    /// <summary>
+    /// A simple button with a single action
+    /// </summary>
     [Serializable()]
     public class Button : UIElementBase
     {
         private Container sub_context; // assign expandable container to a expandable button, regular button will not use this
-
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="safety">confirm or no</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="icon">does it have an icon? null if not</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
         public Button(string id, Container parent, type f, actions? c, confirm safety, Rectangle dimension, Texture2D icon, String label, String tooltip)
             : base(id, parent, f, c, safety, dimension, icon, label, tooltip)
         {
             sub_context = null;
             create_sectors(); // MUST be in constructor of every derived class
         }
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public new void draw_masking_sprite(Engine e)
         {
             base.draw_masking_sprite(e);
         }
+        /// <summary>
+        /// Draw the post processing graphcis
+        /// </summary>
+        /// <param name="e">engine instance</param>
+        /// <param name="interface_color">interface color value</param>
+        /// <param name="interface_transparency">transparency value 0-1</param>
         public new void draw_post_processing(Engine e, Color interface_color, float interface_transparency)
         {
             base.draw_post_processing(e, interface_color, interface_transparency);
         }
+        /// <summary>
+        /// Create content sectors
+        /// </summary>
         public new void create_sectors()
         {
             if (function == type.button)
@@ -572,11 +778,20 @@ namespace EditorEngine
         {
             sub_context = c;
         }
+        /// <summary>
+        /// Get the container - context enabled by this element
+        /// </summary>
+        /// <returns>context container</returns>
         public Container get_context()
         {
             return sub_context;
         }
-
+        /// <summary>
+        /// Rendering function for the entire GUI unit. Draw()
+        /// </summary>
+        /// <param name="engine">Engine object</param>
+        /// <param name="color">intrerface color</param>
+        /// <param name="transparency">interface transparency</param>
         public override void draw(Engine engine, Color color, float transparency = -1f)
         {
             if (!visible)
@@ -623,9 +838,18 @@ namespace EditorEngine
     class SwitchButton<T> : UIElementBase
     {
         private T value;
-        //private List<T> permitted_values; // use this for ints and floats
-        // base. action = option_value_switch;
-
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="safety">confirm or no</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="icon">does it have an icon? null if not</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
         public SwitchButton(string id, T value, Container parent, type f, actions? c, confirm safety, Rectangle dimension, Texture2D icon, String label, String tooltip) // action.option_value_switch
             : base(id, parent, f, c, safety, dimension, icon, label, tooltip)
         {
@@ -633,7 +857,7 @@ namespace EditorEngine
             create_sectors(); // MUST be in constructor of every derived class
         }
         /// <summary>
-        /// Create internal sectors inside this element
+        /// Create internal content sectors inside this element
         /// </summary>
         public new void create_sectors()
         {
@@ -642,10 +866,20 @@ namespace EditorEngine
             temp_cb.add_vertical(new vertical_sector((bounds.Width - 60), bounds.Width, sector_content.yn_option));
             zones.Add(temp_cb);
         }
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public new void draw_masking_sprite(Engine e)
         {
             base.draw_masking_sprite(e);
         }
+        /// <summary>
+        /// Draw the post processing graphcis
+        /// </summary>
+        /// <param name="e">engine instance</param>
+        /// <param name="interface_color">interface color value</param>
+        /// <param name="interface_transparency">transparency value 0-1</param>
         public new void draw_post_processing(Engine e, Color interface_color, float interface_transparency)
         {
             base.draw_post_processing(e, interface_color, interface_transparency);
@@ -674,7 +908,7 @@ namespace EditorEngine
                                 String display_value = string.Format("{0:yes;0;no}", value.GetHashCode());
                                 Vector2 dimensions = engine.get_UI_font().MeasureString(display_value);
                                 Vector2 draw_origin = engine.vector_centered(draw_zone, dimensions, orientation.both);
-                                engine.xna_draw_text(display_value, draw_origin, Vector2.Zero, Color.DarkSlateGray * (transparency), engine.get_UI_font());
+                                engine.xna_draw_text(display_value, draw_origin, Vector2.Zero, display_value.Equals("yes")?Color.LawnGreen: Color.LightSlateGray, engine.get_UI_font());
                             }
                             break;
                         default:
@@ -686,7 +920,7 @@ namespace EditorEngine
         /// <summary>
         /// Get tracked value current state
         /// </summary>
-        /// <returns></returns>
+        /// <returns>tracked value</returns>
         public T get_tracked_value()
         {
             return value;
@@ -694,13 +928,16 @@ namespace EditorEngine
         /// <summary>
         /// Sets initial value for this element
         /// </summary>
-        /// <param name="value"></param>
+        /// <param name="value">updated tracked value</param>
         public void set_value(T value)
         {
             this.value = value;
         }
     }
     //------------------------------------------------------------------------------------------------------------------  
+    /// <summary>
+    /// The progress bar
+    /// </summary>
     [Serializable()]
     class ProgressBar : UIElementBase // tooltip will let user know what is being tracked
     {
@@ -717,7 +954,21 @@ namespace EditorEngine
         private Texture2D graphics_mask; // a custom sprite that will give progress bar a custom look (e.g. curved)
         [NonSerialized]
         private Texture2D border_sprite; // will put an always visible border in the shape of graphics mask on the graphic element
-
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="safety">confirm or no</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="icon">does it have an icon? null if not</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
+        /// <param name="progress_color">progress line color</param>
+        /// <param name="percentage_mode">display as percentage or actual value</param>
+        /// <param name="show_value">display the value or just the progress bar</param>
         public ProgressBar(string id, Container parent, type f, actions? c, confirm safety, Rectangle dimension, Texture2D icon, String label, String tooltip, Color progress_color, bool percentage_mode, bool show_value)
             : base(id, parent, f, c, safety, dimension, icon, label, tooltip)
         {
@@ -730,6 +981,10 @@ namespace EditorEngine
             create_sectors();
             set_progress_sprite();
         }
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public override void draw_masking_sprite(Engine e)
         {
             base.draw_masking_sprite(e);
@@ -758,6 +1013,12 @@ namespace EditorEngine
                 }
             }
         }
+        /// <summary>
+        /// Draw the post processing graphcis
+        /// </summary>
+        /// <param name="e">engine instance</param>
+        /// <param name="interface_color">interface color value</param>
+        /// <param name="interface_transparency">transparency value 0-1</param>
         public override void draw_post_processing(Engine e, Color interface_color, float interface_transparency)
         {
             base.draw_post_processing(e, interface_color, interface_transparency);
@@ -798,32 +1059,52 @@ namespace EditorEngine
             //temp_cb.add_vertical(new vertical_sector(0, bounds.Width-40, sector_content.progress_label));
             zones.Add(temp_cb);
         }
+        /// <summary>
+        /// Update the progress bar sprite
+        /// </summary>
         public void set_progress_sprite()
         {
             // one-time texture generation based on sector size 
             // add customization options later if needed, e.g. buffer empty zone above and below texture , so it doesn't fill the entire region.
             progress_bar_sprite = Game1.create_colored_rectangle(get_rectangle(), progress_color, 1f);
         }
+        /// <summary>
+        /// Update progress bar color
+        /// </summary>
+        /// <param name="c">new color</param>
         public void set_progress_color(Color c)
         {
             progress_color = c;
         }
+        /// <summary>
+        /// add a masking texture
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public void set_mask(Engine e)
         {
             // one-time texture generation based on sector size 
             // add customization options later if needed, e.g. buffer empty zone above and below texture , so it doesn't fill the entire region.
             graphics_mask = e.get_texture("progress_mask");
         }
+        /// <summary>
+        /// Add a border overlay sprite
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public void set_border(Engine e)
         {
             // one-time texture generation based on sector size 
             // add customization options later if needed, e.g. buffer empty zone above and below texture , so it doesn't fill the entire region.
             border_sprite = e.get_texture("progress_border");
         }
-
+        /// <summary>
+        /// Rendering function for the entire GUI unit. Draw()
+        /// </summary>
+        /// <param name="engine">Engine object</param>
+        /// <param name="color">intrerface color</param>
+        /// <param name="transparency">interface transparency</param>
         public override void draw(Engine engine, Color color, float transparency = -1f)
         {
-            //base.draw(engine, color, transparency);
+            //base.draw(engine, color, transparency); // do not do any basic renedring for this element
 
             foreach (horizontal_sector h in zones)
             {
@@ -874,13 +1155,22 @@ namespace EditorEngine
                 }
             }
         }
-        // element specific functions below
+        /// <summary>
+        /// Set min,max, current values for the progress bar
+        /// </summary>
+        /// <param name="min_value">min value</param>
+        /// <param name="max_value">max value</param>
+        /// <param name="current">current value</param>
         public void set_element_values(int min_value, int max_value, int current = 0)
         {
             this.min_value = min_value;
             this.max_value = max_value;
             this.tracked_id = current;
         }
+        /// <summary>
+        /// Update the progress bar current value
+        /// </summary>
+        /// <param name="value">current value</param>
         public void update(int value)
         {
             this.tracked_id = value;
@@ -888,6 +1178,9 @@ namespace EditorEngine
 
     }
     //------------------------------------------------------------------------------------------------------------------
+    /// <summary>
+    /// The progress circle
+    /// </summary>
     [Serializable()]
     class ProgressCircle : UIElementBase // tooltip will let user know what is being tracked
     {
@@ -909,7 +1202,21 @@ namespace EditorEngine
         [NonSerialized]
         private Texture2D mask_mid_circle; // center piece of the circle
         private const int graphic_quality_precision = 1024; // this is a size of circle created, larger value makes edges less jagged (2048 IS MAX TEXTURE SIZE in XNA, MonoGame supports 4096)
-
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="safety">confirm or no</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="icon">does it have an icon? null if not</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
+        /// <param name="progress_color">progress circle color</param>
+        /// <param name="percentage_mode">display percentage or the value</param>
+        /// <param name="show_value">show value?</param>
         public ProgressCircle(string id, Container parent, type f, actions? c, confirm safety, Rectangle dimension, Texture2D icon, String label, String tooltip, Color progress_color, bool percentage_mode, bool show_value)
             : base(id, parent, f, c, safety, dimension, icon, label, tooltip)
         {
@@ -946,6 +1253,10 @@ namespace EditorEngine
             // also create  full circular backing plate (draw in a slightly exaggerated scale)
             background_circle = Game1.createSmoothCircle(graphic_quality_precision, Color.White, 10f);
         }
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public override void draw_masking_sprite(Engine engine)
         {
             base.draw_masking_sprite(engine);
@@ -1027,7 +1338,9 @@ namespace EditorEngine
                 }
             }
         }
-
+        /// <summary>
+        /// Create content sectors
+        /// </summary>
         public new void create_sectors()
         {
             horizontal_sector temp_cb = new horizontal_sector(0, bounds.Height);     // create default
@@ -1037,7 +1350,12 @@ namespace EditorEngine
             zones.Add(temp_cb);
         }
 
-
+        /// <summary>
+        /// Rendering function for the entire GUI unit. Draw()
+        /// </summary>
+        /// <param name="engine">Engine object</param>
+        /// <param name="color">intrerface color</param>
+        /// <param name="transparency">interface transparency</param>
         public override void draw(Engine engine, Color color, float transparency = -1f)
         {
             //base.draw(engine, color, transparency);
@@ -1092,15 +1410,22 @@ namespace EditorEngine
                 }
             }
         }
-
-        // element specific functions below
+        /// <summary>
+        /// Set tracked values
+        /// </summary>
+        /// <param name="min_value">min value</param>
+        /// <param name="max_value">max value</param>
+        /// <param name="current">current value</param>
         public void set_element_values(int min_value, int max_value, int current = 0)
         {
             this.min_value = min_value;
             this.max_value = max_value;
             this.tracked_id = current;
         }
-
+        /// <summary>
+        /// Update the circle value
+        /// </summary>
+        /// <param name="value">new value</param>
         public void update(int value)
         {
             this.tracked_id = value;
@@ -1108,6 +1433,9 @@ namespace EditorEngine
 
     }
     //------------------------------------------------------------------------------------------------------------------
+    /// <summary>
+    /// A text field for user input
+    /// </summary>
     [Serializable()]
     public class TextInput : UIElementBase // action = focus_input >> makes this element receive input 
     {
@@ -1119,7 +1447,18 @@ namespace EditorEngine
         [NonSerialized]
         Texture2D border;
         const string PLACEHOLDER = "type here...";
-
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="safety">confirm or no</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="icon">does it have an icon? null if not</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
         public TextInput(string id, Container parent, type f, actions? c, confirm safety, Rectangle dimension, Texture2D icon, String label, String tooltip)
             : base(id, parent, f, c, safety, dimension, icon, label, tooltip)
         {
@@ -1128,7 +1467,6 @@ namespace EditorEngine
             create_sectors();
             set_border_texture();
         }
-        // Template section
         /// <summary>
         /// ISectored interface function - creates zones inside the element. There has to be at least one horizontal zone containing at least one vertical zone to make a valid element
         /// </summary>
@@ -1141,11 +1479,11 @@ namespace EditorEngine
             zones.Add(temp_cb);
         }
         /// <summary>
-        /// Main Element rendering <<<<<<<<<<<<<<<<<<<<<<<<
+        /// Rendering function for the entire GUI unit. Draw()
         /// </summary>
-        /// <param name="engine"></param>
-        /// <param name="color"></param>
-        /// <param name="transparency"></param>
+        /// <param name="engine">Engine object</param>
+        /// <param name="color">intrerface color</param>
+        /// <param name="transparency">interface transparency</param>
         public override void draw(Engine engine, Color color, float transparency = -1f)
         {
             if (focused || current_state == state.default_state)
@@ -1211,9 +1549,9 @@ namespace EditorEngine
             }
         }
         /// <summary>
-        /// Masking rendering for shader effect
+        /// Draw the masking graphic
         /// </summary>
-        /// <param name="engine"></param>
+        /// <param name="e">engine instance</param>
         public override void draw_masking_sprite(Engine engine)
         {
             base.draw_masking_sprite(engine);
@@ -1239,11 +1577,11 @@ namespace EditorEngine
             }
         }
         /// <summary>
-        /// Post Processing rendering
+        /// Reserved for borders and/or text elements that fall into potential mask territory (will be erased if drawn before masking effect runs)
         /// </summary>
-        /// <param name="engine"></param>
-        /// <param name="interface_color"></param>
-        /// <param name="interface_transparency"></param>
+        /// <param name="engine">engine object</param>
+        /// <param name="interface_color">interface color</param>
+        /// <param name="interface_transparency">interface transparency</param>
         public override void draw_post_processing(Engine engine, Color interface_color, float interface_transparency)
         {
             base.draw_post_processing(engine, interface_color, interface_transparency);
@@ -1271,7 +1609,9 @@ namespace EditorEngine
                 }
             }
         }
-        // Function section
+        /// <summary>
+        /// Add a border texture
+        /// </summary>
         public void set_border_texture()
         {
             // use create_colored_hollow_rectangle function 
@@ -1292,13 +1632,19 @@ namespace EditorEngine
         {
             focused = value;
         }
-
+        /// <summary>
+        /// Add text entered by the user
+        /// </summary>
+        /// <param name="value">text value</param>
         public void add_text(string value)
         {
             if (input_text.Length < MAX_INPUT_LENGTH)
                 input_text = String.Concat(input_text, value); // adds a character to input         
         }
-
+        /// <summary>
+        /// Get the last key(s) pressed
+        /// </summary>
+        /// <returns></returns>
         public string get_last_input()
         {
             if (input_text.Length > 0)
@@ -1306,7 +1652,9 @@ namespace EditorEngine
             else
                 return "";
         }
-
+        /// <summary>
+        /// Backspace handler
+        /// </summary>
         public void erase_one_character()
         {
             if (input_text.Length > 0)
@@ -1315,34 +1663,61 @@ namespace EditorEngine
                 input_text = temp;
             }
         }
+        /// <summary>
+        /// Set the target - where the input text will be displayed/processed after Enter key has been pressed
+        /// </summary>
+        /// <param name="tgt">target</param>
         public void set_input_target(string tgt)
         {
             target = tgt;
         }
+        /// <summary>
+        /// Get the ID of the target
+        /// </summary>
+        /// <returns></returns>
         public string get_input_target_id()
         {
             return target;
         }
-
+        /// <summary>
+        /// Get the input field text
+        /// </summary>
+        /// <returns></returns>
         public string get_text()
         {
             return input_text;
         }
     }
     //------------------------------------------------------------------------------------------------------------------
+    /// <summary>
+    /// A text area for the etxt display
+    /// </summary>
     [Serializable()]
     class TextArea : UIElementBase
     {
         private List<string> tnp = new List<string>(); // temporary list
         [NonSerialized] Texture2D border;
-
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="safety">confirm or no</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="icon">does it have an icon? null if not</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
         public TextArea(string id, Container parent, type f, actions? c, confirm safety, Rectangle dimension, Texture2D icon, String label, String tooltip)
             : base(id, parent, f, c, safety, dimension, icon, label, tooltip)
         {
             create_sectors();
             set_border_texture();
         }
-
+        /// <summary>
+        /// Create content sectors
+        /// </summary>
         public new void create_sectors()
         {
             horizontal_sector temp_cb = new horizontal_sector(0, bounds.Height);     // create default
@@ -1351,12 +1726,17 @@ namespace EditorEngine
 
             zones.Add(temp_cb);
         }
-
-        public override void draw(Engine engine, Color color, float transparency = -1f)
+        /// <summary>
+        /// Rendering function for the entire GUI unit. Draw()
+        /// </summary>
+        /// <param name="engine">Engine object</param>
+        /// <param name="color">intrerface color</param>
+        /// <param name="transparency">interface transparency</param>
+        public override void draw(Engine engine, Color color, float transparency = 1f)
         {
             // replace base draw 
             if (background != null) // Text Area Background HERE
-                engine.xna_draw(get_background(), get_origin(), null, Color.Black*0.75f, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0.9f);
+                engine.xna_draw(get_background(), get_origin(), null, Color.Black*0.5f, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0.9f);
             // element specific functionality
             foreach (horizontal_sector h in zones)
             {
@@ -1369,10 +1749,6 @@ namespace EditorEngine
                     {
                         case sector_content.text_area:
                             {
-                                // draw "border" texture at a standard origin vector
-                                //Vector2 draw_origin = engine.vector_centered(draw_zone, border.Bounds, orientation.both);
-                                // draw slider line
-                                //gine.xna_draw(border, draw_origin, null, interface_color, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f); // draws border in current interface color
                                 int counter = 0;
                                 foreach (string s in tnp) // testing drawing text in area
                                 {
@@ -1390,7 +1766,10 @@ namespace EditorEngine
                 }
             }
         }
-
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public override void draw_masking_sprite(Engine engine)
         {
             base.draw_masking_sprite(engine);
@@ -1414,7 +1793,12 @@ namespace EditorEngine
                 }
             }
         }
-
+        /// <summary>
+        /// Reserved for borders and/or text elements that fall into potential mask territory (will be erased if drawn before masking effect runs)
+        /// </summary>
+        /// <param name="engine">engine object</param>
+        /// <param name="interface_color">interface color</param>
+        /// <param name="interface_transparency">interface transparency</param>
         public override void draw_post_processing(Engine engine, Color interface_color, float interface_transparency)
         {
             base.draw_post_processing(engine, interface_color, interface_transparency);
@@ -1450,7 +1834,10 @@ namespace EditorEngine
         {
             tnp.Add(val);
         }
-        // create border around text area based on bounds values
+
+        /// <summary>
+        /// Add the border sprite
+        /// </summary>
         public void set_border_texture()
         {
             // use create_colored_hollow_rectangle function 
@@ -1460,7 +1847,7 @@ namespace EditorEngine
 }// end namespace
 
 
-/* BASIC UI ELEMENT TEMPLATE 
+/* BASIC UI ELEMENT TEMPLATE - FOR COPY WHEN CREATING A NEW ELEMENT TYPE
 class ElementNameHere : UIElementBase
 {
     public ElementNameHere(string id, Container parent, type f, actions? c, confirm safety, Rectangle dimension, Texture2D icon, String label, String tooltip)
@@ -1501,7 +1888,10 @@ public override void draw(Engine engine, Color color, float transparency = -1f)
                 }
             }
         }
-
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public override void draw_masking_sprite(Engine engine)
         {
             base.draw_masking_sprite(engine);

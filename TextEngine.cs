@@ -20,88 +20,109 @@ namespace EditorEngine
             Example of encoded text message for TextEngine to process
             Create a library of text messages that can be copied and added to engine
             */
-
     /*-------------------------------------------------------------------------------------------------------------------------------------------*/
-    // a message will be broken out into text elements according to its encoding
-    // collect only one word in order to be able to break messages into lines smoothly
+  
+    /// <summary>
+    /// a message will be broken out into text elements according to its encoding
+    /// collect only one word in order to be able to break messages into lines smoothly
+    /// </summary>
     enum decode_mode { none, variable, color, action };
 
-    /*
-      Usage: List<text_element> lst; // creates a list of text elements to be used in the message element
-    */
+    /// <summary>
+    /// Usage: List<text_element> lst; // creates a list of text elements to be used in the message element
+    /// </summary>
     public struct text_element
     {
         Color text_color;
-        //string text_color_surrogate; // for serialization
         string text;
         SpriteFont text_font;
-
         Rectangle text_rectangle; // calculate from resulting texture and Font used
-        //Texture2D text_texture;   // will have to be created
 
+        /// <summary>
+        /// text element to be used in message creation
+        /// </summary>
+        /// <param name="font">text font</param>
+        /// <param name="color">etxt color</param>
+        /// <param name="message_text">message representation</param>
         public text_element(SpriteFont font, Color color, string message_text)
         {
             text_color = color;
             text = message_text;
             text_font = font;
             text_rectangle = Rectangle.Empty;
-            //text_texture = null;
         }
-
-        public void initialize()
-        {
-            // create a texture
-            // calculate rectangle
-        }
-
+        /// <summary>
+        /// Set element text
+        /// </summary>
+        /// <param name="value">text</param>
         public void set_text(string value)
         {
             text = value;
         }
-
+        /// <summary>
+        /// Set text color
+        /// </summary>
+        /// <param name="c">color value</param>
         public void set_color(Color c)
         {
             text_color = c;
         }
-
+        /// <summary>
+        /// Set the font
+        /// </summary>
+        /// <param name="f">font object</param>
         public void set_text_font(SpriteFont f)
         {
             text_font = f;
         }
-
+        /// <summary>
+        /// Get text value
+        /// </summary>
+        /// <returns>text value</returns>
         public string get_text()
         {
             return text;
         }
-
+        /// <summary>
+        /// Get the color value
+        /// </summary>
+        /// <returns>color object</returns>
         public Color get_color()
         {
             return text_color;
         }
-
+        /// <summary>
+        /// Get the font
+        /// </summary>
+        /// <returns>font object</returns>
         public SpriteFont get_font()
         {
             return text_font;
         }
-
+        /// <summary>
+        /// Add text to existing message text
+        /// </summary>
+        /// <param name="val">additional text</param>
         public void append(string val)
         {
             text += val;
         }
     }
     /*-------------------------------------------------------------------------------------------------------------------------------------------*/
-    // text elements will be collected into a single message
-    /*
-      Usage: List<message_element> messages; // create a list of all messages being used by a text engine class.
-      Go through the list of messages and display in a text area decoded.
-    */
+    /// <summary>
+    /// Usage: List<message_element> messages; // create a list of all messages being used by a text engine class.
+    /// Go through the list of messages and display in a text area decoded.
+    /// </summary>
     public struct message_element
     {
         List<text_element> message; // entire message
         List<int> line_indexes; // stores order number of each line-breaking word
         string message_tag; // a unique id for this message so it can be found later
         int timestamp; // this value should be a 0 on creation and is only used when message is added to any engine object
-
+        /// <summary>
+        /// constructor
+        /// </summary>
+        /// <param name="tag">text id</param>
         public message_element(string tag)
         {
             message = new List<text_element>();
@@ -109,25 +130,45 @@ namespace EditorEngine
             message_tag = tag;
             timestamp = 0;
         }
-
+        /// <summary>
+        /// Add text element to this mmessage
+        /// </summary>
+        /// <param name="a">text element</param>
         public void add_text_element(text_element a)
         {
             message.Add(a);
         }
+        /// <summary>
+        /// Get the list of all text elements in a message
+        /// </summary>
+        /// <returns>a list of elements</returns>
         public List<text_element> get_message()
         {
             return message;
         }
+        /// <summary>
+        /// Update the timestamp
+        /// </summary>
+        /// <param name="value">current milliseconds value</param>
         public void set_timestamp(int value)
         {
             timestamp = value;
         }
-
+        /// <summary>
+        /// Get the message ID
+        /// </summary>
+        /// <returns>id value string</returns>
         public string get_message_tag()
         {
             return message_tag;
         }
-        // calculate how many lines will this message represent in a given text area. Assign starting text_element number to each line and store in the index list
+        /// <summary>
+        /// calculate how many lines will this message represent in a given text area. Assign starting text_element number to each line and store in the index list
+        /// </summary>
+        /// <param name="engine">engine instance</param>
+        /// <param name="text_area">boundaries to fit</param>
+        /// <param name="padding">padding between border and text</param>
+        /// <returns>number of lines</returns>
         public int calculate_lines(Engine engine, Rectangle text_area, int padding = 0)
         {
             int max = text_area.Width - (padding * 2); // current width for drawing
@@ -153,13 +194,14 @@ namespace EditorEngine
     }
 
     /*-------------------------------------------------------------------------------------------------------------------------------------------*/
-    // shows all the messages that fit into target area, then crops the oldest ones and any scrolled messages
-    // scrolling will decide which line is the anchor at the bottom of the chat by manipulating a Vector2 draw_origin
-    //	if 1 - origin is not offset down, if 2 - origin is moved 1 line down and messages get truncated from both sides using a shader. a scrollbar will appear
-    // text area will have a scrollbar updated based on line numbers. it will appear when total lines > available lines. Copy logic from tile selection menu
-    // messages can either be generated by the system in response to some event or typed in directly by the user and then get decoded by create_message_element function. In this case, user can use tags for variables or colors to customize message.
-    // Commands typed in by the user will go through decoder of TextEngine but will also go to command execution center. Commands must start with a _ and have a correct number and type of arguments
-    // Add usage examples in optimization
+    /// <summary>
+    /// shows all the messages that fit into target area, then crops the oldest ones and any scrolled messages
+    /// scrolling will decide which line is the anchor at the bottom of the chat by manipulating a Vector2 draw_origin
+    ///	if 1 - origin is not offset down, if 2 - origin is moved 1 line down and messages get truncated from both sides using a shader. a scrollbar will appear
+    /// text area will have a scrollbar updated based on line numbers. it will appear when total lines > available lines. Copy logic from tile selection menu
+    /// messages can either be generated by the system in response to some event or typed in directly by the user and then get decoded by create_message_element function. In this case, user can use tags for variables or colors to customize message.
+    /// Commands typed in by the user will go through decoder of TextEngine but will also go to command execution center. Commands must start with a * and have a correct number and type of arguments
+    /// </summary>
     public class TextEngine
     {
         Queue<message_element> messages; // list of all active messages that have to be drawn by this object, e.g. a chat textengine, a quest window textengine
@@ -173,7 +215,13 @@ namespace EditorEngine
         List<List<text_element>> small_line_list; // a copy for display
         int padding = 5;
         int line_height = 20;
-
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="std_font">font to use</param>
+        /// <param name="text_area">boundaries to fit</param>
+        /// <param name="text_area_origin">where on the screen does rectangle begin</param>
+        /// <param name="std_color">satndard text color</param>
         public TextEngine(SpriteFont std_font, Rectangle text_area, Vector2 text_area_origin, Color std_color)
         {
             messages = new Queue<message_element>(MAX_MESSAGES);
@@ -184,8 +232,7 @@ namespace EditorEngine
             standard_color = std_color;
             engine_font = Game1.small_font;
         }
-
-        public void scroll(bool up)
+        /*public void scroll(bool up)
         {
             int max_lines = target_bounds.Height / line_height;
             if (up)
@@ -199,8 +246,13 @@ namespace EditorEngine
                 // if current starting line == 1 - ignore
                 // otherwise decrement current value
             }
-        }
-        // add a message to chat queue of this Engine object
+        }*/
+
+        /// <summary>
+        /// add a message to chat queue of this Engine object
+        /// </summary>
+        /// <param name="a">message</param>
+        /// <param name="current_time">current millisecond</param>
         public void add_message_element(message_element a, int current_time)
         {
             if (messages.Count == MAX_MESSAGES)
@@ -209,7 +261,11 @@ namespace EditorEngine
             a.set_timestamp(current_time); //current ms value
             messages.Enqueue(a);
         }
-
+        /// <summary>
+        /// Add message element to the queue
+        /// </summary>
+        /// <param name="engine">engine instance</param>
+        /// <param name="input_text">string input</param>
         public void add_message_element(Engine engine, string input_text)
         {
             if (messages.Count == MAX_MESSAGES)
@@ -218,12 +274,19 @@ namespace EditorEngine
             message_element temp = create_message_element(engine, input_text);
             messages.Enqueue(temp);
         }
-
+        /// <summary>
+        /// update current font
+        /// </summary>
+        /// <param name="font">font object</param>
         public void set_font(SpriteFont font)
         {
             engine_font = font;
         }
-        // grab a message from *dictionary*
+        /// <summary>
+        /// Get the message by tag
+        /// </summary>
+        /// <param name="tag">lookup tag</param>
+        /// <returns>message or null</returns>
         public message_element? get_message(string tag)
         {
             foreach (message_element a in messages)
@@ -255,10 +318,18 @@ namespace EditorEngine
                 small_line_list = line_list;
             }
         }
+        /// <summary>
+        /// delete all messages
+        /// </summary>
         public void clear_messages()
         {
             messages.Clear();
         }
+        /// <summary>
+        /// Set new target ractangle
+        /// </summary>
+        /// <param name="target_area">target rectangle</param>
+        /// <param name="origin">target origin position</param>
         public void set_target(Rectangle target_area, Vector2 origin)
         {
             target_bounds = target_area;
@@ -283,7 +354,7 @@ namespace EditorEngine
         /// </summary>
         /// <param name="e">Engine</param>
         /// <param name="encoded_string">a raw string of the message with variables and other tags</param>
-        /// <returns></returns>
+        /// <returns>message object</returns>
         public message_element create_message_element(Engine e, string encoded_string)
         {
             message_element result = new message_element("decoder message");
@@ -504,6 +575,11 @@ namespace EditorEngine
                     }
                 }
                 return "<bad command format>"; // if there is no space at the end of the string
+            }
+            else if(action.Equals("rain"))
+            {
+                e.set_rain_chance(100);
+                return "rain chance is now 100%";
             }
             else if (action.Equals("brush"))
             {
@@ -750,13 +826,13 @@ namespace EditorEngine
         /// <param name="e">Engine</param>
         /// <param name="variable_tag">variable name: e.g. ~fps </param>
         /// <param name="decoder_color">output color of the decoded string</param>
-        /// <returns></returns>
+        /// <returns>string with replaced variables</returns>
         public string decode_variable(Engine e, string variable_tag)
         {
             string temp = "";
             if (variable_tag.ToUpper() == "MS") // based on the key - get the value of this variable
             {
-                temp = "ms:[orange] " + e.get_current_game_millisecond().ToString() + "[" + color_to_delimited_string(Color.DarkGreen) + "]";
+                temp = "ms:[orange] " + Engine.get_current_game_millisecond().ToString() + "[" + color_to_delimited_string(Color.DarkGreen) + "]";
             }
             else if (variable_tag.ToUpper() == "CAM")
             {
@@ -798,8 +874,12 @@ namespace EditorEngine
             return temp;
         }
 
-        // converts a string value to xna Color value
-        public static Color delimited_string_to_color(string color_string)// format "int,int,int",e.g. 25,125,44
+        /// <summary>
+        /// converts a string value to xna/monogame Color value
+        /// </summary>
+        /// <param name="color_string">string representation of the color in format "int,int,int",e.g. "25,125,44"</param>
+        /// <returns>Color value</returns>
+        public static Color delimited_string_to_color(string color_string)
         {
             // check actual color names first
             if (color_string.Equals("green"))
@@ -942,9 +1022,15 @@ namespace EditorEngine
                 //line_list.Clear();
             }
         }
-        // delete get_message_line_indexes, is a linebreak, calculate_total_lines_in_queue functions
-        // Optimize and add scrolling. Limit message number. 
-        // total number of lines in message queue can be derived from Count poroperty of the converted list. converted.Count = total number of lines in message queue based on target rectangle bounds and padding 
+
+        /// <summary>
+        /// delete get_message_line_indexes, is a linebreak, calculate_total_lines_in_queue functions
+        /// Optimize and add scrolling. Limit message number. 
+        /// total number of lines in message queue can be derived from Count poroperty of the converted list. 
+        /// converted.Count = total number of lines in message queue based on target rectangle bounds and padding 
+        /// </summary>
+        /// <param name="converted">Converted list of lines</param>
+        /// <param name="max_length">max length of the line</param>
         public void convert_to_ordered_lines(List<List<text_element>> converted, int max_length)
         {
             line_list.Clear(); // remove any elements to generate a fresh list in case anything changed (max_length)

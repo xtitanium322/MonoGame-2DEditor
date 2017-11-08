@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<XnaContent xmlns:Collections="System.Collections">
+  <Asset Type="Collections:ArrayList">
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>35</origin_x>
+      <origin_y>16</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>36</origin_x>
+      <origin_y>16</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>37</origin_x>
+      <origin_y>16</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>34</origin_x>
+      <origin_y>16</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>33</origin_x>
+      <origin_y>16</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>30</origin_x>
+      <origin_y>16</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>31</origin_x>
+      <origin_y>16</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>32</origin_x>
+      <origin_y>16</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>29</origin_x>
+      <origin_y>16</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>28</origin_x>
+      <origin_y>16</origin_y>
+    </Item>
+  </Asset>
+</XnaContent>

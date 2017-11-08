@@ -8,19 +8,60 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
-namespace MonoGameEngine
+namespace EditorEngine
 {
+    /* Animated Texture updater and container Concept
+     Designed to be used with Texture2D base graphic*/
+    /*public class AnimationEngine
+    {
+        private List<Sprite> sprites; // each particle archetype will be using ONE animatedtexture object, however it can be scaled, rotated and color differently based on the particle itself. As a result all particles will have a synced animation cycle.
+        // functions
+        public void add_texture(Sprite a)
+        {
+            sprites.Add(a);
+        }
+
+        public void update_animations(int current)
+        {
+            foreach (Sprite a in sprites)
+            {
+                a.update(current);
+            }
+        }
+        // a returned animated texture is then drawn using it’s active rectangle adjusted drawing function
+        public Sprite find_sprite(string name)
+        {
+            foreach (Sprite a in sprites)
+            {
+                if (a.get_name() == name)
+                    return a;
+            }
+            return null; // if null is returned – handle in a calling function, either ignore or raise an exception
+        }
+
+        // a returned animated texture is then drawn using it’s active rectangle adjusted drawing function
+        public Sprite find_sprite(particle_type _particle_type)
+        {
+            foreach (Sprite a in sprites)
+            {
+                if (_particle_type != null && a.get_particle_type() == _particle_type)
+                    return a;
+            }
+
+            return null; // if null is returned (there is no correct particle type) – handle in a calling function, either ignore or raise an exception
+        }
+    }*/
+    //--------------------------------------------------------------------------------------------------------------------------------------------------
     /*Animated Texture and Particle concept 
     Completed design: supports various animation types handled by Animation Engine class. 
-    Need to add XNA rendering algorithms.
+    Need to add XNA rendering algorithms to the Class.
     Goal = handle at least 10k particles on screen without throttling framerate
     Add an option for a particle to spawn another particle on it's own position. 
     Particle maximum travel distance value.
     */
-    public enum animation_type { circular, oscillation, reverse_circular }; // types of animation mean the order of frame switching
-    public enum particle_type { unknown };
+    /*public enum animation_type { circular, oscillation, reverse_circular }; // types of animation mean the order of frame switching
 
-    public struct Sprite
+    public class Sprite
     {
         private string name; // unique identifier to do the search on.Example: mainchar_running_left, mainchar_running_right, mainchar_taking_damage, mainchar_levelup etc.
         private Texture2D source;
@@ -160,45 +201,5 @@ namespace MonoGameEngine
         {
             return _particle_type;
         }
-    }
-
-    /*Animated Texture updater and container*/
-    public class AnimationEngine
-    {
-        private List<Sprite> sprites; // each particle archetype will be using ONE animatedtexture object, however it can be scaled, rotated and color differently based on the particle itself. As a result all particles will have a synced animation cycle.
-        // functions
-        public void add_texture(Sprite a)
-        {
-            sprites.Add(a);
-        }
-
-        public void update_animations(int current)
-        {
-            foreach (Sprite a in sprites)
-            {
-                a.update(current);
-            }
-        }
-        // a returned animated texture is then drawn using it’s active rectangle adjusted drawing function
-        public Sprite? find_sprite(string name)
-        {
-            foreach (Sprite a in sprites)
-            {
-                if (a.get_name() == name)
-                    return a;
-            }
-            return null; // if null is returned – handle in a calling function, either ignore or raise an exception
-        }
-        // a returned animated texture is then drawn using it’s active rectangle adjusted drawing function
-        public Sprite? find_sprite(particle_type _particle_type)
-        {
-            foreach (Sprite a in sprites)
-            {
-                if (_particle_type != null && a.get_particle_type() == _particle_type)
-                    return a;
-            }
-
-            return null; // if null is returned (there is no correct particle type) – handle in a calling function, either ignore or raise an exception
-        }
-    }
+    }*/
 }

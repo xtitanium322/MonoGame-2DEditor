@@ -11,20 +11,16 @@ using Microsoft.Xna.Framework.Media;
 
 namespace EditorEngine
 {
+    /// <summary>
+    /// Ensure that a UI element creates its basic building block - content sectors
+    /// </summary>
     public interface ISectored
     {
         void create_sectors();
     }
-
-    public interface IEngine
-    {
-        Engine engine
-        {
-            //get;
-            set;
-        }
-    }
-
+    /// <summary>
+    /// Base of each UI element - contains the shared functionality
+    /// </summary>
     [Serializable()]
     public class UIElementBase : ISectored
     {
@@ -55,7 +51,18 @@ namespace EditorEngine
         protected const float hover_fade_delay = 200f;          // amount of time needed to start tooltip fade in
         protected const float hover_fade_duration = 500f;       // amount of time transparency value changes from 0 to 1f after fade delay has ended
         protected const float tooltip_termination_time = 3500f; // time since hover start when tooltip is no longer shown
-
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="id">element string id for lookup</param>
+        /// <param name="parent">parent container object</param>
+        /// <param name="f">type of the element</param>
+        /// <param name="c">action assigned to the element</param>
+        /// <param name="safety">confirm or no</param>
+        /// <param name="dimension">element size and position inside the container</param>
+        /// <param name="icon">does it have an icon? null if not</param>
+        /// <param name="label">string label to write on top of the proper sector</param>
+        /// <param name="tooltip">tooltip to show on hover</param>
         public UIElementBase(string id, Container parent, type f, actions? c, confirm safety, Rectangle dimension, Texture2D icon, String label, String tooltip)
         {
             this.element_id = id;
@@ -76,14 +83,25 @@ namespace EditorEngine
             //create_sectors(f);
             confirmation = (safety == confirm.yes) ? true : false; // assign confirmation dialog box 
         }
-
+        /// <summary>
+        /// Interface function to be created in each element
+        /// </summary>
         public virtual void create_sectors()// recreate in derived classes
         { }
-
+        /// <summary>
+        /// Draw the masking graphic
+        /// </summary>
+        /// <param name="e">engine instance</param>
         public virtual void draw_masking_sprite(Engine e)
         {
             // required to apply shader effects on elements, such as a crop effect 
         }
+        /// <summary>
+        /// Draw the post processing graphcis
+        /// </summary>
+        /// <param name="e">engine instance</param>
+        /// <param name="interface_color">interface color value</param>
+        /// <param name="interface_transparency">transparency value 0-1</param>
         public virtual void draw_post_processing(Engine e, Color interface_color, float interface_transparency)
         {
             // required to include overlaying graphics after effects have been completed
@@ -96,22 +114,42 @@ namespace EditorEngine
         {
             this.background = background;
         }
+        /// <summary>
+        /// Add a parent container
+        /// </summary>
+        /// <param name="c">container object</param>
         public void set_parent(Container c)
         {
             parent = c;
         }
+        /// <summary>
+        /// Get parent container value
+        /// </summary>
+        /// <returns>container object</returns>
         public Container get_parent()
         {
             return parent;
         }
+        /// <summary>
+        /// Set the label value
+        /// </summary>
+        /// <param name="label">label string</param>
         public void set_label(String label)
         {
             this.label = label;
         }
+        /// <summary>
+        /// Assign action to the element
+        /// </summary>
+        /// <param name="action">action to take on click</param>
         public void set_action(actions action)
         {
             this._action = action;
         }
+        /// <summary>
+        /// Does action require confirmation
+        /// </summary>
+        /// <returns>true or false</returns>
         public bool required_confirmation()
         {
             return confirmation;
@@ -132,7 +170,10 @@ namespace EditorEngine
         {
             return current_state;
         }
-
+        /// <summary>
+        /// Get the string id of this element
+        /// </summary>
+        /// <returns>string id</returns>
         public string get_id()
         {
             return element_id;
@@ -145,14 +186,26 @@ namespace EditorEngine
         {
             return false;
         }
+        /// <summary>
+        /// Is the element visible?
+        /// </summary>
+        /// <returns>true or false</returns>
         public bool is_visible()
         {
             return visible;
         }
+        /// <summary>
+        /// Update element visibility
+        /// </summary>
+        /// <param name="value">true or false</param>
         public void set_visible(bool value)
         {
             visible = value;
         }
+        /// <summary>
+        /// Update visibility - toggle current
+        /// </summary>
+        /// <param name="val">string "toggle"</param>
         public void set_visible(string val)
         {
             if(val.Equals("toggle"))
@@ -205,7 +258,7 @@ namespace EditorEngine
                                     {
                                         Texture2D indicator = engine.get_texture("icon-active-indicator");
                                         Vector2 draw_origin = engine.vector_centered(draw_zone, indicator.Bounds, orientation.both);
-                                        engine.xna_draw(indicator, draw_origin, null, Color.White * engine.fade_sine_wave_smooth(2000, 0.25f, 1f, sinewave.zero), 0f, Vector2.Zero, 1f, SpriteEffects.None, 0.9f);
+                                        engine.xna_draw(indicator, draw_origin, null, Color.White * Engine.fade_sine_wave_smooth(2000, 0.25f, 1f, sinewave.zero), 0f, Vector2.Zero, 1f, SpriteEffects.None, 0.9f);
                                     }
                                 }
                                 break;
@@ -236,7 +289,10 @@ namespace EditorEngine
                 }// end foreach horizontal
             }// end if
         }
-
+        /// <summary>
+        /// Darw the tooltip
+        /// </summary>
+        /// <param name="engine">engine instance</param>
         public void draw_tooltip(Engine engine)
         {
             // draw a tooltip if hovered, the element is visible and the tooltip text exists
@@ -247,11 +303,11 @@ namespace EditorEngine
                 Vector2 centered_text_position = engine.vector_centered(new Rectangle((int)position.X, (int)position.Y, (int)tooltip.Width, (int)tooltip.Height), new Rectangle(0, 0, (int)text_size.X, (int)text_size.Y), orientation.both);
 
                 // calculate transparency based on delay and fade time period
-                float transparency_internal = engine.fade_up((float)hover_start_time, hover_fade_delay, hover_fade_duration);
+                float transparency_internal = Engine.fade_up((float)hover_start_time, hover_fade_delay, hover_fade_duration);
 
                 // draw tooltip with text using a fade in effect based on hover start time and delay
-                if (engine.get_current_game_millisecond() - hover_fade_delay >= hover_start_time            // existed long enough to be faded in
-                    && engine.get_current_game_millisecond() - hover_start_time < tooltip_termination_time) // within existence timeframe
+                if (Engine.get_current_game_millisecond() - hover_fade_delay >= hover_start_time            // existed long enough to be faded in
+                    && Engine.get_current_game_millisecond() - hover_start_time < tooltip_termination_time) // within existence timeframe
                 {
                     engine.xna_draw(tooltip, position, null, Color.White * transparency_internal, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1f); // background
                     engine.xna_draw_outlined_text(tooltip_text.ToString(), centered_text_position, Vector2.Zero, Color.AntiqueWhite * transparency_internal, Color.Black * transparency_internal, engine.get_UI_font());
@@ -289,7 +345,7 @@ namespace EditorEngine
         /// Create a tooltip background for the element if there is a tooltip
         /// </summary>
         /// <param name="t">Texture assigned to a tooltip background image</param>
-        /// <returns></returns>
+        /// <returns>true if tooltip was added</returns>
         public bool add_tooltip_background(Texture2D t)
         {
             try
@@ -302,6 +358,10 @@ namespace EditorEngine
                 return false;
             }
         }
+        /// <summary>
+        /// Update transparency value
+        /// </summary>
+        /// <param name="value">0-1 float</param>
         public void set_transparency(float value)
         {
             bg_transparency = value;
@@ -327,14 +387,14 @@ namespace EditorEngine
         }
 
         /// <summary>
-        /// Activates this button
+        /// Activates this button/element
         /// </summary>
         public void activate()
         {
             active = true;
         }
         /// <summary>
-        /// Deactivates this button
+        /// Deactivates this button/element
         /// </summary>
         public void inactivate()
         {
@@ -349,7 +409,10 @@ namespace EditorEngine
         {
             return icon;
         }
-
+        /// <summary>
+        /// Add an icon texture to the element
+        /// </summary>
+        /// <param name="icon">icon texture asset</param>
         public void set_icon(Texture2D icon)
         {
             this.icon = icon;
@@ -418,17 +481,28 @@ namespace EditorEngine
         {
             return function;
         }
-
+        /// <summary>
+        /// Remove the background from this element
+        /// </summary>
         public void remove_background()
         {
             background = null;
         }
-
+        /// <summary>
+        /// Position the label in a different orientation
+        /// </summary>
+        /// <param name="value"></param>
         public void set_custom_label_positioning(orientation value)
         {
             label_positioning = value;
         }
-
+        /// <summary>
+        /// Update element size and position
+        /// </summary>
+        /// <param name="x">x coordinate inside container</param>
+        /// <param name="y">y coordinate inside container</param>
+        /// <param name="width">element width in pixels</param>
+        /// <param name="height">element height in pixels</param>
         public void modify_bounds(int x, int y, int width, int height)
         {
             bounds.X = x;

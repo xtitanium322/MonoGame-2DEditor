@@ -10,7 +10,10 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
 namespace EditorEngine
-{   // 24 hour in-game clock class - base of the day/night cycle and related gameplay functions
+{
+    /// <summary>
+    /// 24 hour in-game clock class - base of the day/night cycle and related gameplay functions
+    /// </summary>
     public class WorldClock
     {
         private int hours;
@@ -25,9 +28,14 @@ namespace EditorEngine
         {
 
         }
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="rate">number of milliseconds between updates</param>
+        /// <param name="rm">number of clock seconds added per cycle</param>
         public WorldClock(int rate, int rm)
         {
-            hours = 19; // hours must not go above 23
+            hours = 12;                  // hours must not go above 23
             minutes = 0;
             seconds = 0;
             millisecond_marker = 0;
@@ -35,43 +43,74 @@ namespace EditorEngine
             this.rate = rate;
             paused = false;
         }
-        // functions
-        // adjust game clock
+        /// <summary>
+        /// Set clock values
+        /// </summary>
+        /// <param name="h">hours</param>
+        /// <param name="m">minutes</param>
         public void set_clock(int h, int m)
         {
             hours = h;
             minutes = m;
             seconds = 0;
         }
+        /// <summary>
+        /// Set clock using all values
+        /// </summary>
+        /// <param name="h">hours</param>
+        /// <param name="m">minutes</param>
+        /// <param name="s">seconds</param>
         public void set_clock(int h, int m, int s)
         {
             hours = h;
             minutes = m;
             seconds = s;
         }
+        /// <summary>
+        /// Check if the clock is paused
+        /// </summary>
+        /// <returns>true or false</returns>
         public bool get_paused_status()
         {
             return paused;
         }
+        /// <summary>
+        /// Set pause status
+        /// </summary>
+        /// <param name="value">true or false</param>
         public void set_paused(bool value)
         {
             paused = value;
         }
-        // get raw time 
+        /// <summary>
+        /// get raw time 
+        /// </summary>
+        /// <returns>a vector containing hours, minutes and seconds</returns>
         public Vector3 get_raw_time_vector()
         {
             return new Vector3(hours, minutes, seconds);
         }
-        // get raw time in number of minutes or seconds
+        /// <summary>
+        /// get raw time in minutes
+        /// </summary>
+        /// <returns>converted hours + minutes into minutes</returns>
         public int get_time_in_minutes()
         {
             return hours * 60 + minutes;
         }
+        /// <summary>
+        /// Convert time to seconds
+        /// </summary>
+        /// <returns>converted hours + minutes into seconds</returns>
         public int get_time_in_seconds()
         {
             return hours * 3600 + minutes * 60 + seconds;
         }
-        // get current clock time
+ 
+        /// <summary>
+        /// get current clock time
+        /// </summary>
+        /// <returns>a vector containing hours, minutes and seconds converted into 12 hour mode</returns>
         public Vector3 get_time()
         {
             int hour_value;
@@ -90,8 +129,11 @@ namespace EditorEngine
             }
 
             return new Vector3(hour_value, minutes, seconds); // x = hours, y = minutes, z = seconds (display clock in AM/PM format)
-        }
-        // for a 12 hour clock representation
+        } 
+        /// <summary>
+        /// AM or PM tag for a 12 hour clock representation
+        /// </summary>
+        /// <returns>string am or pm value</returns>
         public String get_am_pm()
         {
             if (hours < 12)
@@ -101,7 +143,9 @@ namespace EditorEngine
             else
                 return "PM";
         }
-        // add minute to game time
+        /// <summary>
+        /// add minute to the clock
+        /// </summary>
         public void add_minute()
         {
             if (minutes == 59)
@@ -116,6 +160,7 @@ namespace EditorEngine
             else
                 minutes++;
         }
+        // add second to the clock
         public void add_second()
         {
             // seconds level
@@ -137,9 +182,11 @@ namespace EditorEngine
                     minutes++;
             }
             else
-                seconds++/* rate_multiplier*/; // rate of added seconds per cycle
+                seconds++; // rate of added seconds per cycle
         }
-
+        /// <summary>
+        /// Update the game clock
+        /// </summary>
         public void update_clock()
         {
             if (paused)
@@ -179,7 +226,11 @@ namespace EditorEngine
                 minutes += minutes_updated;
             }
         }
-        // Update function for game clock - run in Game class Update function
+        // 
+        /// <summary>
+        /// Update function for game clock - run in Game class Update function
+        /// </summary>
+        /// <param name="milliseconds">current millisecond</param>
         public void update(long milliseconds)
         {
             if (milliseconds >= millisecond_marker + rate)

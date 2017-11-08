@@ -10,16 +10,16 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
-
 using System.Xml;                                                           // use xml files
 using Microsoft.Xna.Framework.Content.Pipeline.Serialization.Intermediate;  // xml serialization
 using MyDataTypes;                                                          // data types structure
 using System.IO;
-/*
- * Every world in the game + functions that let player interact with these worlds
- */
+
 namespace EditorEngine
 {
+    /// <summary>
+    /// World + filename for the tile xml file
+    /// </summary>
     public struct WorldStruct   // Structure representing worlds in the World list
     {
         public string filename;
@@ -31,7 +31,9 @@ namespace EditorEngine
             world = w;
         }
     }
-    //**************************//
+    /// <summary>
+    /// very world in the game + functions that let player interact with these worlds
+    /// </summary>
     public class WorldCollection
     {
         public List<WorldStruct> worlds;    // list of all playable worlds
@@ -42,7 +44,19 @@ namespace EditorEngine
             worlds = new List<WorldStruct>();    // create a list for game worlds
             current = 0;
         }
-        // add world to world list
+        /// <summary>
+        /// Get a list of worlds
+        /// </summary>
+        /// <returns>List of WorldStruct objects</returns>
+        public List<WorldStruct> get_worlds()
+        {
+            return worlds;
+        }
+        /// <summary>
+        /// add world to world list
+        /// </summary>
+        /// <param name="filename">filename for serialization</param>
+        /// <param name="w">World object</param>
         public void add_world(String filename, World w)
         {
             if (worlds.Count == 0)
@@ -50,7 +64,10 @@ namespace EditorEngine
 
             worlds.Add(new WorldStruct(filename, w));
         }
-        // load xml file into the game
+        /// <summary>
+        /// Load the world into xml file
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
         public void load_tiles(Engine engine)
         {
             foreach (WorldStruct w in worlds)
@@ -62,6 +79,7 @@ namespace EditorEngine
 
                     using (FileStream stream = new FileStream(w.filename, FileMode.Open)) //open xml file, close??
                     {
+                        if(stream != null)
                         using (XmlReader reader = XmlReader.Create(stream)) // open file in xml reader
                         {
 
@@ -69,9 +87,7 @@ namespace EditorEngine
                             //tile_map = tiles.Cast<MapData>().ToList(); // load into the list
                         }
                     }
-                    // generating map ui_elements
-                    // optimization - remove foreach loop and only calculate range once - change of format to ArrayList
-                        //foreach (MapData tile_info in tile_map)
+                    // generating map tiles
                     int total_count = tile_map.Count;
 
                     for (int i = 0; i < total_count; i++ )
@@ -83,10 +99,17 @@ namespace EditorEngine
                             {
                                 for (int y = 0; y < map_object.height; y++)
                                 {
-                                    w.world.generate_tile(Tile.find_tile_id(map_object.block_name),
-                                    map_object.block_x + x,
-                                    map_object.block_y + y,
-                                    engine);
+                                    if (map_object.block_name >= 0)
+                                        w.world.generate_tile((short)map_object.block_name,
+                                        map_object.block_x + x,
+                                        map_object.block_y + y,
+                                        engine);
+                                    else
+                                        w.world.generate_tile((short)map_object.block_name,
+                                                 map_object.block_x + x,
+                                                 map_object.block_y + y,
+                                                 engine,
+                                                 map_object.water_content);
                                 }
                             }
                         }
@@ -104,24 +127,39 @@ namespace EditorEngine
                 {
                     Debug.WriteLine("[DEBUG INFO] File doesn't exist: " + e);
                 }
+                catch (Microsoft.Xna.Framework.Content.Pipeline.InvalidContentException e)
+                {
+                    Debug.WriteLine("[DEBUG INFO] Bad operation: " + e);
+                }
             }
         }
-        // change function for 2 worlds in the list
-        public void change_current(Engine engine, String world_name)
+
+        /// <summary>
+        /// change function for worlds - updates current active world
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
+        public void change_current(Engine engine)
         {
-            if (current == 0)
-                current = 1;
-            else
+            if (current == worlds.Count - 1)
                 current = 0;
+            else
+                current++;
 
-            engine.set_camera_offset(Vector2.Zero);
+            engine.set_camera_offset(Vector2.Zero);          
         }
-
+        /// <summary>
+        /// Get current active world
+        /// </summary>
+        /// <returns>World object</returns>
         public World get_current()
         {
             return worlds.ElementAt(current).world;
         }
-
+        /// <summary>
+        /// Find the world by its name
+        /// </summary>
+        /// <param name="world_name">string name</param>
+        /// <returns>World object</returns>
         public World get_world_by_name(String world_name)
         {
             foreach (WorldStruct w in worlds)
