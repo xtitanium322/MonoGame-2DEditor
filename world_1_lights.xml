@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<XnaContent xmlns:Collections="System.Collections">
+  <Asset Type="Collections:ArrayList">
+    <Item Type="MyDataTypes.Light_Data">
+      <origin_x>190</origin_x>
+      <origin_y>-170</origin_y>
+      <cell_x>10</cell_x>
+      <cell_y>-8</cell_y>
+      <tint_r>153</tint_r>
+      <tint_g>187</tint_g>
+      <tint_b>102</tint_b>
+      <radius>2014</radius>
+      <intensity>0.63</intensity>
+    </Item>
+    <Item Type="MyDataTypes.Light_Data">
+      <origin_x>950</origin_x>
+      <origin_y>-150</origin_y>
+      <cell_x>48</cell_x>
+      <cell_y>-7</cell_y>
+      <tint_r>159</tint_r>
+      <tint_g>136</tint_g>
+      <tint_b>31</tint_b>
+      <radius>1521</radius>
+      <intensity>0.2848242</intensity>
+    </Item>
+    <Item Type="MyDataTypes.Light_Data">
+      <origin_x>730</origin_x>
+      <origin_y>450</origin_y>
+      <cell_x>37</cell_x>
+      <cell_y>23</cell_y>
+      <tint_r>154</tint_r>
+      <tint_g>141</tint_g>
+      <tint_b>178</tint_b>
+      <radius>2391</radius>
+      <intensity>0.53</intensity>
+    </Item>
+  </Asset>
+</XnaContent>

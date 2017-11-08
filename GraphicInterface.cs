@@ -5,7 +5,6 @@ using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
-//using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
@@ -14,9 +13,9 @@ namespace EditorEngine
 {
     /// <summary>
     /// GraphicInterface is an overall GUI containing all containers/stored_elements. Also manages GUI related actions
-    /// Structure: GUI < Container < Unit < Internal Unit Zones
+    /// Structure: GUI < Container < UIElement < Internal sector zones
     /// </summary>
-    public class GraphicInterface : IEngine
+    public class GraphicInterface
     {
         private List<Container> containers;                         // list of containers                
         private Container hovered_container;                        // assign hovered references
@@ -54,25 +53,43 @@ namespace EditorEngine
 
             textengine = new TextEngine(engine.get_UI_font(), Rectangle.Empty, Vector2.Zero, Color.White); // creating a textengine inside GUI
         }
-        // GUI Functions-----------------------------------------------------------------------------------------------------------------------135c
+// GUI Functions-----------------------------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Get the text engine responsible for drawing text in rectangles
+        /// </summary>
+        /// <returns>TextEngine object</returns>
         public TextEngine get_text_engine()
         {
             return textengine;
         }
+        /// <summary>
+        /// Is GUI locked to specific actions (slider hold)
+        /// </summary>
+        /// <returns>true or false</returns>
         public bool is_locked()
         {
             return locked;
         }
+        /// <summary>
+        /// Lock the user interface. Prevents from executing actions while a hold is active on, e.g. slider
+        /// </summary>
+        /// <param name="state">true or false</param>
         public void set_lock_state(bool state)
         {
             locked = state;
         }
-
+        /// <summary>
+        /// Determine if containers should be outlined
+        /// </summary>
+        /// <returns>true or false</returns>
         public bool are_containers_outlined()
         {
             return outline_containers;
         }
-
+        /// <summary>
+        /// Set the container outline 
+        /// </summary>
+        /// <param name="value">true or false</param>
         public void set_container_outline(bool value)
         {
             outline_containers = value;
@@ -85,12 +102,18 @@ namespace EditorEngine
         {
             return containers;
         }
-
+        /// <summary>
+        /// Get current hovered element
+        /// </summary>
+        /// <returns>hovered Element</returns>
         public UIElementBase get_hovered_element()
         {
             return hovered_unit;
         }
-
+        /// <summary>
+        /// Get current hovered container
+        /// </summary>
+        /// <returns>hovered container</returns>
         public Container get_hovered_container()
         {
             return hovered_container;
@@ -98,7 +121,7 @@ namespace EditorEngine
         /// <summary>
         /// Create all GUI element background based on bounds. All background are created with a White color, then element color is assigned in Draw() function
         /// </summary>
-        public void create_UI_backgrounds(/*Engine engine*/)
+        public void create_UI_backgrounds()
         {
             foreach (Container c in containers)
             {
@@ -170,51 +193,8 @@ namespace EditorEngine
                         {
                             continue;
                         }
-                        else
-                        {
-                            /*while (cc.get_bounds().Intersects(c.get_bounds()))
-                            {
-                                // special case - if at any point container container intersects window borders - change direction of the movement
-                                if (c.get_bounds().X <= 0 || c.get_bounds().X >= engine.getGame1().viewport.Width)                                 
-                                {
-                                    window_collision_h = true;
-                                }
-
-                                if(c.get_bounds().Y <= 0 || c.get_bounds().Y >= engine.getGame1().viewport.Height)
-                                {
-                                    window_collision_v = true;
-                                }
-                                // test borders
-                                if (c.get_bounds().Left <= cc.get_bounds().Left) // current container intersects on the left border
-                                {
-                                    if (c.get_bounds().Top <= cc.get_bounds().Top) // intersection on the top border
-                                    {
-                                        // move left and up
-                                        c.de_intersect(new Vector2(-1, -1), window_collision_h,window_collision_v);
-                                    }
-                                    else // intersection on the bottom border
-                                    {
-                                        // move left and down
-                                        c.de_intersect(new Vector2(-1, 1), window_collision_h,window_collision_v);
-                                    }
-                                }
-                                else // intersects on right border
-                                {
-                                    if (c.get_bounds().Top <= cc.get_bounds().Top) // intersection on the top border
-                                    {
-                                        // move right and up
-                                        c.de_intersect(new Vector2(1, -1), window_collision_h,window_collision_v);
-                                    }
-                                    else // intersection on the bottom border
-                                    {
-                                        // move right and down
-                                        c.de_intersect(new Vector2(1, 1), window_collision_h,window_collision_v);
-                                    }
-                                }
-                            }*/
-                        }
                     }
-                }//if
+                }
             }
 
             textengine.set_font(engine.get_UI_font());
@@ -245,7 +225,7 @@ namespace EditorEngine
                     {
                         if (e.get_state() != state.hovered) // if not currently hovered - assign hovered state and start time
                         {
-                            e.set_hover_start_time(engine.get_current_game_millisecond());
+                            e.set_hover_start_time(Engine.get_current_game_millisecond());
                             e.set_state(state.hovered);
                         }
                     }
@@ -285,7 +265,12 @@ namespace EditorEngine
                     continue;
             }
         }
-
+        /// <summary>
+        /// Draw context type containers - separate drawing sequence to layer the interface
+        /// </summary>
+        /// <param name="s">spritebatch</param>
+        /// <param name="color">interface color</param>
+        /// <param name="transparency">interface transparency</param>
         public void draw_context_containers_and_tooltips(SpriteBatch s, Color color, float transparency)
         {
             // ignore if GUI is invisible
@@ -326,7 +311,9 @@ namespace EditorEngine
                         e.draw_tooltip(engine);
                 }
         }
-
+        /// <summary>
+        /// Draw the masking layer of the GUI.Hides parts of the interface through a shader effect
+        /// </summary>
         public void draw_masking_layer()
         {
             // ignore if GUI is invisible
@@ -344,6 +331,12 @@ namespace EditorEngine
                 }
             }
         }
+        /// <summary>
+        /// Post processing drawing function - borders and text
+        /// </summary>
+        /// <param name="ee">Engine instance</param>
+        /// <param name="interface_color">interface color</param>
+        /// <param name="interface_transparency">interface transparency 0 - 1</param>
         public void draw_post_processing(Engine ee, Color interface_color, float interface_transparency)
         {
             // ignore if GUI is invisible
@@ -421,19 +414,30 @@ namespace EditorEngine
                 return hovered_unit.get_action();
             else return null;
         }
+        /// <summary>
+        /// Text representation of the enum actions value
+        /// </summary>
+        /// <returns>string action element</returns>
         public String get_hovered_element_action_text()
         {
             if (hovered_unit != null)
                 return hovered_unit.get_action().ToString();
             else return null;
         }
+        /// <summary>
+        /// Get string id of the hovered container
+        /// </summary>
+        /// <returns>container ID</returns>
         public string get_hovered_container_id()
         {
             if (hovered_container != null)
                 return hovered_container.get_id();
             else return "none";
         }
-
+        /// <summary>
+        /// Get hovered element id
+        /// </summary>
+        /// <returns>string element ID</returns>
         public string get_hovered_element_id()
         {
             if (hovered_unit != null)
@@ -510,6 +514,23 @@ namespace EditorEngine
             }
         }
         /// <summary>
+        /// Particle test menu activation function. Shows indicator on the currently active particle type.
+        /// </summary>
+        /// <param name="a">action enum value of the button that's active</param>
+        public void activate_particle_test_buttons(actions a)
+        {
+            // refresh
+            this.find_unit(actions.change_test_particle_star).inactivate();
+            this.find_unit(actions.change_test_particle_square).inactivate();
+            this.find_unit(actions.change_test_particle_circle).inactivate();
+            this.find_unit(actions.change_test_particle_hollow_square).inactivate();
+            this.find_unit(actions.change_test_particle_raindrop).inactivate();
+            this.find_unit(actions.change_test_particle_triangle).inactivate();
+            this.find_unit(actions.change_test_particle_x).inactivate();
+            // enable
+            this.find_unit(a).activate();
+        }
+        /// <summary>
         /// Activate buttons - show active indicators if a button is related to a state of host class
         /// </summary>
         /// <param name="m">modes enum parameter found in editor class</param>
@@ -520,6 +541,12 @@ namespace EditorEngine
             {
                 foreach (UIElementBase u in c.get_element_list())
                 {
+                    if (u.get_action() == actions.editor_mode_switch_add
+                        || u.get_action() == actions.editor_mode_switch_delete
+                        || u.get_action() == actions.editor_mode_switch_select
+                        || u.get_action() == actions.editor_mode_switch_lights
+                        || u.get_action() == actions.editor_mode_switch_water
+                        || u.get_action() == actions.editor_mode_switch_tree)
                     u.inactivate();
                 }
             }
@@ -566,7 +593,10 @@ namespace EditorEngine
                     break;
             }
         }
-
+        /// <summary>
+        /// Activate one of the tools buttons (submode)
+        /// </summary>
+        /// <param name="t">tools representation enum value</param>
         public void activate(tools t)
         {   // reset
             find_unit(actions.editor_submode_switch_radius).inactivate();
@@ -592,10 +622,7 @@ namespace EditorEngine
                 find_unit(actions.editor_submode_switch_hollow_square).activate();
             }
         }
-        /*public List<UIElementBase> get_all_elements()
-        {
-            return elements;
-        }*/
+
         /// <summary>
         /// Function used to search for a GUI element during assignment phase
         /// </summary>
@@ -615,7 +642,12 @@ namespace EditorEngine
             }
             return null;
         }
-
+        /// <summary>
+        /// Find element by container and action represented
+        /// </summary>
+        /// <param name="parent">parent Container</param>
+        /// <param name="a">action type</param>
+        /// <returns>element object</returns>
         public UIElementBase find_element(Container parent, actions a)
         {
             return parent.find_element(a);
@@ -636,6 +668,11 @@ namespace EditorEngine
             }
             return null;
         }
+        /// <summary>
+        /// Find container by its ID
+        /// </summary>
+        /// <param name="target_id">Container string ID</param>
+        /// <returns>Container object</returns>
         public Container find_container(string target_id)
         {
             foreach (Container c in containers)
@@ -666,20 +703,11 @@ namespace EditorEngine
             }
             return null;
         }
-        /*public UIElementBase find_unit_by_tooltip(String tooltip)
-        {
-            foreach (Container c in containers)
-            {
-                foreach (UIElementBase e in c.get_element_list())
-                {
-                    if (e.get_tooltip_text() == tooltip) // find specified element
-                    {
-                        return e;
-                    }
-                }
-            }
-            return null;
-        }*/
+        /// <summary>
+        /// Find UI element by label. Used to assign an action to confirmation button
+        /// </summary>
+        /// <param name="label">string label</param>
+        /// <returns>UI element object</returns>
         public UIElementBase find_unit(String label)
         {
             foreach (Container c in containers)
@@ -694,7 +722,10 @@ namespace EditorEngine
             }
             return null;
         }
-
+        /// <summary>
+        /// List of all GUI containers
+        /// </summary>
+        /// <returns>List of container types</returns>
         public List<Container> get_containers()
         {
             return containers;
@@ -711,7 +742,7 @@ namespace EditorEngine
                 if (c.get_name() == target_name) // find specified element
                 {
                     if (value == true)
-                        c.set_container_fade_start(engine.get_current_game_millisecond());
+                        c.set_container_fade_start(Engine.get_current_game_millisecond());
 
                     c.set_visibility(value);
                 }
@@ -775,14 +806,6 @@ namespace EditorEngine
             containers.Add(c);
         }
         /// <summary>
-        /// Add element to a list. During GUI construction elements from this list will be assigned to their containers etc.
-        /// </summary>
-        /// <param name="engine">GUI element</param>
-        /*public void add_element_temporary(UIElementBase engine)
-        {
-            elements.Add(engine);
-        }*/
-        /// <summary>
         /// Change container position:origin. Called from the GUI by this wrapper function which in turn calls a container function with the same purpose.
         /// Usage: for a context menu - whenever a context menu is summoned - it has to appear at the mouse coordinates
         /// </summary>
@@ -816,8 +839,8 @@ namespace EditorEngine
         /// Sets position where sub-context menus appear on screen. 
         /// Requires main context menu position on screen and viewport bounds
         /// </summary>
-        /// <param name="subcontext"></param>
-        /// <param name="new_origin"></param>
+        /// <param name="subcontext">subcontext Container</param>
+        /// <param name="new_origin">Position of the subcontext on-screen</param>
         public void update_sub_context_origin(Container subcontext, Viewport v, Vector2 suggested_position)
         {
             // find context container stats
@@ -846,18 +869,25 @@ namespace EditorEngine
         /// <summary>
         /// Load custom background for element from GUI class
         /// </summary>
-        /// <param name="element_id"></param>
-        /// <param name="bg"></param>
+        /// <param name="element_id">string ID of the UI element</param>
+        /// <param name="bg">custom background graphic texture</param>
         public void load_custom_element_background(string element_id, Texture2D bg)
         {
             find_element(element_id).load_custom_background(bg);
         }
-
+        /// <summary>
+        /// Custom background for a Container
+        /// </summary>
+        /// <param name="container_id">string ID of the UI Container</param>
+        /// <param name="bg">custom background graphic texture</param>
         public void load_custom_container_background(string container_id, Texture2D bg)
         {
             find_container(container_id).add_custom_container_background(bg); // also sets all elements to 0.0f scale
         }
-
+        /// <summary>
+        /// Update interface transparency value
+        /// </summary>
+        /// <param name="value">0-1 value</param>
         public void set_interface_transparency(float value)
         {
             foreach (Container c in containers)
@@ -870,7 +900,11 @@ namespace EditorEngine
                 }
             }
         }
-
+        /// <summary>
+        /// Position text label in the UI element
+        /// </summary>
+        /// <param name="id">string ID of the label</param>
+        /// <param name="value">various vertical and horizontal alignment values</param>
         public void set_element_label_positioning(string id, orientation value)
         {
             find_element(id).set_custom_label_positioning(value);
@@ -880,7 +914,7 @@ namespace EditorEngine
         /// </summary>
         /// <typeparam name="T">contexttype of value</typeparam>
         /// <param name="element_id">id of GUI element</param>
-        /// <returns></returns>
+        /// <returns>Value of the tracked variable</returns>
         public T get_tracked_value<T>(string element_id)
         {
 

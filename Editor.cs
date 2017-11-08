@@ -8,37 +8,30 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 using System.Diagnostics;
-/*
- * Old element IDs
- * 1000 = MODE_BUTTON_ADDMODE
- * 1039 = CURRENT_EDITOR_CELL_CHANGER_SUBCONTEXT
- * 1042 = CURRENT_EDITOR_CELL_CHANGER_BUTTON
- * 1029 = INFOLABEL_BRUSH_RADIUS
- * 1050 = PROGRESS_BAR_WORLDFILL_PERCENTAGE
- * 1037 = SWITCH_CLOCK_PAUSE_RESTART
- * 1031 = SLIDER_BRUSHSIZE
- * 1041 = PREVIEW_SELECTIONCOLOR
- * 1043 = INFOLABEL_CURRENT_EDIT_TILE
- * 1044 = PREVIEW_EDITORGRID
- */
+
 namespace EditorEngine
 {
+    /// <summary>
+    /// Interface color theme templates
+    /// </summary>
     [Serializable()]
     public struct color_theme
     {
         public string id; // identifier for this theme
-        [NonSerialized]
-        public Color interface_color;
-        [NonSerialized]
-        public Color text_color;
+        [NonSerialized] public Color interface_color;
         public string interface_color_surrogate;
         public float interface_transparency;
-
-        public color_theme(string id, Color interface_color, Color text_color, float transparency)
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="id">theme name</param>
+        /// <param name="interface_color">theme color</param>
+        /// <param name="text_color">theme text color</param>
+        /// <param name="transparency">transparency value</param>
+        public color_theme(string id, Color interface_color, float transparency)
         {
             this.id = id;
             this.interface_color = interface_color;
-            this.text_color = text_color;
             interface_transparency = transparency;
             interface_color_surrogate = TextEngine.color_to_delimited_string(interface_color); // creating a standardized string to be serialized in binary process
         }
@@ -49,117 +42,104 @@ namespace EditorEngine
         {
             interface_color = TextEngine.delimited_string_to_color(interface_color_surrogate);
         }
-
+        /// <summary>
+        /// Get theme color
+        /// </summary>
+        /// <returns>Color color</returns>
         public Color get_color()
         {
             return interface_color;
         }
+        /// <summary>
+        /// Update transparency value
+        /// </summary>
+        /// <param name="val"></param>
+        public void set_transparency(float val)
+        {
+            interface_transparency = val;
+        }
     }
-
+    /// <summary>
+    /// Editor class - for manipulation of the game world. addition and deletion of world tiles/props.
+    /// </summary>
     [Serializable()]
     public class Editor
     {
-        [NonSerialized]
-        private modes editor_mode;                                      // editor mode
-        [NonSerialized]
-        private tools editor_tools;                                     // editor tool
-        [NonSerialized]
-        private int submode_brush_radius;                               // this value tracks the size of submode brush used in combination with mode.add or mode.delete`. Ranges from 0 to 10
-        [NonSerialized]
-        private short edit_tile_id;                                     // which tile contexttype is currently highlighted
-        [NonSerialized]
-        private List<Vector2> selection_matrix;                         // list of all selected cells
-        [NonSerialized]
-        private List<PointLight> selection_lights;                      // list of all lights inside selection matrix
-        [NonSerialized]
-        private List<WaterGenerator> selection_watergen;                // list of all water generators inside selection matrix
-        [NonSerialized]
-        private List<Vector2> line_matrix;                              // list of all line cells - used to create new cells with line tool
-        [NonSerialized]
-        public GraphicInterface GUI;                                    // create a User Interface object in this host class  
-        [NonSerialized]
-        private Vector2? selection_start_cell, selection_end_cell;      // start/end cells in selection
-        [NonSerialized]
-        public Vector2 engine_offset = new Vector2(0, 0);                // placeholder vector for offsetting
-        // line tool start/end points. If start get_cell_address exists - moving mouse makes program update current line status. 
-        // Right click cancels start get_cell_address. Turn off context clicking while line start get_cell_address exists
-        [NonSerialized]
-        public Vector2 line_start_cell, line_end_cell;
-
-        // color parameters of the GUI
-        [NonSerialized]
-        private List<color_theme> themes = new List<color_theme>();
+// tools and various support collections
+        [NonSerialized]private modes editor_mode;                                      // editor mode
+        [NonSerialized]private tools editor_tools;                                     // editor tool
+        [NonSerialized]private int submode_brush_radius;                               // this value tracks the size of submode brush used in combination with mode.add or mode.delete`. Ranges from 0 to 10
+        [NonSerialized]private short edit_tile_id;                                     // which tile contexttype is currently highlighted
+        [NonSerialized]private List<Vector2> selection_matrix;                         // list of all selected cells
+        [NonSerialized]private List<PointLight> selection_lights;                      // list of all lights inside selection matrix
+        [NonSerialized]private List<WaterGenerator> selection_watergen;                // list of all water generators inside selection matrix
+        [NonSerialized]private List<Vector2> line_matrix;                              // list of all line cells - used to create new cells with line tool
+        [NonSerialized]public GraphicInterface GUI;                                    // create a User Interface object in this host class       
+        [NonSerialized]public Vector2 engine_offset = new Vector2(0, 0);               // placeholder vector for offsetting - draw tool text
+// line tool and selection matrix   
+        [NonSerialized] private Vector2? selection_start_cell, selection_end_cell;     // start/end cells in selection
+        [NonSerialized] public Vector2 line_start_cell, line_end_cell;                 // line tool start/end points. If start cell exists - moving mouse makes program update current line status.Right click cancels start cell. Turn off context clicking while line start cell exists
+// color theme parameters of the GUI
+        [NonSerialized]private List<color_theme> themes = new List<color_theme>();
         private float sel_transparency;
-        [NonSerialized]
-        private Color selection_color;
+        [NonSerialized] private Color selection_color;
         private string selection_color_surrogate;
         private color_theme current_theme;
+        private float transparency = 1f;
+// actions
+        [NonSerialized]private actions? action;                                        // current editor action
+        [NonSerialized]public bool gui_move_mode;                                      // gui element movement flag
+        [NonSerialized]public bool locked;                                             // locked?
+        [NonSerialized]private bool overwrite_cells;                                   // true = generate tile even if one exists in the cell, false = ignore existing ui_elements
+        [NonSerialized]private bool editor_actions_locked;                             // true - clicking on world map won't change anything, false - tools are unlocked
+// current text input functionality
+        [NonSerialized]private TextInput current_focused;                              // since input can only be accepted by one target at a time - create a placeholder 
+        [NonSerialized]private const int input_delay = 300;                            // amount of millisecond allowed before next keystroke is added to input string of current focused input
+        [NonSerialized]private const int backspace_delay = 100;
+        [NonSerialized]private long last_input_timestamp = 0;                          // when was the last input received
+        [NonSerialized]private long last_backspace_timestamp = 0;                      // when was the last character erased
 
-        [NonSerialized]
-        private actions? action;                                        // current editor action
-        [NonSerialized]
-        public bool gui_move_mode;                                      // gui element movement flag
-        [NonSerialized]
-        public bool locked;                                             // locked?
-        [NonSerialized]
-        private bool overwrite_cells;                                   // true = generate tile even if one exists in the get_cell_address, false = ignore existing ui_elements
-        [NonSerialized]
-        private bool editor_actions_locked;                             // true - clicking on world map won't change anything, false - tools are unlocked
-        // current text input functionality
-        [NonSerialized]
-        private TextInput current_focused;                              // since input can only be accepted by one target at a time - create a placeholder 
-        [NonSerialized]
-        private const int input_delay = 300;                            // amount of millisecond allowed before next keystroke is added to input string of current focused input
-        [NonSerialized]
-        private const int backspace_delay = 100;
-        [NonSerialized]
-        private long last_input_timestamp = 0;                          // when was the last input received
-        [NonSerialized]
-        private long last_backspace_timestamp = 0;                      // when was the last character erased
-        // constructors
-        public Editor()
-        {
-
-        }
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
         public Editor(Engine engine)
         {
-            //parent_world = w;
             editor_mode = modes.add;
             editor_tools = tools.radius;
             edit_tile_id = 2;
-            submode_brush_radius = 0; // default = 0 get_cell_address radius - 1 get_cell_address currently pointed 
-            selection_start_cell = selection_end_cell = null;      // no cells selected by default
+            submode_brush_radius = 0;                                                   // default = 0 cell radius - 1 cell currently pointed 
+            selection_start_cell = selection_end_cell = null;                           // no cells selected by default
             line_start_cell = new Vector2(-1, -1);
             line_end_cell = new Vector2();
-            selection_matrix = new List<Vector2>(1024); // initialize selection matrix
+            selection_matrix = new List<Vector2>(1024);                                 // initialize selection matrix, expandable
             selection_lights = new List<PointLight>();
             selection_watergen = new List<WaterGenerator>();
             line_matrix = new List<Vector2>(512);
-            GUI = new GraphicInterface(engine); // initialize user interface
-            //sel_transparency = 0.5f;
+            GUI = new GraphicInterface(engine);                                         // initialize user interface
             locked = false;
-            gui_move_mode = false; // UI can't be repositioned
-            overwrite_cells = false; // default = false
+            gui_move_mode = false;                                                      // UI can't be repositioned by default
+            overwrite_cells = false;                                                    // editor will overwrite existing cell - default = false
             editor_actions_locked = false;
             selection_color = new Color(0, 175, 250);
             selection_color_surrogate = TextEngine.color_to_delimited_string(selection_color);
-            // loading themes (contains alist of system defined colors)
-            themes.Add(new color_theme("Black", Color.Black, Color.White, 1f));
-            themes.Add(new color_theme("Orange Red", Color.OrangeRed, Color.White, 1f));
-            themes.Add(new color_theme("Crimson", Color.Crimson, Color.White, 1f));
-            themes.Add(new color_theme("Dark Red", Color.DarkRed, Color.White, 1f));
-            themes.Add(new color_theme("Brown", new Color(204, 153, 26), Color.Black, 1f));
 
-            themes.Add(new color_theme("Vibrant Blue", new Color(0, 128, 255), Color.White, 1f));
-            themes.Add(new color_theme("Bright Purple", new Color(131, 17, 193), Color.White, 1f));
-            themes.Add(new color_theme("Dark Blue", new Color(0, 30, 200), Color.White, 1f));
-
-            themes.Add(new color_theme("Ultra Dark Red", new Color(94, 0, 0), Color.White, 1f));
-            themes.Add(new color_theme("Ultra Dark Green", new Color(62, 94, 0), Color.White, 1f));
-            themes.Add(new color_theme("Ultra Dark Purple", new Color(61, 0, 94), Color.White, 1f));
+            // loading themes (contains a list of system defined colors)
+            themes.Add(new color_theme("Black", Color.Black, transparency));
+            themes.Add(new color_theme("Charcoal", new Color(45, 45, 45), transparency));
+            themes.Add(new color_theme("Brown", new Color(204, 153, 26), transparency));
+            themes.Add(new color_theme("Ultra Dark Red", new Color(94, 0, 0), transparency));
+            themes.Add(new color_theme("Dark Red", Color.DarkRed, transparency));
+            themes.Add(new color_theme("Crimson", Color.Crimson, transparency));
+            themes.Add(new color_theme("Orange Red", Color.OrangeRed,  transparency));
+            themes.Add(new color_theme("Orange", new Color(211, 117, 35), transparency));
+            themes.Add(new color_theme("Ultra Dark Purple", new Color(61, 0, 94), transparency));
+            themes.Add(new color_theme("Bright Purple", new Color(131, 17, 193), transparency));
+            themes.Add(new color_theme("Dark Blue", new Color(0, 30, 200), transparency));
+            themes.Add(new color_theme("Vibrant Blue", new Color(0, 128, 255),  transparency));
+            themes.Add(new color_theme("Ultra Dark Green", new Color(62, 94, 0), transparency));
             current_theme = themes[0];
         }
-        // functions  
         /// <summary>
         /// Loads content textures and creates an overall menu for editor GUI
         /// </summary>
@@ -168,8 +148,8 @@ namespace EditorEngine
         /// <param name="w">World object in which the editor object was created</param>
         public void LoadContent(ContentManager content, Engine engine/*, World w*/)
         {
-            // Dynamically create a list of get_cell_address designs to select from in editor and assign this subcontext to expandable button (1039)
-            Container temp = new Container("CONTAINER_EDITOR_TILE_CHANGER", context_type.expansion, "get_cell_address selection", Vector2.Zero, false);
+            // Dynamically create a list of cell designs to select from in editor and assign this subcontext to expandable button (1039)
+            Container temp = new Container("CONTAINER_EDITOR_TILE_CHANGER", context_type.expansion, "cell selection", Vector2.Zero, false);
             string temp_id = "BUILDING_CELLS_"; // base of the id given to these buttons
             int counter = 0;
 
@@ -180,14 +160,98 @@ namespace EditorEngine
                 temp.add_element(temp_cell);
                 counter++;
             }
+            // Dynamically add PARTICLE MENU to the GUI
+            // this will control the test particle object
+            Container particle_menu = new Container("CONTAINER_PARTICLE_MENU", context_type.none, "particle control menu", new Vector2(300,300), true);
+            SwitchButton<bool> enable_particles = new SwitchButton<bool>("PARTICLE_MENU_ENABLE_TEST", false, particle_menu, type.value_button_binarychoice, actions.enable_particle_test, confirm.no, new Rectangle(0, -1, 200, 30), null, "enable particle test", "turn on or off");
+            particle_menu.add_element(enable_particles);
+
+            InfoLabel particle_sector_separator = new InfoLabel("PARTICLE_MENU_SECTION1_SEPARATOR", particle_menu, type.info_label, actions.none, confirm.no, new Rectangle(0, -1, 200, 20), null, "particle shapes", "");
+            particle_menu.add_element(particle_sector_separator);
+
+            Button particle_star            = new Button("PARTICLE_MENU_STAR_TYPE", particle_menu, type.button, actions.change_test_particle_star, confirm.no, new Rectangle(0, -1, 200, 30), null, "particle: star", "changes particle type");
+            Button particle_square          = new Button("PARTICLE_MENU_SQUARE_TYPE", particle_menu, type.button, actions.change_test_particle_square, confirm.no, new Rectangle(0, -1, 200, 30), null, "particle: square", "changes particle type");
+            Button particle_circle          = new Button("PARTICLE_MENU_CIRCLE_TYPE", particle_menu, type.button, actions.change_test_particle_circle, confirm.no, new Rectangle(0, -1, 200, 30), null, "particle: circle", "changes particle type");
+            Button particle_hollow_square   = new Button("PARTICLE_MENU_HSQUARE_TYPE", particle_menu, type.button, actions.change_test_particle_hollow_square, confirm.no, new Rectangle(0, -1, 200, 30), null, "particle: hollow square", "changes particle type");
+            Button particle_raindrop        = new Button("PARTICLE_MENU_RAINDROP_TYPE", particle_menu, type.button, actions.change_test_particle_raindrop, confirm.no, new Rectangle(0, -1, 200, 30), null, "particle: raindrop", "changes particle type");
+            Button particle_triangle        = new Button("PARTICLE_MENU_TRIANGLE_TYPE", particle_menu, type.button, actions.change_test_particle_triangle, confirm.no, new Rectangle(0, -1, 200, 30), null, "particle: triangle", "changes particle type");
+            Button particle_x               = new Button("PARTICLE_MENU_X_TYPE", particle_menu, type.button, actions.change_test_particle_x, confirm.no, new Rectangle(0, -1, 200, 30), null, "particle: X", "changes particle type");
+            particle_star.set_custom_label_positioning(orientation.vertical_left);
+            particle_square.set_custom_label_positioning(orientation.vertical_left);
+            particle_circle.set_custom_label_positioning(orientation.vertical_left);
+            particle_hollow_square.set_custom_label_positioning(orientation.vertical_left);
+            particle_raindrop.set_custom_label_positioning(orientation.vertical_left);
+            particle_triangle.set_custom_label_positioning(orientation.vertical_left);
+            particle_x.set_custom_label_positioning(orientation.vertical_left);
+
+            particle_menu.add_element(particle_star);
+            particle_menu.add_element(particle_square);
+            particle_menu.add_element(particle_circle);
+            particle_menu.add_element(particle_hollow_square);
+            particle_menu.add_element(particle_raindrop);
+            particle_menu.add_element(particle_triangle);
+            particle_menu.add_element(particle_x);
+            InfoLabel particle_mode_separator = new InfoLabel("PARTICLE_MENU_MODE_SEPARATOR", particle_menu, type.info_label, actions.none, confirm.no, new Rectangle(0, -1, 200, 20), null, "particle base trajectories", "");
+            particle_menu.add_element(particle_mode_separator);
+            Button particle_fall  = new Button("PARTICLE_MENU_FALL", particle_menu, type.button, actions.change_test_trajectory_fall, confirm.no, new Rectangle(0, -1, 200, 20), null, "trajectory: fall", "changes particle trajectory");
+            Button particle_chaos = new Button("PARTICLE_MENU_CHAOS", particle_menu, type.button, actions.change_test_trajectory_chaos, confirm.no, new Rectangle(0, -1, 200, 20), null, "trajectory: chaos", "changes particle trajectory");
+            Button particle_rise = new Button("PARTICLE_MENU_RISE", particle_menu, type.button, actions.change_test_trajectory_rise, confirm.no, new Rectangle(0, -1, 200, 20), null, "trajectory: rise", "changes particle trajectory");
+            Button particle_ballistic = new Button("PARTICLE_MENU_BALLISTIC", particle_menu, type.button, actions.change_test_trajectory_ballistic_curve, confirm.no, new Rectangle(0, -1, 200, 20), null, "trajectory: ballistic", "changes particle trajectory");
+            Button particle_static = new Button("PARTICLE_MENU_STATIC", particle_menu, type.button, actions.change_test_trajectory_static, confirm.no, new Rectangle(0, -1, 200, 20), null, "trajectory: static", "changes particle trajectory");
+            Button particle_laser = new Button("PARTICLE_MENU_LASER", particle_menu, type.button, actions.change_test_trajectory_laser, confirm.no, new Rectangle(0, -1, 200, 20), null, "trajectory: laser", "changes particle trajectory");
+            particle_fall.set_custom_label_positioning(orientation.vertical_left);
+            particle_chaos.set_custom_label_positioning(orientation.vertical_left);
+            particle_rise.set_custom_label_positioning(orientation.vertical_left);
+            particle_ballistic.set_custom_label_positioning(orientation.vertical_left);
+            particle_static.set_custom_label_positioning(orientation.vertical_left);
+            particle_laser.set_custom_label_positioning(orientation.vertical_left);
+            
+            particle_menu.add_element(particle_fall);
+            particle_menu.add_element(particle_chaos);
+            particle_menu.add_element(particle_rise);
+            particle_menu.add_element(particle_ballistic);
+            particle_menu.add_element(particle_static);
+            particle_menu.add_element(particle_laser);
+            InfoLabel particle_separator = new InfoLabel("PARTICLE_MENU_COLOR_SEPARATOR", particle_menu, type.info_label, actions.none, confirm.no, new Rectangle(0, -1, 200, 20), null, "particle base color", "");
+            particle_menu.add_element(particle_separator);
+            Slider particle_base_colorR = new Slider("PARTICLE_COLOR_SLIDERR", particle_menu, type.slider, actions.change_test_particle_colorR, confirm.no, new Rectangle(0, -1, 200, 30), null, "red", "change particle color component");
+            Slider particle_base_colorG = new Slider("PARTICLE_COLOR_SLIDERG", particle_menu, type.slider, actions.change_test_particle_colorG, confirm.no, new Rectangle(0, -1, 200, 30), null, "green", "change particle color component");
+            Slider particle_base_colorB = new Slider("PARTICLE_COLOR_SLIDERB", particle_menu, type.slider, actions.change_test_particle_colorB, confirm.no, new Rectangle(0, -1, 200, 30), null, "blue", "change particle color component");
+            particle_menu.add_element(particle_base_colorR);
+            particle_menu.add_element(particle_base_colorG);
+            particle_menu.add_element(particle_base_colorB);
+            InfoLabel particle_lifetime_separator = new InfoLabel("PARTICLE_MENU_LIFETIME_SEPARATOR", particle_menu, type.info_label, actions.none, confirm.no, new Rectangle(0, -1, 200, 20), null, "particle properties", "");
+            particle_menu.add_element(particle_lifetime_separator);
+            Slider particle_lifetime_slider = new Slider("PARTICLE_LIFETIME_SLIDER", particle_menu, type.slider, actions.change_test_particle_lifetime, confirm.no, new Rectangle(0, -1, 200, 30), null, "lifetime", "change particle lifetime");
+            Slider particle_rate_slider = new Slider("PARTICLE_CREATION_RATE_SLIDER", particle_menu, type.slider, actions.change_test_particle_creation_rate, confirm.no, new Rectangle(0, -1, 200, 30), null, "creation rate", "change particle generation rate");
+            Slider particle_emitter_radius_slider = new Slider("PARTICLE_EMITTER_RADIUS_SLIDER", particle_menu, type.slider, actions.change_test_particle_emitter_radius, confirm.no, new Rectangle(0, -1, 200, 30), null, "emitter radius", "change particle emitter radius");
+            Slider particle_burst_slider    = new Slider("PARTICLE_BURST_SLIDER", particle_menu, type.slider, actions.change_test_particle_burst, confirm.no, new Rectangle(0, -1, 200, 30), null, "burst amount", "change particle burst amount");
+            Slider particle_scale_slider    = new Slider("PARTICLE_SCALE_SLIDER", particle_menu, type.slider, actions.change_test_particle_scale, confirm.no, new Rectangle(0, -1, 200, 30), null, "scale", "change particle scale");
+            Slider particle_rotation_slider = new Slider("PARTICLE_ROTATION_SLIDER", particle_menu, type.slider, actions.change_test_particle_rotation, confirm.no, new Rectangle(0, -1, 200, 30), null, "rotation(radian)", "change particle rotation amount");
+            particle_menu.add_element(particle_lifetime_slider);
+            particle_menu.add_element(particle_rate_slider);
+            particle_menu.add_element(particle_emitter_radius_slider);
+            particle_menu.add_element(particle_burst_slider);
+            particle_menu.add_element(particle_scale_slider);
+            particle_menu.add_element(particle_rotation_slider);            
+            InfoLabel particle_base_separator = new InfoLabel("PARTICLE_MENU_BASE_COLOR_SEPARATOR", particle_menu, type.info_label, actions.none, confirm.no, new Rectangle(0, -1, 200, 20), null, "particle secondary color", "");
+            particle_menu.add_element(particle_base_separator);
+            SwitchButton<bool> enable_color_interpolation = new SwitchButton<bool>("PARTICLE_MENU_ENABLE_COLOR_INTERPOLATION", false, particle_menu, type.value_button_binarychoice, actions.enable_particle_color_interpolation, confirm.no, new Rectangle(0, -1, 200, 30), null, "color interpolation", "turn on or off");
+            particle_menu.add_element(enable_color_interpolation);
+
+            GUI.add_container(particle_menu);
+
             // Dynamically add theme selection to context menu
             Container theme_container = GUI.find_container("CONTAINER_INTERFACE_COLOR_OPTIONS");// subcontext name for interface subcontext
             temp_id = "COLOR_THEMES_";
             counter = 0;
+            // create interface theme updater
+            Slider interface_transparency_slider = new Slider("INTERFACE_COLOR_TRANSPARENCY", theme_container, type.slider, actions.update_interface_transparency, confirm.no, new Rectangle(0, 0, 300, 30), null, "opaqueness %", "update interface transparency value");
+            theme_container.add_element(interface_transparency_slider);
 
             foreach (color_theme t in themes)
             {
-                IDButton<string> temp_cell = new IDButton<string>(temp_id + counter.ToString(), theme_container, type.id_button, actions.switch_theme, new Rectangle(0, counter * 20, 300, 20), t.id, "");
+                IDButton<string> temp_cell = new IDButton<string>(temp_id + counter.ToString(), theme_container, type.id_button, actions.switch_theme, new Rectangle(0, (counter * 20) + 30, 300, 20), t.id, ""); // adjust rectangle for slider element
                 temp_cell.enable_button(t.id, null); // assign theme id to button
                 theme_container.add_element(temp_cell);
                 counter++;
@@ -199,9 +263,10 @@ namespace EditorEngine
                 ((Button)GUI.find_element("CURRENT_EDITOR_CELL_CHANGER_SUBCONTEXT")).assign_sub_context(temp);
                 ((Button)GUI.find_element("CURRENT_EDITOR_CELL_CHANGER_BUTTON")).assign_sub_context(temp);
             }
+
             GUI.add_container(temp);
             // NOTE: ui elements are loaded from xml file during initialization
-            load_initial_slider_values(engine);
+          
             GUI.create_UI_backgrounds();
             // load any custom items after GUI has been set up
             GUI.load_custom_element_background("MODE_BUTTON_ADDMODE", engine.get_texture("200x30_background1"));
@@ -215,6 +280,19 @@ namespace EditorEngine
             GUI.load_custom_element_background("SUBMODE_BUTTON_LINE", engine.get_texture("200x30_background1"));
             GUI.load_custom_element_background("SUBMODE_BUTTON_SQUARE", engine.get_texture("200x30_background1"));
             GUI.load_custom_element_background("SUBMODE_BUTTON_HOLLOW_SQUARE", engine.get_texture("200x30_background1"));
+
+            GUI.load_custom_element_background("PARTICLE_MENU_STAR_TYPE", engine.get_texture("200x30_background1"));
+            GUI.load_custom_element_background("PARTICLE_MENU_SQUARE_TYPE", engine.get_texture("200x30_background1"));
+            GUI.load_custom_element_background("PARTICLE_MENU_CIRCLE_TYPE", engine.get_texture("200x30_background1"));
+            GUI.load_custom_element_background("PARTICLE_MENU_HSQUARE_TYPE", engine.get_texture("200x30_background1"));
+            GUI.load_custom_element_background("PARTICLE_MENU_TRIANGLE_TYPE", engine.get_texture("200x30_background1"));
+            GUI.load_custom_element_background("PARTICLE_MENU_RAINDROP_TYPE", engine.get_texture("200x30_background1"));
+            GUI.load_custom_element_background("PARTICLE_MENU_X_TYPE", engine.get_texture("200x30_background1"));
+
+            GUI.load_custom_element_background("PARTICLE_COLOR_SLIDERR", engine.get_texture("200x30_background2"));
+            GUI.load_custom_element_background("PARTICLE_COLOR_SLIDERG", engine.get_texture("200x30_background2"));
+            GUI.load_custom_element_background("PARTICLE_COLOR_SLIDERB", engine.get_texture("200x30_background2"));
+                
 
             GUI.load_custom_container_background("CONTAINER_BRUSH_SIZE_OPTIONS", engine.get_texture("240x30_background1")); GUI.set_element_label_positioning("INFOLABEL_BRUSH_RADIUS", orientation.vertical_right);
             GUI.load_custom_container_background("CONTAINER_CURRENT_EDIT_CELL_PREVIEW", engine.get_texture("240x30_background1"));
@@ -235,38 +313,58 @@ namespace EditorEngine
             // set boundaries for system text area
             GUI.get_text_engine().set_target(((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_rectangle(), ((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_origin());
             ((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).set_border_texture(); // create border texture now that there is a bounds rectangle
+
+            load_initial_slider_values(engine);
+            // update statistics text area
+            GUI.find_container("CONTAINER_STATISTICS_TEXT_AREA").set_transparency(0.25f);
         }
-        /// testing slider value seeding
+        /// <summary>
+        /// Slider loading and data setting
+        /// </summary>
+        /// <param name="e">Engine instance</param>
         public void load_initial_slider_values(Engine e)
         {
-            // do not assign slider actions to anything but a slider otherwise this function will fail on invalid cast . Add try-catch block
-            ((Slider)GUI.find_unit(actions.update_selection_transparency)).set_slider_values(sel_transparency, 0.25f, 0.75f, 2);
-            ((Slider)GUI.find_unit(actions.update_selection_color_red)).set_slider_values(selection_color.R, 0, 255);
-            ((Slider)GUI.find_unit(actions.update_selection_color_green)).set_slider_values(selection_color.G, 0, 255);
-            ((Slider)GUI.find_unit(actions.update_selection_color_blue)).set_slider_values(selection_color.B, 0, 255);
-
-            ((Slider)GUI.find_unit(actions.update_slider_grid_transparency)).set_slider_values(e.grid_transparency_value, 0.05f, 1.0f, 2);
-            ((Slider)GUI.find_unit(actions.update_slider_grid_color_red)).set_slider_values(e.gridcolor_r, 0, 255);
-            ((Slider)GUI.find_unit(actions.update_slider_grid_color_green)).set_slider_values(e.gridcolor_g, 0, 255);
-            ((Slider)GUI.find_unit(actions.update_slider_grid_color_blue)).set_slider_values(e.gridcolor_b, 0, 255);
-
-            ((Slider)GUI.find_unit(actions.update_brush_size)).set_slider_values(submode_brush_radius, 0, 10);
-            // light context sliders
-            ((Slider)GUI.find_unit(actions.update_slider_light_color_red)).set_slider_values(127, 0, 255);
-            ((Slider)GUI.find_unit(actions.update_slider_light_color_green)).set_slider_values(127, 0, 255);
-            ((Slider)GUI.find_unit(actions.update_slider_light_color_blue)).set_slider_values(127, 0, 255);
-            ((Slider)GUI.find_unit(actions.update_slider_light_intensity)).set_slider_values(0.75f, 0.25f, 1.25f, 2);
-            ((Slider)GUI.find_unit(actions.update_slider_light_range)).set_slider_values(1550, 100, 3000); // max range at 3000 pixels
-            // SET SWITCH BUTTON VALUES
-            ((SwitchButton<bool>)GUI.find_element("SWITCH_CLOCK_PAUSE_RESTART")).set_value(true); // clock is inactive by default
-            ((SwitchButton<bool>)GUI.find_element("SWITCH_ENABLE_WORLD_LIGHTING")).set_value(true); // lighting is active by default
-            ((UIlocker)GUI.find_element("LOCKER_UI_MOVEMENT")).enable_button(false, e.get_texture("editor_icon_locked"), e.get_texture("editor_icon_unlocked")); // locks ui movement by default
-            // SET progress bars
-            ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_element_values(0, 100, 0);
-            ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).update((int)(e.get_current_world().get_percent_filled() * 100.0f));
-            //((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_X")).set_element_values(0, 100, (int)((e.get_mouse_vector().X / e.get_viewport().Bounds.Width) * 100f));
-            //((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_Y")).set_element_values(0, 100, (int)((e.get_mouse_vector().Y / e.get_viewport().Bounds.Height) * 100f));
-
+            try
+            {
+                // editor tools
+                ((Slider)GUI.find_unit(actions.update_selection_transparency)).set_slider_values(sel_transparency, 0.25f, 0.75f, 2);
+                ((Slider)GUI.find_unit(actions.update_selection_color_red)).set_slider_values(selection_color.R, 0, 255);
+                ((Slider)GUI.find_unit(actions.update_selection_color_green)).set_slider_values(selection_color.G, 0, 255);
+                ((Slider)GUI.find_unit(actions.update_selection_color_blue)).set_slider_values(selection_color.B, 0, 255);
+                ((Slider)GUI.find_unit(actions.update_slider_grid_transparency)).set_slider_values(e.grid_transparency_value, 0.05f, 1.0f, 2);
+                ((Slider)GUI.find_unit(actions.update_slider_grid_color_red)).set_slider_values(e.gridcolor_r, 0, 255);
+                ((Slider)GUI.find_unit(actions.update_slider_grid_color_green)).set_slider_values(e.gridcolor_g, 0, 255);
+                ((Slider)GUI.find_unit(actions.update_slider_grid_color_blue)).set_slider_values(e.gridcolor_b, 0, 255);
+                ((Slider)GUI.find_unit(actions.update_brush_size)).set_slider_values(submode_brush_radius, 0, 10);
+                // light context sliders
+                ((Slider)GUI.find_unit(actions.update_slider_light_color_red)).set_slider_values(127, 0, 255);
+                ((Slider)GUI.find_unit(actions.update_slider_light_color_green)).set_slider_values(127, 0, 255);
+                ((Slider)GUI.find_unit(actions.update_slider_light_color_blue)).set_slider_values(127, 0, 255);
+                ((Slider)GUI.find_unit(actions.update_slider_light_intensity)).set_slider_values(0.75f, 0.25f, 1.25f, 2);
+                ((Slider)GUI.find_unit(actions.update_slider_light_range)).set_slider_values(1550, 100, 3000);               // max light range at 3000 pixels
+                // particle color initial values
+                ((Slider)GUI.find_unit(actions.change_test_particle_colorR)).set_slider_values(255, 0, 255);
+                ((Slider)GUI.find_unit(actions.change_test_particle_colorG)).set_slider_values(0, 0, 255);
+                ((Slider)GUI.find_unit(actions.change_test_particle_colorB)).set_slider_values(0, 0, 255);
+                ((Slider)GUI.find_unit(actions.change_test_particle_lifetime)).set_slider_values(300, 50, 4000);             //lifetime value
+                ((Slider)GUI.find_unit(actions.change_test_particle_emitter_radius)).set_slider_values(1, 1, 500);           //emitter radius
+                ((Slider)GUI.find_unit(actions.change_test_particle_burst)).set_slider_values(1, 1, 30);                     //burst value
+                ((Slider)GUI.find_unit(actions.change_test_particle_scale)).set_slider_values(1f, 0.1f, 2f, 1);              //scale value
+                ((Slider)GUI.find_unit(actions.change_test_particle_rotation)).set_slider_values(0f, 0f, (float)Math.PI * 8);//rotation value in radians
+                ((Slider)GUI.find_unit(actions.change_test_particle_creation_rate)).set_slider_values(1, 1, 1000);           //create every 1 ms or up to once in 1000ms
+                ((Slider)GUI.find_unit(actions.update_interface_transparency)).set_slider_values(70, 25, 100);
+                // SET SWITCH BUTTON VALUES
+                ((SwitchButton<bool>)GUI.find_element("SWITCH_CLOCK_PAUSE_RESTART")).set_value(true); // clock is inactive by default
+                ((SwitchButton<bool>)GUI.find_element("SWITCH_ENABLE_WORLD_LIGHTING")).set_value(true); // lighting is active by default
+                ((UIlocker)GUI.find_element("LOCKER_UI_MOVEMENT")).enable_button(false, e.get_texture("editor_icon_locked"), e.get_texture("editor_icon_unlocked")); // locks ui movement by default
+                // SET progress bars
+                ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).set_element_values(0, 100, 0);
+                ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).update((int)(e.get_current_world().get_percent_filled() * 100.0f));
+            }
+            catch(InvalidCastException ex)
+            {
+                Debug.WriteLine("cat failed: " + ex);
+            }
         }
 
         /// <summary>
@@ -311,6 +409,128 @@ namespace EditorEngine
             Draw(spb, engine, w); // selection matrix exists here. Draw before context menu to keep it under UI
             // draw the rest of GUI 
             GUI.draw_context_containers_and_tooltips(spb, current_theme.interface_color, current_theme.interface_transparency);
+        }
+        /// <summary>
+        /// Update Editor every frame
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
+        public void Update(Engine engine)
+        {
+            //UPDATE GUI ELEMENTS
+            //GUI.set_interface_transparency(transparency);
+            GUI.Update(engine);
+            GUI.find_element("INFOLABEL_BRUSH_RADIUS").set_label("brush size  " + ((Slider)GUI.find_element("SLIDER_BRUSHSIZE")).get_slider_value_int().ToString());
+            GUI.find_element("CURRENT_EDITOR_CELL_CHANGER_BUTTON").set_icon(Tile.get_tile_struct(edit_tile_id).get_tile_icon_clip());
+            GUI.find_element("INFOLABEL_CURRENT_EDIT_TILE").set_label(Tile.get_tile_struct(edit_tile_id).get_name());
+            ((ColorPreviewButton)GUI.find_element("PREVIEW_SELECTIONCOLOR")).update(selection_color);
+            ((ColorPreviewButton)GUI.find_element("PREVIEW_EDITORGRID")).update(engine.get_grid_color());
+            // update slider values connected to this editor 
+            transparency = (float)GUI.get_slider_value(actions.update_interface_transparency)/100;
+            for(int i = 0 ; i < themes.Count; i++)
+            {
+                themes[i].set_transparency(transparency);
+            }
+            GUI.set_interface_transparency(transparency);
+            // selection values
+            sel_transparency = GUI.get_slider_value(actions.update_selection_transparency);
+            selection_color.R = (byte)GUI.get_slider_value(actions.update_selection_color_red);
+            selection_color.G = (byte)GUI.get_slider_value(actions.update_selection_color_green);
+            selection_color.B = (byte)GUI.get_slider_value(actions.update_selection_color_blue);
+            // engine particle colors
+            Color particle_color = new Color(0f, 0f, 0f, 1f);
+            particle_color.R = (byte)GUI.get_slider_value(actions.change_test_particle_colorR);
+            particle_color.G = (byte)GUI.get_slider_value(actions.change_test_particle_colorG);
+            particle_color.B = (byte)GUI.get_slider_value(actions.change_test_particle_colorB);
+            engine.change_particle_base_tint(particle_color);
+            // particle sliders
+            engine.change_particle_lifetime((int)GUI.get_slider_value(actions.change_test_particle_lifetime));
+            engine.change_particle_emitter_radius((int)GUI.get_slider_value(actions.change_test_particle_emitter_radius));
+            engine.change_particle_burst_amount((int)GUI.get_slider_value(actions.change_test_particle_burst));
+            engine.change_particle_rotation_amount((float)GUI.get_slider_value(actions.change_test_particle_rotation));
+            engine.change_particle_scale((float)GUI.get_slider_value(actions.change_test_particle_scale));
+            engine.change_particle_creation_rate((int)GUI.get_slider_value(actions.change_test_particle_creation_rate));
+            // brush values
+            submode_brush_radius = (int)GUI.get_slider_value(actions.update_brush_size);
+            // update choice values
+            engine.enable_particle_test(GUI.get_tracked_value<bool>("PARTICLE_MENU_ENABLE_TEST")); // turn test particles on or off
+            engine.enable_particle_color_interpolation(GUI.get_tracked_value<bool>("PARTICLE_MENU_ENABLE_COLOR_INTERPOLATION"), Color.Black); // turns interpolation on or off
+            overwrite_cells = GUI.get_tracked_value<bool>("SWITCH_OVERWRITE_EXISTING_CELLS");
+            engine.get_clock().set_paused(GUI.get_tracked_value<bool>("SWITCH_CLOCK_PAUSE_RESTART"));
+            engine.set_lighting_state(GUI.get_tracked_value<bool>("SWITCH_ENABLE_WORLD_LIGHTING"));
+            gui_move_mode = ((UIlocker)GUI.find_element("LOCKER_UI_MOVEMENT")).get_tracked_value(); // updates internal editor UI flag
+            // update world percentage filled progress bar every half a second
+            if (engine.get_frame_count() % 30 == 0) // limit update timing of this function
+                ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).update((int)(engine.get_current_world().get_percent_filled() * 100f));
+
+            // set boundaries for text area
+            GUI.get_text_engine().set_target(((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_rectangle(), ((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_origin());
+
+            // activate the button - visual
+            if (editor_mode == modes.select
+            ||
+            (
+                (editor_mode == modes.add || editor_mode == modes.delete)
+                &&
+                (editor_tools == tools.square || editor_tools == tools.hollow_square)
+            ))
+            {
+                // selection matrix is used when:
+                // 1. selection mode is active
+                // 2. add mode is active and square or hollow square tool is active
+                // 2A. if square tool is active - when user left-clicks once - fill all cells currently in selection, if hollow square - fill only the outer border.
+                // 3. Right click cancels current selection
+                selection_driver(engine);
+
+                if (editor_mode == modes.select)
+                    GUI.activate(modes.select);
+            }
+            else if (editor_mode == modes.add)
+            {
+                line_tool_driver(engine);
+                GUI.activate(modes.add);
+            }
+            else if (editor_mode == modes.delete)
+            {
+                line_tool_driver(engine);
+                GUI.activate(modes.delete);
+            }
+            else if (editor_mode == modes.prop_lights)
+            {
+                GUI.activate(modes.prop_lights);
+            }
+            else if (editor_mode == modes.water)
+            {
+                GUI.activate(modes.water);
+            }
+            else if (editor_mode == modes.prop_trees)
+            {
+                GUI.activate(modes.prop_trees);
+            }
+            // activate buttons for submode visual
+            GUI.activate(editor_tools);
+            // editor tool dependencies
+            if (editor_tools != tools.radius) // hide brush size option from view
+            {
+                GUI.find_container("CONTAINER_BRUSH_SIZE_OPTIONS").set_visibility(false);
+            }
+            else
+            {
+                GUI.find_container("CONTAINER_BRUSH_SIZE_OPTIONS").set_visibility(true);
+            }
+
+            // outline containers based on current move mode
+            if (gui_move_mode)
+            {
+                GUI.set_container_outline(true);
+            }
+            else
+            {
+                GUI.set_container_outline(false);
+            }
+
+            // update selection color surrogate
+            selection_color_surrogate = TextEngine.color_to_delimited_string(selection_color);
+
         }
         /// <summary>
         /// Draw() function. Renders editor and its GUI
@@ -405,9 +625,9 @@ namespace EditorEngine
                 }
             }
             if (editor_mode == modes.prop_trees)
-                preview_tree(((int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).X), (int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).Y, engine);
-                
-// draw current hovered get_cell_address coordinates at mouse
+                preview_tree(((int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).X), (int)engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine).Y, engine, engine.get_current_world().valid_tree_bases);
+
+            // draw current hovered cell coordinates at mouse
             if (!gui_move_mode && GUI.hover_detect() == false && engine.get_current_world().valid_cell(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)))
             {
                 if (line_start_cell.X == -1) // no line tool 
@@ -426,7 +646,7 @@ namespace EditorEngine
                     string line_length = "line width: " + line_matrix.Count.ToString();
                     engine.xna_draw_outlined_text(line_coordinates, engine.get_current_world().get_tile_origin(line_start_cell) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
                     engine.xna_draw_outlined_text(line_coordinates2, engine.get_current_world().get_tile_origin(line_end_cell) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
-                    update_offset(0, 20); // draw line width below end get_cell_address
+                    update_offset(0, 20); // draw line width below end cell
                     engine.xna_draw_outlined_text(line_length, engine.get_current_world().get_tile_origin(line_end_cell) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.White, Color.Black, engine.get_UI_font());
                 }
 
@@ -504,22 +724,25 @@ namespace EditorEngine
                 }
                 else if(editor_mode == modes.water)
                 {
+                    int tile_id = engine.get_current_world().get_tile_id(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(),engine));
+                    float water_content = engine.get_current_world().get_tile_water(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(),engine));
+                   
                     update_offset(0, -40);
-                    engine.xna_draw_outlined_text("[water mode] add water generator", engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.DeepSkyBlue, Color.DarkSlateGray, engine.get_UI_font());
+                    engine.xna_draw_outlined_text("[water mode] id: "+tile_id+" water: "+water_content, engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, Color.DeepSkyBlue, Color.DarkSlateGray, engine.get_UI_font());
                 }
                 else if (editor_mode == modes.prop_trees)
                 {
                     Vector2 cell = engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine);
-                    Color indicator = preview_tree((int)cell.X, (int)cell.Y, engine, true) == true ? Color.LawnGreen : Color.Red;
+                    Color indicator = preview_tree((int)cell.X, (int)cell.Y, engine, engine.get_current_world().valid_tree_bases, true) == true ? Color.LawnGreen : Color.Red;
                     update_offset(0, -40);
                     engine.xna_draw_outlined_text("[tree mode] create a tree base", engine.get_current_world().get_tile_origin(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)) + engine_offset - engine.get_camera_offset(), Vector2.Zero, indicator, Color.DarkSlateGray, engine.get_UI_font());
                 }
                 // draw line selection_start_cell coordinate at line start and draw line width
-                // draw selection start get_cell_address coordinate, selection height, selection width and selection area
+                // draw selection start cell coordinate, selection height, selection width and selection area
             }
 
             // draw text instructions
-            engine.xna_draw_outlined_text("alt + Z = destroy all water, alt + X = destroy all lights", new Vector2(40, 20), Vector2.Zero, Color.White,
+            engine.xna_draw_outlined_text("destroy: alt+W = water, alt+L = lights, alt+G = grass, alt+T = trees", new Vector2(40, 20), Vector2.Zero, Color.White,
                 Color.DarkSlateGray, Game1.small_font);
             engine.xna_draw_outlined_text("TAB = toggle editor mode, F1 = toggle statistics display, F2 = change active world", new Vector2(40, 40), Vector2.Zero, Color.White,
                 Color.DarkSlateGray, Game1.small_font);
@@ -530,12 +753,18 @@ namespace EditorEngine
             engine.xna_draw_outlined_text("shift + escape - exit the program/close editor", new Vector2(40, 0), Vector2.Zero, Color.OrangeRed,
                Color.DarkSlateGray, Game1.small_font);
         }
-
+        /// <summary>
+        /// Draw masking layer. This layer hides any interface element parts that it covers. Masking is done in main game Draw through a shader.
+        /// </summary>
         public void draw_masking_layer()
         {
             GUI.draw_masking_layer();
         }
-
+        /// <summary>
+        /// Draw borders, text and any parts of UI that must be on top layer.
+        /// </summary>
+        /// <param name="e">Engine instance</param>
+        /// <param name="sb">Spritbatch for scheduling drawing order</param>
         public void draw_post_processing(Engine e, SpriteBatch sb)
         {
             if (e.get_editor().GUI.find_container("CONTAINER_EDITOR_TEXT_AREA").is_visible())
@@ -543,7 +772,14 @@ namespace EditorEngine
 
             GUI.draw_post_processing(e, current_theme.interface_color, current_theme.interface_transparency);
         }
-
+        /// <summary>
+        /// Draw one or more ractengles in palce where future cells are either placed or removed.
+        /// </summary>
+        /// <param name="x">Position X</param>
+        /// <param name="y">Position Y</param>
+        /// <param name="engine">Engine instance</param>
+        /// <param name="radius">brush tool radius</param>
+        /// <param name="current">current editor mode</param>
         public void preview_tile(int x, int y, Engine engine, int radius, modes current)
         {
             for (int i = -radius; i <= radius; i++)
@@ -560,7 +796,14 @@ namespace EditorEngine
                 }
             }
         }
-
+        /// <summary>
+        /// Preview cells
+        /// </summary>
+        /// <param name="x">Position X</param>
+        /// <param name="y">Position Y</param>
+        /// <param name="engine">Engine instance</param>
+        /// <param name="current">current editor mode</param>
+        /// <returns>true/false - tile can be placed in this cell</returns>
         public bool preview(int x, int y, Engine engine, modes current)
         {
             if (engine.get_current_world().tile_doesnt_exist(x, y) || cell_overwrite_mode() || current == modes.delete)
@@ -581,14 +824,22 @@ namespace EditorEngine
                     engine.xna_draw(Engine.pixel,
                     engine.get_current_world().get_tile_origin(new Vector2(x, y)) - engine.get_camera_offset(),
                     Engine.standard20, // rectangle crop
-                    mode_color * engine.fade_sine_wave_smooth(3000, 0.65f, 0.75f, sinewave.one), 0, Vector2.Zero, 1f, SpriteEffects.None, 0);
+                    mode_color * Engine.fade_sine_wave_smooth(3000, 0.65f, 0.75f, sinewave.one), 0, Vector2.Zero, 1f, SpriteEffects.None, 0);
                 }
             }
 
             return true;
         }
-
-        public bool preview_tree(int x, int y, Engine engine, bool nodraw = false)
+        /// <summary>
+        /// Preview if tree can be placed in specified position.
+        /// </summary>
+        /// <param name="x">Position X</param>
+        /// <param name="y">Position Y</param>
+        /// <param name="engine">Engine instance</param>
+        /// <param name="ground_type">an array of tiles that the given tree can be planted on</param>
+        /// <param name="nodraw">Draw the preview rectangle or not</param>
+        /// <returns></returns>
+        public bool preview_tree(int x, int y, Engine engine, short[] ground_type, bool nodraw = false)
         {
             if 
             ( 
@@ -597,10 +848,14 @@ namespace EditorEngine
                 && engine.get_current_world().tile_doesnt_exist(x, y - 1) // air
                 && engine.get_current_world().tile_doesnt_exist(x, y - 2) // air
                 && engine.get_current_world().tile_doesnt_exist(x, y - 3) // air
-                && engine.get_current_world().get_tile_id(new Vector2(x,y + 1)) == 2  // base = dirt
+                && engine.get_current_world().trees.Find(t => engine.are_vectors_equal(t.get_position(), engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(),engine))) == null // no other tree exists here
+                && Tree.preview(engine, new Vector2(x,y)) // check if at least 1 trunk segment can grow
             )
             {
-                if (engine.get_current_world().valid_cell(x, y))
+
+                short hover_cell_id = engine.get_current_world().get_tile_id(new Vector2(x, y + 1)); // valid ground bases = defined by user
+
+                if (engine.get_current_world().valid_cell(x, y) && ground_type.Contains(hover_cell_id))
                 {
                     Rectangle current_cell_dimensions = engine.get_current_world().get_cell_rectangle_on_screen(engine, new Vector2(x, y));
                     Color mode_color = new Color();
@@ -610,7 +865,7 @@ namespace EditorEngine
                     engine.xna_draw(Engine.pixel,
                     engine.get_current_world().get_tile_origin(new Vector2(x, y)) - engine.get_camera_offset(),
                     Engine.standard20, // rectangle crop
-                    mode_color * engine.fade_sine_wave_smooth(3000, 0.65f, 0.75f, sinewave.one), 0, Vector2.Zero, 1f, SpriteEffects.None, 0);
+                    mode_color * Engine.fade_sine_wave_smooth(3000, 0.65f, 0.75f, sinewave.one), 0, Vector2.Zero, 1f, SpriteEffects.None, 0);
 
                     return true;
                 }
@@ -618,7 +873,11 @@ namespace EditorEngine
 
             return false;
         }
-
+        /// <summary>
+        /// Draws the preview cells
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
+        /// <param name="matrix">List of selected cells</param>
         public void preview_cell_matrix(Engine engine, List<Vector2> matrix)
         {
             Color highlight = Color.White;
@@ -639,123 +898,34 @@ namespace EditorEngine
                         highlight * 0.5f, 0, Vector2.Zero, 1f, SpriteEffects.None, 0);
             }
         }
-
+        /// <summary>
+        /// Update engine offset (camera)
+        /// </summary>
+        /// <param name="x">position x</param>
+        /// <param name="y">position y</param>
         public void update_offset(float x, float y)
         {
             engine_offset.X = x; engine_offset.Y = y;
         }
-
+        /// <summary>
+        /// Update brush tool radius
+        /// </summary>
+        /// <param name="val">new radius value</param>
         public void set_brush_size(int val)
         {
             if (val >= 0 || val <= 10)
             {
                 ((Slider)GUI.find_unit(actions.update_brush_size)).set_slider_value(val);
-                //submode_brush_radius = val;
             }
         }
-        // current edit tile id
-        public void Update(Engine engine)
-        {
-            //UPDATE GUI ELEMENTS
-            //GUI.set_interface_transparency(interface_transparency);
-            GUI.Update(engine);
-            GUI.find_element("INFOLABEL_BRUSH_RADIUS").set_label("brush size  " + ((Slider)GUI.find_element("SLIDER_BRUSHSIZE")).get_slider_value_int().ToString());
-            GUI.find_element("CURRENT_EDITOR_CELL_CHANGER_BUTTON").set_icon(Tile.get_tile_struct(edit_tile_id).get_tile_icon_clip());
-            GUI.find_element("INFOLABEL_CURRENT_EDIT_TILE").set_label(Tile.get_tile_struct(edit_tile_id).get_name());
-            ((ColorPreviewButton)GUI.find_element("PREVIEW_SELECTIONCOLOR")).update(selection_color);
-            ((ColorPreviewButton)GUI.find_element("PREVIEW_EDITORGRID")).update(engine.get_grid_color());
-            // update slider values connected to this editor 
-            // selection values
-            sel_transparency = GUI.get_slider_value(actions.update_selection_transparency);
-            selection_color.R = (byte)GUI.get_slider_value(actions.update_selection_color_red);
-            selection_color.G = (byte)GUI.get_slider_value(actions.update_selection_color_green);
-            selection_color.B = (byte)GUI.get_slider_value(actions.update_selection_color_blue);
-            // brush values
-            submode_brush_radius = (int)GUI.get_slider_value(actions.update_brush_size);
-            // update choice values
-            overwrite_cells = GUI.get_tracked_value<bool>("SWITCH_OVERWRITE_EXISTING_CELLS");
-            engine.get_clock().set_paused(GUI.get_tracked_value<bool>("SWITCH_CLOCK_PAUSE_RESTART"));
-            engine.set_lighting_state(GUI.get_tracked_value<bool>("SWITCH_ENABLE_WORLD_LIGHTING"));
-            gui_move_mode = ((UIlocker)GUI.find_element("LOCKER_UI_MOVEMENT")).get_tracked_value(); // updates internal editor UI flag
-            // update world percentage filled progress bar
-            if (engine.get_frame_count() % 30 == 0) // limit update timing of this function
-                ((ProgressBar)GUI.find_element("PROGRESS_BAR_WORLDFILL_PERCENTAGE")).update((int)(engine.get_current_world().get_percent_filled() * 100f));
+        
+// World Editor functions
 
-            //((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_X")).update((int)((engine.get_mouse_vector().X / (float)engine.get_viewport().Bounds.Width) * 100f)); // get mouse position X relative to Screen Width
-            //((ProgressCircle)GUI.find_element("CIRCLE_MOUSE_Y")).update((int)((engine.get_mouse_vector().Y / (float)engine.get_viewport().Bounds.Height) * 100f)); // get mouse position Y relative to Screen Height
-
-            // set boundaries for text area
-            GUI.get_text_engine().set_target(((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_rectangle(), ((TextArea)GUI.find_element("TEXTAREA_SYSTEM")).get_origin());
-
-            // activate the button - visual
-            if (editor_mode == modes.select
-            ||
-            (
-                (editor_mode == modes.add || editor_mode == modes.delete)
-                &&
-                (editor_tools == tools.square || editor_tools == tools.hollow_square)
-            ))
-            {
-                // selection matrix is used when:
-                // 1. selection mode is active
-                // 2. add mode is active and square or hollow square tool is active
-                // 2A. if square tool is active - when user left-clicks once - fill all cells currently in selection, if hollow square - fill only the outer border.
-                // 3. Right click cancels current selection
-                selection_driver(engine);
-
-                if (editor_mode == modes.select)
-                    GUI.activate(modes.select);
-            }
-            else if (editor_mode == modes.add)
-            {
-                line_tool_driver(engine);
-                GUI.activate(modes.add);
-            }
-            else if (editor_mode == modes.delete)
-            {
-                line_tool_driver(engine);
-                GUI.activate(modes.delete);
-            }
-            else if (editor_mode == modes.prop_lights)
-            {
-                GUI.activate(modes.prop_lights);
-            }
-            else if (editor_mode == modes.water)
-            {
-                GUI.activate(modes.water);
-            }
-            else if (editor_mode == modes.prop_trees)
-            {
-                GUI.activate(modes.prop_trees);
-            }
-            // activate buttons for submode visual
-            GUI.activate(editor_tools);
-            // editor tool dependencies
-            if (editor_tools != tools.radius) // hide brush size option from view
-            {
-                GUI.find_container("CONTAINER_BRUSH_SIZE_OPTIONS").set_visibility(false);
-            }
-            else
-            {
-                GUI.find_container("CONTAINER_BRUSH_SIZE_OPTIONS").set_visibility(true);
-            }
-
-            // outline containers based on current move mode
-            if (gui_move_mode)
-            {
-                GUI.set_container_outline(true);
-            }
-            else
-            {
-                GUI.set_container_outline(false);
-            }
-
-            // update selection color surrogate
-            selection_color_surrogate = TextEngine.color_to_delimited_string(selection_color);
-
-        }
-        // World Editor functions
-        // Send a mouse keyboard input to editor class and execute an actions specified by the User Interface element clicked/used
+        /// <summary>
+        ///  Send a mouse keyboard input to editor class and execute an actions specified by the User Interface element clicked/used
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
+        /// <param name="c">command,e.g. left click</param>
         public void editor_command(Engine engine, command c)
         {
             if (!locked) // get new action unless last action has been locked in
@@ -777,8 +947,8 @@ namespace EditorEngine
                     editor_actions_locked = false;
                 }
             }
-            // calculate current hovered get_cell_address
-            Vector2 active_cell = engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine);
+            // calculate current hovered cell
+            Vector2 active_cell = engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine,false);
 
             // hover independent section or command driven events
             // hotkeys and shortcuts - enable/uncomment when shortcuts are created
@@ -826,6 +996,14 @@ namespace EditorEngine
                     break;
                 case command.destroy_lights: // remove all point lights
                     engine.get_current_world().destroy_lights();
+                    hide_expandable_containers_only();
+                    break;
+                case command.destroy_trees: // remove all point lights
+                    engine.get_current_world().destroy_trees();
+                    hide_expandable_containers_only();
+                    break;
+                case command.destroy_grass: // remove all point lights
+                    engine.get_current_world().destroy_grass();
                     hide_expandable_containers_only();
                     break;
                 case command.destroy_water_gen: // remove all point lights
@@ -1000,12 +1178,12 @@ namespace EditorEngine
                                         else if (editor_tools == tools.line && !editor_actions_locked && c == command.left_click)
                                         {
                                             clear_selection();
-                                            if (line_start_cell.X == -1) // no start get_cell_address defined - create one
+                                            if (line_start_cell.X == -1) // no start cell defined - create one
                                             {
                                                 line_start_cell.X = active_cell.X;
                                                 line_start_cell.Y = active_cell.Y;
                                             }
-                                            else //generate ui_elements, then remove end get_cell_address and reassign start get_cell_address to previous end get_cell_address. Moving mouse will automatically assign end get_cell_address each time
+                                            else //generate ui_elements, then remove end cell and reassign start cell to previous end cell. Moving mouse will automatically assign end cell each time
                                             {
                                                 engine.get_current_world().generate_matrix(line_matrix, engine, edit_tile_id);
                                                 line_start_cell.X = line_end_cell.X;
@@ -1070,12 +1248,12 @@ namespace EditorEngine
                                         }
                                         else if (editor_tools == tools.line && !editor_actions_locked && c == command.left_click)
                                         {
-                                            if (line_start_cell.X == -1) // no start get_cell_address defined - create one
+                                            if (line_start_cell.X == -1) // no start cell defined - create one
                                             {
                                                 line_start_cell.X = active_cell.X;
                                                 line_start_cell.Y = active_cell.Y;
                                             }
-                                            else //generate ui_elements, then remove end get_cell_address and reassign start get_cell_address to previous end get_cell_address. Moving mouse will automatically assign end get_cell_address each time
+                                            else //generate ui_elements, then remove end cell and reassign start cell to previous end cell. Moving mouse will automatically assign end cell each time
                                             {
                                                 engine.get_current_world().erase_matrix(line_matrix, engine);
                                                 line_start_cell.X = line_end_cell.X;
@@ -1149,7 +1327,7 @@ namespace EditorEngine
                                     clear_selection();
                                     if (c == command.left_click && !editor_actions_locked)
                                     {
-                                        engine.get_current_world().generate_light_source(new Color(engine.generate_int_range(0, 255), engine.generate_int_range(0, 255), engine.generate_int_range(0, 255)), engine.get_current_mouse_state(), engine, engine.generate_int_range(300, 800), engine.generate_float_range(0.15f, 1.35f));
+                                        engine.get_current_world().generate_light_source(new Color(Engine.generate_int_range(0, 255), Engine.generate_int_range(0, 255), Engine.generate_int_range(0, 255)), engine.get_current_mouse_state(), engine, Engine.generate_int_range(300, 800), Engine.generate_float_range(0.15f, 1.35f));
                                     }
                                 }
                                     break;
@@ -1193,7 +1371,7 @@ namespace EditorEngine
                                     break;
                                 case command.ctrl_plus_click:
                                     {
-                                        // build selection matrix by clicking once and then ctrl+clicking the end get_cell_address instead of dragging
+                                        // build selection matrix by clicking once and then ctrl+clicking the end cell instead of dragging
                                         selection_matrix.Add(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(),engine));
                                     }
                                     break;
@@ -1397,129 +1575,33 @@ namespace EditorEngine
                             }
                         }
                         break;
+//---------------------------------------------------------------------------------------------------------------Sliders
+                    case actions.update_interface_transparency:
+                        { slider_driver(engine, c, actions.update_interface_transparency); }
+                        break;
                     case actions.update_slider_grid_transparency:
-                        {
-                            set_hostUI_lock(true); // locking functionality example
-                            if (GUI.get_hovered_element_action_enum() == actions.update_slider_grid_transparency)
-                            {
-                                // change the slider value
-                                if (c == command.left_hold)
-                                {
-                                    GUI.update_slider_values(GUI.find_unit(actions.update_slider_grid_transparency), engine.get_mouse_vector());
-                                }
-                                else
-                                {
-                                    set_hostUI_lock(false); // unlock UI
-                                }
-                            }
-                        }
+                        { slider_driver(engine, c, actions.update_slider_grid_transparency); }
                         break;
                     case actions.update_slider_grid_color_red:
-                        {
-                            set_hostUI_lock(true);
-                            if (GUI.get_hovered_element_action_enum() == actions.update_slider_grid_color_red)
-                            {
-                                // change the slider value
-                                if (c == command.left_hold)
-                                {
-                                    GUI.update_slider_values(GUI.find_unit(actions.update_slider_grid_color_red), engine.get_mouse_vector());
-                                }
-                                else
-                                {
-                                    set_hostUI_lock(false);
-                                }
-                            }
-                        }
+                        { slider_driver(engine, c, actions.update_slider_grid_color_red); }
                         break;
                     case actions.update_slider_grid_color_green:
-                        {
-                            set_hostUI_lock(true);
-                            if (GUI.get_hovered_element_action_enum() == actions.update_slider_grid_color_green)
-                            {
-                                // change the slider value
-                                if (c == command.left_hold)
-                                {
-                                    GUI.update_slider_values(GUI.find_unit(actions.update_slider_grid_color_green), engine.get_mouse_vector());
-                                }
-                                else
-                                    set_hostUI_lock(false);
-                            }
-                        }
+                        { slider_driver(engine, c, actions.update_slider_grid_color_green); }
                         break;
                     case actions.update_slider_grid_color_blue:
-                        {
-                            set_hostUI_lock(true);
-                            if (GUI.get_hovered_element_action_enum() == actions.update_slider_grid_color_blue)
-                            {
-                                // change the slider value
-                                if (c == command.left_hold)
-                                {
-                                    GUI.update_slider_values(GUI.find_unit(actions.update_slider_grid_color_blue), engine.get_mouse_vector());
-                                }
-                                else
-                                    set_hostUI_lock(false);
-                            }
-                        }
+                        { slider_driver(engine, c, actions.update_slider_grid_color_blue); }
                         break;
                     case actions.update_selection_transparency:
-                        {
-                            set_hostUI_lock(true);
-                            if (GUI.get_hovered_element_action_enum() == actions.update_selection_transparency)
-                            {
-                                // change the slider value
-                                if (c == command.left_hold)
-                                {
-                                    GUI.update_slider_values(GUI.find_unit(actions.update_selection_transparency), engine.get_mouse_vector());
-                                }
-                                else
-                                    set_hostUI_lock(false);
-                            }
-                        }
+                        { slider_driver(engine, c, actions.update_selection_transparency); }
                         break;
                     case actions.update_selection_color_red:
-                        {
-                            set_hostUI_lock(true);
-                            if (GUI.get_hovered_element_action_enum() == actions.update_selection_color_red)
-                            {
-                                // change the slider value
-                                if (c == command.left_hold)
-                                {
-                                    GUI.update_slider_values(GUI.find_unit(actions.update_selection_color_red), engine.get_mouse_vector());
-                                }
-                                else
-                                    set_hostUI_lock(false);
-                            }
-                        }
+                        { slider_driver(engine, c, actions.update_selection_color_red); }
                         break;
                     case actions.update_selection_color_green:
-                        {
-                            set_hostUI_lock(true);
-                            if (GUI.get_hovered_element_action_enum() == actions.update_selection_color_green)
-                            {
-                                // change the slider value
-                                if (c == command.left_hold)
-                                {
-                                    GUI.update_slider_values(GUI.find_unit(actions.update_selection_color_green), engine.get_mouse_vector());
-                                }
-                                else
-                                    set_hostUI_lock(false);
-                            }
-                        }
+                        { slider_driver(engine, c, actions.update_selection_color_green); }
                         break;
                     case actions.update_selection_color_blue:
-                        {
-                            set_hostUI_lock(true);
-                            if (GUI.get_hovered_element_action_enum() == actions.update_selection_color_blue)
-                            {
-                                // change the slider value
-                                if (c == command.left_hold)
-                                {
-                                    GUI.update_slider_values(GUI.find_unit(actions.update_selection_color_blue), engine.get_mouse_vector());
-                                }
-                                else
-                                    set_hostUI_lock(false);
-                            }
-                        }
+                        { slider_driver(engine, c, actions.update_selection_color_blue); }
                         break;
                     case actions.update_slider_light_color_red: // new
                         {
@@ -1655,6 +1737,34 @@ namespace EditorEngine
                             }
                         }
                         break;
+                    case actions.change_test_particle_colorR: // new
+                        { slider_driver(engine, c, actions.change_test_particle_colorR); }
+                        break;
+                    case actions.change_test_particle_colorG: // new
+                        { slider_driver(engine, c, actions.change_test_particle_colorG); }
+                        break;
+                    case actions.change_test_particle_colorB: // new
+                        { slider_driver(engine, c, actions.change_test_particle_colorB); }
+                        break;
+                    case actions.change_test_particle_lifetime: // new
+                        { slider_driver(engine, c, actions.change_test_particle_lifetime); }
+                        break;
+                    case actions.change_test_particle_burst: // new
+                        { slider_driver(engine, c, actions.change_test_particle_burst); }
+                        break;
+                    case actions.change_test_particle_emitter_radius: // new
+                        { slider_driver(engine, c, actions.change_test_particle_emitter_radius); }
+                        break;
+                    case actions.change_test_particle_scale: // new
+                        { slider_driver(engine, c, actions.change_test_particle_scale); }
+                        break;
+                    case actions.change_test_particle_rotation: // new
+                        { slider_driver(engine, c, actions.change_test_particle_rotation); }
+                        break;
+                    case actions.change_test_particle_creation_rate: // new
+                        { slider_driver(engine, c, actions.change_test_particle_creation_rate); }
+                        break;
+//---------------------------------------------------------------------------------------------------------------Sliders End
                     case actions.switch_theme:
                         {// assign current theme
                             try
@@ -1698,7 +1808,7 @@ namespace EditorEngine
 
                                 // show light context if light is hovered or if there are lights in selection
                                 if (
-                                    engine.get_current_world().is_light_object_in_cell(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine))
+                                    engine.get_current_world().is_light_object_in_cell(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine,false))
                                     || get_selection_lights().Count > 0 
                                     )
                                 {
@@ -1709,22 +1819,19 @@ namespace EditorEngine
                                     {
                                         GUI.set_container_visibility("lights context menu", true);
                                         //if light is hovered - add the matching light from all lights (by position)
-                                        if(engine.get_current_world().is_light_object_in_cell(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine)))
+                                        if(engine.get_current_world().is_light_object_in_cell(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine, false)))
                                         {
                                             editor_mode = modes.select; // switch mode
-                                            selection_start_cell = engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine);
+                                            selection_start_cell = engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine, false);
                                             selection_end_cell = selection_start_cell;
                                         }
-
-                                        //selection_lights.Add(engine.get_current_world().world_lights.Find(x => engine.are_vectors_equal(x.position, engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine))       ));
-                                        //selection_matrix.Add(engine.get_current_world().get_current_hovered_cell(engine.get_current_mouse_state(), engine));
                                     }
                                 }
                                 else // show main context if no light is hovered
                                 {
                                     GUI.change_container_origin(engine.get_viewport(), "context menu", engine.get_mouse_vector() + Vector2.One); // create almost at mouse, to avoid inital hover
 
-                                    if (c == command.right_click) // ignore if something is in line tool start get_cell_address
+                                    if (c == command.right_click) // ignore if something is in line tool start cell
                                         GUI.set_container_visibility("context menu", true);
                                 }
                                 // lock editor tools
@@ -1732,7 +1839,10 @@ namespace EditorEngine
                             }
                         }
                         break;
+                    // switch buttons update
                     case actions.option_value_switch:
+                    case actions.enable_particle_test:
+                    case actions.enable_particle_color_interpolation:
                         {
                             // for current tracked value of bool contexttype - switch this value
                             if (c == command.left_click)
@@ -1745,6 +1855,7 @@ namespace EditorEngine
                             }
                         }
                         break;
+                    //------------------------------
                     case actions.change_cell_design:
                         {
                             if (GUI.get_hovered_element() is IDButton<short> && c == command.left_click)
@@ -1753,6 +1864,52 @@ namespace EditorEngine
                                 hide_all_contexts();
                             }
                         }
+                        break;
+                    case actions.change_test_particle_star:
+                        engine.change_test_particle_shape(particle_type.star);
+                        GUI.activate_particle_test_buttons((actions)action);
+                        break;
+                    case actions.change_test_particle_square:
+                        engine.change_test_particle_shape(particle_type.square);
+                        GUI.activate_particle_test_buttons((actions)action);
+                        break;
+                    case actions.change_test_particle_circle:
+                        engine.change_test_particle_shape(particle_type.circle);
+                        GUI.activate_particle_test_buttons((actions)action);
+                        break;
+                    case actions.change_test_particle_hollow_square:
+                        engine.change_test_particle_shape(particle_type.hollow_square);
+                        GUI.activate_particle_test_buttons((actions)action);
+                        break;
+                    case actions.change_test_particle_raindrop:
+                        engine.change_test_particle_shape(particle_type.raindrop);
+                        GUI.activate_particle_test_buttons((actions)action);
+                        break;
+                    case actions.change_test_particle_triangle:
+                        engine.change_test_particle_shape(particle_type.triangle);
+                        GUI.activate_particle_test_buttons((actions)action);
+                        break;
+                    case actions.change_test_particle_x:
+                        engine.change_test_particle_shape(particle_type.x);
+                        GUI.activate_particle_test_buttons((actions)action);
+                        break;
+                    case actions.change_test_trajectory_fall:
+                        engine.change_particle_trajectory(trajectory_type.fall);
+                        break;
+                    case actions.change_test_trajectory_chaos:
+                        engine.change_particle_trajectory(trajectory_type.chaotic);
+                        break;
+                    case actions.change_test_trajectory_rise:
+                        engine.change_particle_trajectory(trajectory_type.rise);
+                        break;
+                    case actions.change_test_trajectory_ballistic_curve:
+                        engine.change_particle_trajectory(trajectory_type.ballistic_curve);
+                        break;
+                    case actions.change_test_trajectory_static:
+                        engine.change_particle_trajectory(trajectory_type.static_);
+                        break;
+                    case actions.change_test_trajectory_laser:
+                        engine.change_particle_trajectory(trajectory_type.laser_line);
                         break;
                     case actions.hide_menu:
                         hide_all_contexts();
@@ -1797,6 +1954,26 @@ namespace EditorEngine
 // support functions 
 
         /// <summary>
+        /// New: Handles slider GUI
+        /// </summary>
+        /// <param name="engine">engine object for mouse properties</param>
+        /// <param name="c">command e.g. left click/hold</param>
+        /// <param name="act">action e.g. actions.change_test_particle_emitter_radius</param>
+        public void slider_driver(Engine engine, command c, actions act)
+        {
+            set_hostUI_lock(true);
+            if (GUI.get_hovered_element_action_enum() == act)
+            {
+                // change the slider value
+                if (c == command.left_hold)
+                {
+                    GUI.update_slider_values(GUI.find_unit(act), engine.get_mouse_vector());
+                }
+                else
+                    set_hostUI_lock(false);
+            }
+        }
+        /// <summary>
         /// Editor will accept a keyboard input as characters if there is an active text input target 
         /// </summary>
         /// <param name="value">string input</param>
@@ -1805,7 +1982,7 @@ namespace EditorEngine
             if (current_focused == null)
                 return;
 
-            long current = engine.get_current_game_millisecond();
+            long current = Engine.get_current_game_millisecond();
             string last = current_focused.get_last_input();
 
             if (!String.Equals(last, value)) // different input
@@ -1823,16 +2000,23 @@ namespace EditorEngine
                     if (current_focused != null)
                     {
                         current_focused.add_text(value);
-                        last_input_timestamp = engine.get_current_game_millisecond(); // assign new value to most recent input
+                        last_input_timestamp = Engine.get_current_game_millisecond(); // assign new value to most recent input
                     }
                 }
             }
         }
-
+        /// <summary>
+        /// Get a list of Point Lights currently selected.
+        /// </summary>
+        /// <returns>List of lights</returns>
         public List<PointLight> get_selection_lights()
         {
             return selection_lights;
         }
+        /// <summary>
+        /// Get input status
+        /// </summary>
+        /// <returns>true or false</returns>
         public bool accepting_input()
         {
             return (current_focused != null);
@@ -1844,25 +2028,39 @@ namespace EditorEngine
         {
             last_input_timestamp = 0;
         }
-
+        /// <summary>
+        /// Update millisecond of last key input
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
         public void refresh_focused_input_delay(Engine engine)
         {
-            last_input_timestamp = engine.get_current_game_millisecond(); // to keep delay active in case there was no input
+            last_input_timestamp = Engine.get_current_game_millisecond(); // to keep delay active in case there was no input
         }
-
+        /// <summary>
+        /// Backspace handler
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
         public void erase_one_character_from_input(Engine engine)
         {
-            if ((last_backspace_timestamp + backspace_delay <= engine.get_current_game_millisecond()))
+            if ((last_backspace_timestamp + backspace_delay <= Engine.get_current_game_millisecond()))
             {
                 current_focused.erase_one_character();
-                last_backspace_timestamp = engine.get_current_game_millisecond();
+                last_backspace_timestamp = Engine.get_current_game_millisecond();
             }
         }
-
+        /// <summary>
+        /// Get a TextInput object that is the current input
+        /// </summary>
+        /// <returns>TextInput object</returns>
         public TextInput get_current_input_target()
         {
             return current_focused;
         }
+        /// <summary>
+        /// Find theme by name
+        /// </summary>
+        /// <param name="id">name id</param>
+        /// <returns>color theme if found, if not return a default</returns>
         public color_theme find_theme(string id)
         {
             foreach (color_theme t in themes)
@@ -1874,21 +2072,35 @@ namespace EditorEngine
             }
             return default(color_theme);
         }
-
+        /// <summary>
+        /// Get current color theme
+        /// </summary>
+        /// <returns>color theme</returns>
         public color_theme get_current_theme()
         {
             return current_theme;
         }
-
+        /// <summary>
+        /// Selection transparency value
+        /// </summary>
+        /// <returns>transparency value 0-1</returns>
         public float get_selection_transparency()
         {
             return sel_transparency;
         }
+        /// <summary>
+        /// Get selection color
+        /// </summary>
+        /// <returns>selection color value</returns>
         public Color get_selection_color()
         {
             return selection_color;
         }
-        // functions executed by "editor_command"
+// functions executed by "editor_command"
+        /// <summary>
+        /// Deletes entire world cells
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
         public void delete_all_cells(Engine engine)
         {
             for (int i = 1; i <= engine.get_current_world().width; i++)
@@ -1899,6 +2111,10 @@ namespace EditorEngine
                 }
             }
         }
+        /// <summary>
+        /// Fill all available cells with a tile block
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
         public void fill_all_cells(Engine engine)
         {
             for (int i = 1; i <= engine.get_current_world().width; i++)
@@ -1910,7 +2126,9 @@ namespace EditorEngine
                 }
             }
         }
-
+        /// <summary>
+        /// Change submode
+        /// </summary>
         public void submode_decrease()
         {
             line_start_cell.X = line_start_cell.Y = -1;
@@ -1923,6 +2141,9 @@ namespace EditorEngine
             else
                 editor_tools--;
         }
+        /// <summary>
+        /// Change submode
+        /// </summary>
         public void submode_increase()
         {
             line_start_cell.X = line_start_cell.Y = -1;
@@ -1935,21 +2156,35 @@ namespace EditorEngine
             else
                 editor_tools++;
         }
-
+        /// <summary>
+        /// Get overwrite existing cells status
+        /// </summary>
+        /// <returns>true or false - can overwrite</returns>
         public bool cell_overwrite_mode()
         {
             return overwrite_cells;
         }
+        /// <summary>
+        /// Update overwrite cells mode
+        /// </summary>
+        /// <param name="value">true or false</param>
         public void set_overwrite_mode(bool value)
         {
             overwrite_cells = value;
         }
-
+        /// <summary>
+        /// Return the id of currently active cell type. This cell type will be added to an empty cell if a tool is used. 
+        /// This cell type will also be updated to if selection matrix is active and alt+c is pressed
+        /// </summary>
+        /// <returns>tile id</returns>
         public short get_current_editor_cell()
         {
             return edit_tile_id;
         }
-
+        /// <summary>
+        /// Convert selection cells from cell address to world_map array indexes
+        /// </summary>
+        /// <returns>array of 2 vectors - start and end cells</returns>
         public Vector2[] get_selection_real_start_end_cells()
         {
             Vector2 real_start_cell = Vector2.Zero;
@@ -2041,6 +2276,10 @@ namespace EditorEngine
                 }
             }
         }
+        /// <summary>
+        /// Update current editor mode
+        /// </summary>
+        /// <param name="mode">new mode name</param>
         public void switch_mode(String mode)
         {
             if (mode == "add")
@@ -2074,7 +2313,9 @@ namespace EditorEngine
                 GUI.find_container("CONTAINER_SUBMODES").set_visibility(false);
             }
         }
-        // hide context
+        /// <summary>
+        /// Hide all containers that have a context property activated
+        /// </summary>
         public void hide_all_contexts()
         {
             foreach (Container c in GUI.get_containers())
@@ -2085,6 +2326,9 @@ namespace EditorEngine
                 }
             }
         }
+        /// <summary>
+        /// Hide all context containers 
+        /// </summary>
         public void hide_expandable_containers_only()
         {
             foreach (Container c in GUI.get_containers())
@@ -2096,7 +2340,9 @@ namespace EditorEngine
                 }
             }
         }
-
+        /// <summary>
+        /// Remove cells from the line tool matrix. Does not physically remove cells from the world.
+        /// </summary>
         public void clear_line_mode()
         {
             line_start_cell.X = -1; // -1 will be treated as null by the driver function
@@ -2120,14 +2366,17 @@ namespace EditorEngine
 
             return false;
         }
-
+        /// <summary>
+        /// Handles line tool. Creates a line based on mouse movement.
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
         public void line_tool_driver(Engine engine)
         {
             if (line_start_cell.X == -1)
                 return;
 
-            Vector2 cell = engine.get_world_list().get_current().get_current_hovered_cell(engine.get_current_mouse_state(), engine); // checks which get_cell_address is being hovered in the current world
-            //line_end_cell = get_cell_address;
+            Vector2 cell = engine.get_world_list().get_current().get_current_hovered_cell(engine.get_current_mouse_state(), engine); // checks which cell is being hovered in the current world
+            //line_end_cell = cell;
             line_matrix.Clear();
 
             int x_difference = Math.Abs((int)cell.X - (int)line_start_cell.X);
@@ -2151,7 +2400,7 @@ namespace EditorEngine
                         line_matrix.Add(new Vector2(i, line_start_cell.Y));
                     }
                 }
-                // assign last hovered get_cell_address as new start point
+                // assign last hovered cell as new start point
                 line_end_cell.X = cell.X;
                 line_end_cell.Y = line_start_cell.Y;
             }
@@ -2171,30 +2420,46 @@ namespace EditorEngine
                         line_matrix.Add(new Vector2(line_start_cell.X, i));
                     }
                 }
-                // assign last hovered get_cell_address as new start point
+                // assign last hovered cell as new start point
                 line_end_cell.X = line_start_cell.X;
                 line_end_cell.Y = cell.Y;
             }
         }
+        /// <summary>
+        /// Serialization of selection color
+        /// </summary>
+        /// <returns>string value of color</returns>
         public string get_selection_color_surrogate()
         {
             return selection_color_surrogate;
         }
+        /// <summary>
+        /// Get real value of interface color
+        /// </summary>
+        /// <returns>current theme color</returns>
         public Color get_interface_color()
         {
             return current_theme.interface_color;
         }
-
+        /// <summary>
+        /// Get interface transparency value
+        /// </summary>
+        /// <returns>float value 0-1</returns>
         public float get_interface_transparency()
         {
             return current_theme.interface_transparency;
         }
-        // matrix size
+        /// <summary>
+        /// Number of selection matrix cells
+        /// </summary>
+        /// <returns>int count</returns>
         public int selection_matrix_size()
         {
             return selection_matrix.Count;
         }
-        // remove selection
+        /// <summary>
+        /// Clear cells from current selection (does not remove them from the world)
+        /// </summary>
         public void clear_selection()
         {
             selection_start_cell = null;
@@ -2204,8 +2469,9 @@ namespace EditorEngine
             selection_watergen.Clear();
         }
 
-        // remove focus from inputs
-        // needed to prevent stuck aswd keys
+        /// <summary>
+        /// Removes focus from all the inputs
+        /// </summary>
         public void unfocus_inputs()
         {
             try
@@ -2224,15 +2490,20 @@ namespace EditorEngine
                 current_focused = null;       // clear focus from input
             }
         }
-        // selection matrix handling function
+
+        /// <summary>
+        /// selection matrix handling function
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
         public void selection_driver(Engine engine)
         {
             // calculate if selection is in a proper range
-            if (selection_start_cell == null || selection_end_cell == null || !engine.get_current_world().valid_cell((Vector2)(selection_end_cell)) || !engine.get_current_world().valid_cell((Vector2)(selection_start_cell)))
+            // validity of cells calculated in caller functions
+            if (selection_start_cell == null || selection_end_cell == null)
                 return;
 
             Vector2 beginning = (Vector2)selection_start_cell;
-            Vector2 end = (Vector2)selection_end_cell;
+            Vector2 end       = (Vector2)selection_end_cell;
 
             // clear matrix
             selection_matrix.Clear();
@@ -2245,7 +2516,7 @@ namespace EditorEngine
                     {
                         for (int j = (int)end.Y; j <= (int)beginning.Y; j++)
                         {
-                            selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
+                            selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
                         }
                     }
                 }
@@ -2255,7 +2526,7 @@ namespace EditorEngine
                     {
                         for (int j = (int)beginning.Y; j <= (int)end.Y; j++)
                         {
-                            selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
+                            selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
                         }
                     }
                 }
@@ -2268,7 +2539,7 @@ namespace EditorEngine
                     {
                         for (int j = (int)end.Y; j <= (int)beginning.Y; j++)
                         {
-                            selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
+                            selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
                         }
                     }
                 }
@@ -2278,7 +2549,7 @@ namespace EditorEngine
                     {
                         for (int j = (int)beginning.Y; j <= (int)end.Y; j++)
                         {
-                            selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
+                            selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
                         }
                     }
                 }
@@ -2291,7 +2562,7 @@ namespace EditorEngine
 
                     for (int j = (int)end.Y; j <= (int)beginning.Y; j++)
                     {
-                        selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
+                        selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
                     }
                 }
                 else if (beginning.Y <= end.Y) // start vector Y first
@@ -2300,7 +2571,7 @@ namespace EditorEngine
 
                     for (int j = (int)beginning.Y; j <= (int)end.Y; j++)
                     {
-                        selection_matrix.Add(new Vector2(i, j)); // add get_cell_address to selection matrix
+                        selection_matrix.Add(new Vector2(i, j)); // add cell to selection matrix
                     }
                 }
             }
@@ -2309,8 +2580,22 @@ namespace EditorEngine
             selection_lights.Clear(); // prepare for refresh
             foreach (PointLight p in engine.get_current_world().world_lights)
             {
+                // adjust for negative values, since world starts at 1 
+                Vector2 a = engine.get_current_world().vector_position_to_cell(p.position);
+                if(a.X < 0 && a.Y < 0)
+                {
+                    a -= Vector2.One;
+                }
+                else if(a.X < 0)
+                {
+                    a -= new Vector2(1, 0);
+                }
+                else if (a.Y < 0)
+                {
+                    a -= new Vector2(0, 1);
+                }
                 //engine.get_current_world().vector_position_to_cell(p.position);// if selection matrix contains
-                if (selection_matrix.Contains(engine.get_current_world().vector_position_to_cell(p.position)))
+                if (selection_matrix.Contains(a))
                 {
                     selection_lights.Add(p); // add this light to selection lights
                 }
@@ -2327,7 +2612,10 @@ namespace EditorEngine
                 }
             }
         }
-
+        /// <summary>
+        /// Deserialize interface 
+        /// </summary>
+        /// <param name="deserialized_list">list of containers saved in an xml file</param>
         public void seed_interface_with_serialized_data(List<Container> deserialized_list)
         {
             try
@@ -2347,7 +2635,10 @@ namespace EditorEngine
                 // no user interface info saved - use defaults
             }
         }
-
+        /// <summary>
+        /// Set the state of newly created elements
+        /// </summary>
+        /// <param name="deserialized_editor">Editor instance</param>
         public void seed_interface_with_color_data(Editor deserialized_editor)
         {
             if (deserialized_editor == null)
@@ -2357,7 +2648,7 @@ namespace EditorEngine
             current_theme.deserialize_color_string();
             sel_transparency = 0.5f;
 
-            // attempt to resurrcet selection color data
+            // attempt to resurrect selection color data
             try
             {
                 selection_color = TextEngine.delimited_string_to_color(deserialized_editor.get_selection_color_surrogate());
@@ -2373,6 +2664,5 @@ namespace EditorEngine
             ((Slider)GUI.find_unit(actions.update_selection_color_green)).set_slider_value(selection_color.G);
             ((Slider)GUI.find_unit(actions.update_selection_color_blue)).set_slider_value(selection_color.B);
         }
-
     }// class end
-}
+}// namespace end

@@ -8,20 +8,58 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 /*
- * XML world Tile data loaded into this
+ * Classes contain XML structure for serializaed objects of various types
  * IMPORTANT - always define all variables public in these datatypes
  */
 namespace MyDataTypes
 {
     public class MapData
     {
-        public string block_name;  // name of the Tile to be drawn
+        public int block_name;     // tile id
         public int block_x;        // position horizontal, starting x coordinate 
         public int block_y;        // position vertical,   starting y copordinate
         public int width;          // how many Tile to the right 
         public int height;         // how many ui_elements up
+        public int water_content;  // number of water units
     }
-
+    public class WaterData
+    {
+        public float cell_x;      
+        public float cell_y;      
+        public float pos_x;         
+        public float pos_y;          
+        public int intensity;          
+    }
+    public class Tree_Data      
+    {
+        public string name_modifier;
+        public float origin_x;
+        public float origin_y;
+        public int crown_variant;
+        public int base_variant;
+        public int max_trunks;
+        public int tint_r;
+        public int tint_g;
+        public int tint_b;
+        public float tint_factor;
+    }
+    public class Light_Data
+    {
+        public float origin_x;
+        public float origin_y;
+        public float cell_x;
+        public float cell_y;
+        public int tint_r;
+        public int tint_g;
+        public int tint_b;
+        public float radius;
+        public float intensity;
+    }
+    public class Grass_Data
+    {
+        public float origin_x;
+        public float origin_y;
+    }
     // Need to create a loading function that will parse data contained in xml and do the following:
     /// <summary>
     /// 1. create a Container

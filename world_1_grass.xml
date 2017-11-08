@@ -1,0 +1,1029 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<XnaContent xmlns:Collections="System.Collections">
+  <Asset Type="Collections:ArrayList">
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>30</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>31</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>32</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>29</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>39</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>40</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>41</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>38</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>37</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>48</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>47</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>46</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>33</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>42</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>36</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>45</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>34</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>43</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>35</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>44</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>47</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>48</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>46</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>45</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>80</origin_x>
+      <origin_y>25</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>33</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>34</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>35</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>32</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>31</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>43</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>44</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>45</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>42</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>41</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>274</origin_x>
+      <origin_y>75</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>248</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>249</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>250</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>247</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>246</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>251</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>252</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>265</origin_x>
+      <origin_y>78</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>266</origin_x>
+      <origin_y>78</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>267</origin_x>
+      <origin_y>78</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>264</origin_x>
+      <origin_y>78</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>263</origin_x>
+      <origin_y>78</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>253</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>262</origin_x>
+      <origin_y>78</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>254</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>255</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>256</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>257</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>258</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>259</origin_x>
+      <origin_y>73</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>120</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>121</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>122</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>119</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>118</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>96</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>97</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>98</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>95</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>94</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>101</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>102</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>103</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>100</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>99</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>74</origin_x>
+      <origin_y>28</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>1</origin_x>
+      <origin_y>14</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>30</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>31</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>32</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>29</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>152</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>153</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>155</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>162</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>163</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>163</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>162</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>169</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>168</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>178</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>179</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>180</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>176</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>175</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>174</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>174</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>175</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>176</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>173</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>180</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>181</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>179</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>178</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>183</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>184</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>186</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>185</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>188</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>189</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>190</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>193</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>192</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>199</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>200</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>207</origin_x>
+      <origin_y>28</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>206</origin_x>
+      <origin_y>28</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>208</origin_x>
+      <origin_y>29</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>209</origin_x>
+      <origin_y>29</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>221</origin_x>
+      <origin_y>31</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>220</origin_x>
+      <origin_y>31</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>223</origin_x>
+      <origin_y>31</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>224</origin_x>
+      <origin_y>31</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>225</origin_x>
+      <origin_y>31</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>226</origin_x>
+      <origin_y>30</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>227</origin_x>
+      <origin_y>30</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>227</origin_x>
+      <origin_y>30</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>226</origin_x>
+      <origin_y>30</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>230</origin_x>
+      <origin_y>30</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>231</origin_x>
+      <origin_y>30</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>213</origin_x>
+      <origin_y>30</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>211</origin_x>
+      <origin_y>30</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>210</origin_x>
+      <origin_y>30</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>216</origin_x>
+      <origin_y>31</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>215</origin_x>
+      <origin_y>31</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>214</origin_x>
+      <origin_y>31</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>245</origin_x>
+      <origin_y>26</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>244</origin_x>
+      <origin_y>26</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>243</origin_x>
+      <origin_y>26</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>250</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>269</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>270</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>271</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>268</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>267</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>266</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>265</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>257</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>258</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>240</origin_x>
+      <origin_y>28</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>239</origin_x>
+      <origin_y>28</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>238</origin_x>
+      <origin_y>29</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>237</origin_x>
+      <origin_y>29</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>236</origin_x>
+      <origin_y>30</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>234</origin_x>
+      <origin_y>30</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>297</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>298</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>296</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>287</origin_x>
+      <origin_y>20</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>284</origin_x>
+      <origin_y>20</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>282</origin_x>
+      <origin_y>20</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>281</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>280</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>278</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>276</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>277</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>274</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>273</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>273</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>274</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>264</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>251</origin_x>
+      <origin_y>25</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>261</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>262</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>263</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>260</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>262</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>263</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>261</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>260</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>292</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>293</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>294</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>295</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>15</origin_x>
+      <origin_y>25</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>14</origin_x>
+      <origin_y>25</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>49</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>49</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>50</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>50</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>51</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>51</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>60</origin_x>
+      <origin_y>12</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>59</origin_x>
+      <origin_y>12</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>58</origin_x>
+      <origin_y>12</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>52</origin_x>
+      <origin_y>12</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>53</origin_x>
+      <origin_y>12</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>54</origin_x>
+      <origin_y>12</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>57</origin_x>
+      <origin_y>12</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>55</origin_x>
+      <origin_y>12</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>56</origin_x>
+      <origin_y>12</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>146</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>147</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>149</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>150</origin_x>
+      <origin_y>19</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>143</origin_x>
+      <origin_y>20</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>142</origin_x>
+      <origin_y>20</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>68</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>69</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>70</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>67</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>66</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>71</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>65</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>203</origin_x>
+      <origin_y>26</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>204</origin_x>
+      <origin_y>26</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>202</origin_x>
+      <origin_y>25</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>201</origin_x>
+      <origin_y>25</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>205</origin_x>
+      <origin_y>27</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>72</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>64</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>253</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>252</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>255</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>256</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>73</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>63</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>62</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>61</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>60</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>172</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>170</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>182</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>182</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>177</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>177</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>177</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>177</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>187</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>187</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>191</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>191</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>171</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>217</origin_x>
+      <origin_y>31</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>219</origin_x>
+      <origin_y>31</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>246</origin_x>
+      <origin_y>26</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>254</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>254</origin_x>
+      <origin_y>24</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>218</origin_x>
+      <origin_y>31</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>259</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>259</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>259</origin_x>
+      <origin_y>23</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>272</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>272</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>272</origin_x>
+      <origin_y>22</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>247</origin_x>
+      <origin_y>26</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>291</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>290</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>289</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+    <Item Type="MyDataTypes.Grass_Data">
+      <origin_x>288</origin_x>
+      <origin_y>21</origin_y>
+    </Item>
+  </Asset>
+</XnaContent>

@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<XnaContent xmlns:Collections="System.Collections">
+  <Asset Type="Collections:ArrayList">
+    <Item Type="MyDataTypes.Tree_Data">
+      <name_modifier>palm</name_modifier>
+      <origin_x>43</origin_x>
+      <origin_y>27</origin_y>
+      <crown_variant>1</crown_variant>
+      <base_variant>1</base_variant>
+      <max_trunks>7</max_trunks>
+      <tint_r>248</tint_r>
+      <tint_g>248</tint_g>
+      <tint_b>248</tint_b>
+      <tint_factor>0.974663</tint_factor>
+    </Item>
+  </Asset>
+</XnaContent>

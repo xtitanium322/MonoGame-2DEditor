@@ -12,41 +12,42 @@ using Microsoft.Xna.Framework.Media;
 namespace EditorEngine
 {
     /// <summary>
-    /// container is a part of GUI. Container hold GUI stored_elements such as buttons, sliders, selectors etc.
+    /// Container is a part of GUI. Container hold GUI stored_elements such as buttons, sliders, selectors etc.
     /// </summary>
     [Serializable()]
     public class Container
     {
-        private string id;
-        [NonSerialized]
-        private Rectangle bounds;
-        private string bounds_surrogate; // a serializeable format for Rectangle value - saves container position if moved
-        [NonSerialized]
-        private Texture2D background;
-        [NonSerialized]
-        private Color bg_color;
+// identification
+        private string id;                          // text id for easy identification
+        private String container_name;              // not a label
+// color and size        
+        [NonSerialized] private Rectangle bounds;     // boundary rectangle
+        [NonSerialized] private Texture2D background; // texture background element
+        [NonSerialized] private Color bg_color;       // background color
         private float bg_transparency;
-        private String container_name; // not a label
-        private List<UIElementBase> stored_elements; // all GUI stored_elements inside of this container
-        private bool visible; // used to show/hide separate containers
-        private bool customized_background;
-        private actions? click_action; // null or action; if null - element is for display only, otherwise clicking on this element will initiate execution of some "action" by GUI "editor_command" function
+        private bool  customized_background;
+// main structure
+        private List<UIElementBase> stored_elements;// all GUI stored_elements inside of this container
+        private bool visible;                       // used to show/hide separate containers
+        private actions? click_action;              // null or action; if null - element is for display only, otherwise clicking on this element will initiate execution of some "action" by GUI "editor_command" function
         private state state;
         private context_type contexttype;
-
-        private bool scrollbar;      // scrollbar mode is active or inactive
-        private int scrollbar_width;        // width of the scrollbar - will be added to context positioning formula if scrollbar bool is true
-        private int visible_elements;    // number of elements that are allowed in current view, for example, 5 out of total 15
-        private int current_top_element;    // on top of the visible list of elements in container
+// serialization help
+        private string bounds_surrogate;            // a serializeable format for Rectangle value - saves container position if moved
+// scrolling settings
+        private bool scrollbar;                     // scrollbar mode is active or inactive
+        private int scrollbar_width;                // width of the scrollbar - will be added to context positioning formula if scrollbar bool is true
+        private int visible_elements;               // number of elements that are allowed in current view, for example, 5 out of total 15
+        private int current_top_element;            // on top of the visible list of elements in container
         private const int minimal_top_element = 1;
-        private int scroll_slider_height;   // stored variable - height of scroll slider as it is now
-        private int max_y_start; // furthest position of the slider possible with current number of elements and slider size
-        private int current_y_start; // current slider coordinate
-        // container fade in effect values
+        private int scroll_slider_height;           // stored variable - height of scroll slider as it is now
+        private int max_y_start;                    // furthest position of the slider possible with current number of elements and slider size
+        private int current_y_start;                // current slider coordinate
+// container fade in effect values
         private long fade_in_start_time;
         private float fade_in_delay = 0f;
-        private float fade_in_duration = 0f; // 250 ms test
-        private const float fade_in_step = 0f; // difference between consecutive elements assigned fade_in_start_time
+        private float fade_in_duration = 0f;        // 250 ms test
+        private const float fade_in_step = 0f;      // difference between consecutive elements assigned fade_in_start_time
         // Container for GUI stored_elements-------------------------------------------------------------------------------------------------------------135c
         public Container()
         {
@@ -82,7 +83,11 @@ namespace EditorEngine
 
             fade_in_start_time = 0;
         }
-
+        /// <summary>
+        /// Enables the scrollbar for container with overflowing elements
+        /// </summary>
+        /// <param name="scrollbar_width">in pixels</param>
+        /// <param name="visible_elements">number of elements visible without scrolling</param>
         public void enable_scrollbar(int scrollbar_width, int visible_elements)
         {
             this.scrollbar_width = scrollbar_width;
@@ -91,8 +96,11 @@ namespace EditorEngine
             this.bounds.Width += scrollbar_width;
             recalculate_bounds(); // adjust container size based on number of currently visible elements in order
         }
-        // component for main Draw functions
-        // limit number of elements displayed
+        /// <summary>
+        /// Render scrollbar on the side of the container
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
+        /// <param name="transparency">float value 0 to 1</param>
         public void draw_scrollbar(Engine engine, float transparency)
         {
             if (scrollbar)
@@ -100,7 +108,7 @@ namespace EditorEngine
                 float val = 0;
                 if (fade_in_start_time != 0)
                 {
-                    val = engine.fade_up(fade_in_start_time, fade_in_delay, fade_in_duration + 200, 1.0f);
+                    val = Engine.fade_up(fade_in_start_time, fade_in_delay, fade_in_duration + 200, 1.0f);
                 }
                 // calculate rectangles for drawing
                 Rectangle scroll_area = new Rectangle(this.bounds.Width + this.bounds.X, this.bounds.Y, scrollbar_width, this.bounds.Height);
@@ -214,10 +222,18 @@ namespace EditorEngine
         {
             bounds = Engine.delimited_string_to_rectangle(bounds_surrogate);
         }
+        /// <summary>
+        /// Get string id of the container
+        /// </summary>
+        /// <returns>id value</returns>
         public string get_id()
         {
             return id;
         }
+        /// <summary>
+        /// Get the context type of the container
+        /// </summary>
+        /// <returns>context_type value</returns>
         public context_type get_context_type()
         {
             return contexttype;
@@ -239,7 +255,6 @@ namespace EditorEngine
             // refresh a serializeable surrogate for Rectangle type
             bounds_surrogate = Engine.rectangle_to_delimited_string(bounds);
         }
-
         /// <summary>
         /// This function checks Element for being outside the viewport and moves it back inside borders if needed
         /// Only done for visible non context containers
@@ -279,36 +294,10 @@ namespace EditorEngine
                     this.bounds.Y = v.Height - this.bounds.Height;
             }
         }
-
-        public void de_intersect(Vector2 direction, bool reverse_v, bool reverse_h)
-        {
-            if (!reverse_h)
-            {
-                if (!reverse_v)
-                {
-                    bounds.X += (int)direction.X;
-                    bounds.Y += (int)direction.Y;
-                }
-                else // reverse_v == true
-                {
-                    bounds.X += (int)direction.X;
-                    bounds.Y -= (int)direction.Y;
-                }
-            }
-            else// reverse_h == true
-            {
-                if (!reverse_v)
-                {
-                    bounds.X -= (int)direction.X;
-                    bounds.Y += (int)direction.Y;
-                }
-                else // reverse_v == true
-                {
-                    bounds.X -= (int)direction.X;
-                    bounds.Y -= (int)direction.Y;
-                }
-            }
-        }
+        /// <summary>
+        /// Set the ms marker. Used in fade animation.
+        /// </summary>
+        /// <param name="value">millisecond value</param>
         public void set_container_fade_start(long value)
         {
             fade_in_start_time = value;
@@ -332,7 +321,7 @@ namespace EditorEngine
             {
                 if (fade_in_start_time != 0)
                 {
-                    val = engine.fade_up(fade_in_start_time + (counter * fade_in_step), fade_in_delay, fade_in_duration, 1.0f);
+                    val = Engine.fade_up(fade_in_start_time + (counter * fade_in_step), fade_in_delay, fade_in_duration, 1.0f);
                 }
 
                 element.draw(engine, color, val);
@@ -344,7 +333,7 @@ namespace EditorEngine
             {
                 if (fade_in_start_time != 0)
                 {
-                    val = engine.fade_up(fade_in_start_time, fade_in_delay, fade_in_duration + 200, 1.0f);
+                    val = Engine.fade_up(fade_in_start_time, fade_in_delay, fade_in_duration + 200, 1.0f);
                 }
 
                 if (current_top_element > minimal_top_element)
@@ -377,6 +366,10 @@ namespace EditorEngine
                 return false;
             }
         }
+        /// <summary>
+        /// Add a custom background graphic
+        /// </summary>
+        /// <param name="t">texture representation of an uploaded graphic</param>
         public void add_custom_container_background(Texture2D t)
         {
             // add texture
@@ -396,7 +389,10 @@ namespace EditorEngine
         {
             return visible;
         }
-
+        /// <summary>
+        /// Returns the status of scrollbar
+        /// </summary>
+        /// <returns>true/false = enabled/disabled</returns>
         public bool scrollbar_enabled()
         {
             return scrollbar;
@@ -422,7 +418,11 @@ namespace EditorEngine
             // recalculate a serializeable surrogate for Rectangle type
             bounds_surrogate = Engine.rectangle_to_delimited_string(bounds);
         }
-
+        /// <summary>
+        /// Find UI element by the action it represents
+        /// </summary>
+        /// <param name="a">action enum value</param>
+        /// <returns>either a UIelement object or a null if not found</returns>
         public UIElementBase find_element(actions a)
         {
             foreach (UIElementBase u in stored_elements)
@@ -524,11 +524,19 @@ namespace EditorEngine
             if(value.Equals("toggle"))
                 visible = !visible;
         }
+        /// <summary>
+        /// Show the Container
+        /// </summary>
+        /// <param name="engine">Engine instance</param>
         public void make_visible(Engine engine)
         {
-            set_container_fade_start(engine.get_current_game_millisecond());
+            set_container_fade_start(Engine.get_current_game_millisecond());
             visible = true;
         }
+        /// <summary>
+        /// Update container transparency value
+        /// </summary>
+        /// <param name="value">0-1 float</param>
         public void set_transparency(float value)
         {
             bg_transparency = value;
