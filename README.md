@@ -7,3 +7,5 @@ fx files are the HLSL shader language files for graphics card
 bin files are serialized objects
 xml files are serialized editable files designed to create/update user interface and worlds
 png files are assets and output examples
+
+Please read the wiki page for more info
